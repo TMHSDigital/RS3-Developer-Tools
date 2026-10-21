@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/TMHSDigital/RS3-Developer-Tools/main/packages/schema/plugin.schema.json",
+  "title": "RuneScape 3 plugin manifest (plugin.json)",
+  "description": "Manifest for an official RuneScape 3 client plugin. Field list follows https://developer.runescape.com/rs/structure.html#manifest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "version", "contactEmailAddress"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional editor hint pointing at this schema."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "User-friendly plugin name."
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "pattern": "^[0-9A-Za-z][0-9A-Za-z.+-]*$",
+      "description": "User-friendly version string, for example 1.0.0."
+    },
+    "contactEmailAddress": {
+      "type": "string",
+      "format": "email",
+      "minLength": 3,
+      "description": "Contact email for users of the plugin. Required by Jagex; use an address different from your mod.io login."
+    },
+    "requiredDependencies": {
+      "$ref": "#/$defs/dependencyList",
+      "description": "Plugins that must be present and enabled. Array of plugin names, or a map of Lua alias to plugin name."
+    },
+    "optionalDependencies": {
+      "$ref": "#/$defs/dependencyList",
+      "description": "Plugins that add functionality when present. Same shape as requiredDependencies."
+    },
+    "requiredPermissions": {
+      "$ref": "#/$defs/permissionList",
+      "description": "Permissions the plugin cannot work without."
+    },
+    "optionalPermissions": {
+      "$ref": "#/$defs/permissionList",
+      "description": "Permissions that only unlock extra functionality."
+    },
+    "urls": {
+      "type": "object",
+      "description": "Named base URLs the plugin may contact over HTTP or HTTPS. Keys become fields of Plugin.urls.",
+      "propertyNames": { "$ref": "#/$defs/luaIdentifier" },
+      "additionalProperties": {
+        "type": "string",
+        "format": "uri",
+        "pattern": "^https?://[^\\s]+$"
+      }
+    },
+    "hasSettingsIcon": {
+      "type": "boolean",
+      "description": "Show a Settings icon in the Plugin Hub Manage tab; the client then raises Event.SettingsLayerReady."
+    },
+    "hasRibbonIcon": {
+      "type": "boolean",
+      "description": "Show a Ribbon icon in the Plugins window; the client then raises Event.ContentLayerReady."
+    }
+  },
+  "patternProperties": {
+    "^remote[A-Za-z0-9_]*$": {
+      "description": "Fields prefixed with remote are written by the plugin repository for downloaded plugins; they are tolerated but should not be hand-authored."
+    }
+  },
+  "$defs": {
+    "luaIdentifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "pluginName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "dependencyList": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/pluginName" },
+          "uniqueItems": true
+        },
+        {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/luaIdentifier" },
+          "additionalProperties": { "$ref": "#/$defs/pluginName" }
+        }
+      ]
+    },
+    "permission": {
+      "type": "string",
+      "enum": ["httpAccess", "chatAccess", "trackingAccess"]
+    },
+    "permissionList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/permission" },
+      "uniqueItems": true
+    }
+  }
+}

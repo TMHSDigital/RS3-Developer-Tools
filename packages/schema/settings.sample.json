@@ -1,0 +1,13 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["plugin.json", "**/dev_plugins/*/plugin.json"],
+      "url": "https://raw.githubusercontent.com/TMHSDigital/RS3-Developer-Tools/main/packages/schema/plugin.schema.json"
+    }
+  ],
+  "Lua.runtime.version": "Lua 5.4",
+  "Lua.workspace.checkThirdParty": false,
+  "Lua.workspace.library": [
+    "${workspaceFolder}/node_modules/@tmhs/rs3-luals-stubs/stubs"
+  ]
+}
