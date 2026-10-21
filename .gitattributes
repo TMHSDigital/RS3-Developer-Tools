@@ -1,0 +1,14 @@
+# Normalize line endings; generated Lua stubs must be byte-identical across platforms
+* text=auto eol=lf
+*.ts eol=lf
+*.js eol=lf
+*.mjs eol=lf
+*.json eol=lf
+*.md eol=lf
+*.yml eol=lf
+*.yaml eol=lf
+*.lua eol=lf
+*.mdc eol=lf
+
+*.png binary
+*.zip binary

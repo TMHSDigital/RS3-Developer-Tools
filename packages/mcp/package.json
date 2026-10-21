@@ -1,0 +1,30 @@
+{
+  "name": "@tmhs/rs3-plugin-mcp",
+  "version": "0.1.0",
+  "description": "stdio MCP server for RuneScape 3 plugin development: docs search and fetch, manifest validation, scaffolding, dev_plugins sync, preflight, packaging and API lookup",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": { "rs3-plugin-mcp": "dist/index.js" },
+  "files": ["dist", "examples", "README.md"],
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "license": "MIT",
+  "author": "TMHSDigital",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TMHSDigital/RS3-Developer-Tools.git",
+    "directory": "packages/mcp"
+  },
+  "engines": { "node": ">=22.0.0" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@tmhs/rs3-devtools-core": "0.1.0",
+    "@tmhs/rs3-luals-stubs": "0.1.0",
+    "zod": "^3.25.0"
+  }
+}

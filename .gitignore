@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+.env
+.DS_Store
+Thumbs.db
+
+# Local tool output that must never be committed
+.luals-cache/
+*.zip
+!tests/fixtures/**/*.zip
+packages/stubs-generator/.work/

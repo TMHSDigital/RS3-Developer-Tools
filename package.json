@@ -1,0 +1,51 @@
+{
+  "name": "rs3-developer-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lua-native developer toolkit for official RuneScape 3 plugins: LuaLS stubs, manifest schema, rs3dev CLI, MCP server, and Cursor/Claude Code guidance",
+  "type": "module",
+  "license": "MIT",
+  "author": "TMHSDigital",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TMHSDigital/RS3-Developer-Tools.git"
+  },
+  "homepage": "https://github.com/TMHSDigital/RS3-Developer-Tools#readme",
+  "bugs": {
+    "url": "https://github.com/TMHSDigital/RS3-Developer-Tools/issues"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "workspaces": [
+    "packages/schema",
+    "packages/core",
+    "packages/stubs-generator",
+    "packages/luals-stubs",
+    "packages/cli",
+    "packages/mcp"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/link-workspaces.mjs",
+    "link": "node scripts/link-workspaces.mjs",
+    "build": "node scripts/build-all.mjs",
+    "typecheck": "node scripts/build-all.mjs --typecheck",
+    "test": "vitest run --dir tests && npm test --workspaces --if-present",
+    "stubs:generate": "node packages/stubs-generator/dist/cli.js --out packages/luals-stubs",
+    "stubs:check": "node packages/stubs-generator/dist/cli.js --out packages/luals-stubs --check",
+    "luals:check": "node scripts/luals-check.mjs examples/hello-counter"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@types/node": "^22.10.0",
+    "ajv": "^8.17.0",
+    "ajv-formats": "^3.0.0",
+    "cheerio": "^1.0.0",
+    "chokidar": "^4.0.0",
+    "commander": "^12.1.0",
+    "fflate": "^0.8.2",
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.0",
+    "zod": "^3.25.0"
+  }
+}
