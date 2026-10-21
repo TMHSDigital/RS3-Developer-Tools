@@ -317,9 +317,10 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
         path: z.string().min(1).describe("Plugin folder, absolute or relative to the workspace"),
         outFile: z.string().optional().describe("Archive path; defaults to <workspace>/dist/<plugin>-<version>.zip"),
         overwrite: z.boolean().default(false),
+        allowPlaceholderEmail: z.boolean().default(false).describe("Package even if contactEmailAddress is a placeholder (tests only)"),
       },
     },
-    async ({ path: target, outFile, overwrite }) => {
+    async ({ path: target, outFile, overwrite, allowPlaceholderEmail }) => {
       const denied = await checkReadable(target);
       if (denied) return fail("PATH_DENIED", denied);
       const source = path.resolve(workspaceRoot, target);
@@ -331,7 +332,7 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
       if (errors.length > 0) return fail("PREFLIGHT", `preflight found ${errors.length} error(s); fix them first: ${errors.map((f) => f.message).join("; ")}`);
       try {
         await fsp.mkdir(path.join(workspaceRoot, "dist"), { recursive: true });
-        const result = await packagePlugin(source, { outFile: out, outDir: path.join(workspaceRoot, "dist"), overwrite });
+        const result = await packagePlugin(source, { outFile: out, outDir: path.join(workspaceRoot, "dist"), overwrite, allowPlaceholderEmail });
         return ok(result);
       } catch (error) {
         return fail("PACKAGE", (error as Error).message);

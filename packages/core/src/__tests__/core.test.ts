@@ -5,7 +5,8 @@ import { promises as fsp } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { unzipSync } from "fflate";
 import { readUtf8 } from "../fs.js";
-import { validateManifestObject, validatePluginDir, isDevArtifact } from "../manifest.js";
+import { validateManifestObject, validatePluginDir, isDevArtifact, isPlaceholderEmail } from "../manifest.js";
+import { libraryPathFor, resolveStubsDir } from "../luarc.js";
 import { preflightPlugin } from "../preflight.js";
 import { scanLua, globalReads, memberChains } from "../lua-scan.js";
 import { syncPlugin } from "../sync.js";
@@ -147,21 +148,76 @@ describe("sync", () => {
   });
 });
 
+describe("placeholder email", () => {
+  it("recognises example domains and change-me markers", () => {
+    expect(isPlaceholderEmail("someone@example.com")).toBe(true);
+    expect(isPlaceholderEmail("someone@mail.example.org")).toBe(true);
+    expect(isPlaceholderEmail("x@example.net")).toBe(true);
+    expect(isPlaceholderEmail("change-me@plugins.dev")).toBe(true);
+    expect(isPlaceholderEmail(undefined)).toBe(true);
+    expect(isPlaceholderEmail("support@tmhs.digital")).toBe(false);
+    expect(isPlaceholderEmail("someone@examples.com")).toBe(false);
+  });
+  it("is a preflight warning, not an error", async () => {
+    const result = await preflightPlugin(plugin("clean"));
+    const finding = result.findings.find((f) => f.code === "placeholder-email");
+    expect(finding?.level).toBe("warning");
+    expect(result.findings.filter((f) => f.level === "error")).toEqual([]);
+  });
+});
+
 describe("package", () => {
+  // The fixtures use example.com addresses, so tests opt in with the test-only flag.
+  const allow = { allowPlaceholderEmail: true };
+
+  it("refuses a placeholder contactEmailAddress unless explicitly allowed", async () => {
+    const out = await tempDir("rs3-zip0-");
+    await expect(packagePlugin(plugin("clean"), { outDir: out })).rejects.toThrow(/placeholder-email/);
+    await expect(fsp.stat(path.join(out, "clean-0.1.0.zip"))).rejects.toThrow();
+  });
   it("zips plugin files at the archive root and excludes dev artefacts", async () => {
     const out = await tempDir("rs3-zip-");
-    const result = await packagePlugin(plugin("clean"), { outDir: out });
+    const result = await packagePlugin(plugin("clean"), { outDir: out, ...allow });
     expect(path.basename(result.outFile)).toBe("clean-0.1.0.zip");
     const entries = Object.keys(unzipSync(new Uint8Array(await fsp.readFile(result.outFile)))).sort();
     expect(entries).toEqual(["lib/helpers.lua", "main.lua", "plugin.json"]);
     expect(result.reminder).toContain("submission");
-    await expect(packagePlugin(plugin("clean"), { outDir: out })).rejects.toThrow(/already exists/);
+    await expect(packagePlugin(plugin("clean"), { outDir: out, ...allow })).rejects.toThrow(/already exists/);
+  });
+  it("ships plugin.json without $schema, four-space indented, UTF-8 without BOM, trailing newline", async () => {
+    const out = await tempDir("rs3-zip3-");
+    const source = path.join(out, "src");
+    await fsp.cp(plugin("clean"), source, { recursive: true });
+    const original = JSON.parse(await readUtf8(path.join(source, "plugin.json")));
+    original.$schema = "https://example.com/schema.json";
+    await fsp.writeFile(path.join(source, "plugin.json"), "\uFEFF" + JSON.stringify(original));
+    const result = await packagePlugin(source, { outFile: path.join(out, "x.zip"), ...allow });
+    const entry = unzipSync(new Uint8Array(await fsp.readFile(result.outFile)))["plugin.json"]!;
+    expect(entry[0]).not.toBe(0xef);
+    const text = Buffer.from(entry).toString("utf8");
+    expect(text.endsWith("\n")).toBe(true);
+    expect(text).toContain('\n    "name": ');
+    const shipped = JSON.parse(text);
+    expect(shipped).not.toHaveProperty("$schema");
+    expect(shipped.name).toBe(original.name);
   });
   it("is deterministic", async () => {
     const out = await tempDir("rs3-zip2-");
-    const a = await packagePlugin(plugin("clean"), { outFile: path.join(out, "a.zip") });
-    const b = await packagePlugin(plugin("clean"), { outFile: path.join(out, "b.zip") });
+    const a = await packagePlugin(plugin("clean"), { outFile: path.join(out, "a.zip"), ...allow });
+    const b = await packagePlugin(plugin("clean"), { outFile: path.join(out, "b.zip"), ...allow });
     expect(await fsp.readFile(a.outFile)).toEqual(await fsp.readFile(b.outFile));
+  });
+});
+
+describe("luarc stubs resolution", () => {
+  it("honours RS3_STUBS_DIR and explicit overrides", async () => {
+    expect(await resolveStubsDir({ stubsDir: "C:/explicit", env: { RS3_STUBS_DIR: "C:/env" } })).toBe(path.resolve("C:/explicit"));
+    expect(await resolveStubsDir({ env: { RS3_STUBS_DIR: "C:/env" } })).toBe(path.resolve("C:/env"));
+    expect(await resolveStubsDir({ env: {} })).toMatch(/luals-stubs[\\/]stubs$/);
+  });
+  it("writes a relative library path on the same drive and an absolute one otherwise", () => {
+    expect(libraryPathFor("C:/dev/plugins/my-plugin", "C:/dev/tools/stubs")).toBe("../../tools/stubs");
+    expect(libraryPathFor("C:/dev/my-plugin", "D:/tools/stubs")).toBe("D:/tools/stubs");
   });
 });
 
@@ -180,7 +236,10 @@ describe("scaffold", () => {
     expect(main.charCodeAt(0)).not.toBe(0xfeff);
     const pre = await preflightPlugin(dir);
     expect(pre.findings.filter((f) => f.level === "error")).toEqual([]);
-    expect(JSON.parse(await readUtf8(path.join(dir, ".luarc.json")))["workspace.library"]).toEqual(["C:/stubs"]);
+    // The stubs override is on the same drive as the temp folder when both are on the system drive;
+    // either way the entry resolves back to the override.
+    const library = JSON.parse(await readUtf8(path.join(dir, ".luarc.json")))["workspace.library"][0] as string;
+    expect(path.resolve(dir, library)).toBe(path.resolve("C:/stubs"));
   });
   it("refuses non-empty folders and unknown permissions", async () => {
     const base = await tempDir("rs3-init2-");

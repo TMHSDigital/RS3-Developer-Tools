@@ -6,7 +6,7 @@ import * as path from "node:path";
 import type { PluginManifest } from "@tmhs/rs3-plugin-schema";
 import { DOCS, type Finding } from "./findings.js";
 import { listFilesRecursive, readUtf8 } from "./fs.js";
-import { isDevArtifact, validatePluginDir } from "./manifest.js";
+import { isDevArtifact, isPlaceholderEmail, validatePluginDir } from "./manifest.js";
 import { globalReads, memberChains, scanLua } from "./lua-scan.js";
 
 /** Standard libraries and functions the plugin sandbox does not provide. */
@@ -129,6 +129,14 @@ export async function preflightPlugin(pluginDir: string, options: PreflightOptio
     if (!findings.some((f) => f.code === "manifest-schema" && f.message.includes("contactEmailAddress"))) {
       findings.push({ level: "error", code: "contact-email", message: "contactEmailAddress is required by Jagex for every submitted plugin", file: "plugin.json", docsUrl: DOCS.manifest });
     }
+  } else if (isPlaceholderEmail(manifest.contactEmailAddress)) {
+    findings.push({
+      level: "warning",
+      code: "placeholder-email",
+      message: `contactEmailAddress "${manifest.contactEmailAddress}" is a placeholder; set a real address before packaging (package refuses placeholders)`,
+      file: "plugin.json",
+      docsUrl: DOCS.manifest,
+    });
   }
 
   return { manifest, findings, files: luaFiles };

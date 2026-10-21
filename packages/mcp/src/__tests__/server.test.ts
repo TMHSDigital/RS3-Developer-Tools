@@ -129,10 +129,14 @@ describe("rs3-plugin-mcp", () => {
     const bad = await callTool("package_zip", { path: "sandbox" });
     expect(bad.isError).toBe(true);
     expect(bad.text).toContain("PREFLIGHT");
-    const good = await callTool("package_zip", { path: "clean" });
+    // The clean fixture carries an example.com address, so packaging needs the test-only flag.
+    const placeholder = await callTool("package_zip", { path: "clean" });
+    expect(placeholder.isError).toBe(true);
+    expect(placeholder.text).toContain("placeholder-email");
+    const good = await callTool("package_zip", { path: "clean", allowPlaceholderEmail: true });
     expect(good.isError).toBe(false);
     expect(String(good.json!.outFile)).toContain(path.join(workspace, "dist"));
-    const escape = await callTool("package_zip", { path: "clean", outFile: path.join(os.tmpdir(), "escape.zip") });
+    const escape = await callTool("package_zip", { path: "clean", outFile: path.join(os.tmpdir(), "escape.zip"), allowPlaceholderEmail: true });
     expect(escape.isError).toBe(true);
   });
 });

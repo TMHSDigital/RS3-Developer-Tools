@@ -23,8 +23,11 @@ export interface ScaffoldOptions {
   contactEmail?: string;
   /** Copy AGENTS.md, Cursor rules and Claude Code skills into the plugin folder. Default true. */
   agentFiles?: boolean;
-  /** Stubs folder for .luarc.json; resolved automatically when omitted. */
+  /** Stubs folder for .luarc.json; resolved automatically when omitted (RS3_STUBS_DIR, then the installed package). */
   stubsDir?: string;
+  /** import.meta.url of the calling package so the stubs resolve next to the installed CLI. */
+  resolveFrom?: string;
+  env?: NodeJS.ProcessEnv;
   /** Allow writing into a non-empty folder (existing files are never overwritten). */
   force?: boolean;
 }
@@ -202,7 +205,7 @@ export async function scaffoldPlugin(options: ScaffoldOptions): Promise<Scaffold
   await writeNew("plugin.json", JSON.stringify(manifest, null, 2) + "\n");
   await writeNew("main.lua", renderMainLua(options, pluginName));
   if (!(await pathExists(path.join(dir, ".luarc.json")))) {
-    await writeLuarc(dir, options.stubsDir);
+    await writeLuarc(dir, { stubsDir: options.stubsDir, resolveFrom: options.resolveFrom, env: options.env });
     written.push(".luarc.json");
   }
   if (options.agentFiles ?? true) {

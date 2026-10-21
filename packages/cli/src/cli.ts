@@ -34,7 +34,7 @@ program
   .option("--prettyui", "add PrettyUI as a required dependency")
   .option("--email <address>", "contactEmailAddress for plugin.json")
   .option("--no-agent-files", "do not copy AGENTS.md, Cursor rules and Claude Code skills")
-  .option("--stubs <dir>", "stubs folder to reference from .luarc.json")
+  .option("--stubs <dir>", "stubs folder to reference from .luarc.json (default: RS3_STUBS_DIR or the installed @tmhs/rs3-luals-stubs)")
   .option("--force", "add files to an existing non-empty folder (never overwrites)")
   .option("-C, --cwd <dir>", "parent directory for the new plugin", process.cwd())
   .action(async (name: string, opts) => {
@@ -79,6 +79,7 @@ program
   .description("build the zip for manual upload to mod.io")
   .option("-o, --out <file>", "output archive path")
   .option("--overwrite", "replace an existing archive")
+  .option("--allow-placeholder-email", "package even if contactEmailAddress is a placeholder (tests only)", false)
   .action(async (target: string | undefined, opts) => {
     process.exitCode = await runPackage(target ?? ".", opts, output());
   });

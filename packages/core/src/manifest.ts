@@ -94,6 +94,24 @@ export async function readManifest(pluginDir: string): Promise<ManifestReadResul
   return { manifest: parsed as PluginManifest, findings };
 }
 
+/** Domains that only ever hold placeholder addresses. */
+const PLACEHOLDER_DOMAINS = ["example.com", "example.org", "example.net"];
+
+/**
+ * True when a contactEmailAddress is a placeholder: an example.* domain or a
+ * "change-me" marker. Jagex requires a real contact address, so preflight warns
+ * and package refuses.
+ */
+export function isPlaceholderEmail(email: string | undefined): boolean {
+  if (!email) return true;
+  const value = email.trim().toLowerCase();
+  if (value.includes("change-me")) return true;
+  const at = value.lastIndexOf("@");
+  if (at === -1) return true;
+  const domain = value.slice(at + 1);
+  return PLACEHOLDER_DOMAINS.some((d) => domain === d || domain.endsWith("." + d));
+}
+
 /** Files and folders that are development artefacts rather than plugin content. */
 export function isDevArtifact(relPath: string): boolean {
   const parts = relPath.split("/");

@@ -61,11 +61,24 @@ describe("rs3dev commands", () => {
     expect(sync.lines.join("\n")).toContain("prl demo-plugin");
     expect(await fsp.stat(path.join(root, "demo-plugin", "main.lua"))).toBeTruthy();
     await expect(fsp.stat(path.join(root, "demo-plugin", ".luarc.json"))).rejects.toThrow();
-    const pack = capture();
+    // init writes a change-me placeholder address, so package refuses until it is replaced.
+    const refused = capture();
     const outFile = path.join(base, "demo.zip");
-    expect(await runPackage(pluginDir, { out: outFile }, pack.options)).toBe(0);
+    expect(await runPackage(pluginDir, { out: outFile }, refused.options)).toBe(1);
+    expect(refused.errors.join("\n")).toContain("placeholder-email");
+    const pack = capture();
+    expect(await runPackage(pluginDir, { out: outFile, allowPlaceholderEmail: true }, pack.options)).toBe(0);
     expect(pack.lines.join("\n")).toContain("submission");
     expect((await fsp.stat(outFile)).size).toBeGreaterThan(0);
+  });
+
+  it("init writes a .luarc.json library path relative to the plugin folder when the stubs share the drive", async () => {
+    const base = await tempDir("rs3-cli-luarc-");
+    const stubs = path.join(base, "stubs-here");
+    await fsp.mkdir(stubs);
+    expect(await runInit("rel-plugin", { cwd: base, agentFiles: false, stubs }, capture().options)).toBe(0);
+    const luarc = JSON.parse(await fsp.readFile(path.join(base, "rel-plugin", ".luarc.json"), "utf8"));
+    expect(luarc["workspace.library"]).toEqual(["../stubs-here"]);
   });
 
   it("package refuses when preflight has errors", async () => {

@@ -61,6 +61,7 @@ export async function runInit(
       contactEmail: opts.email,
       agentFiles: opts.agentFiles ?? true,
       stubsDir: opts.stubs,
+      resolveFrom: import.meta.url,
       force: Boolean(opts.force),
     });
     if (options.json) {
@@ -136,7 +137,11 @@ export async function runWatch(target: string, opts: { root?: string; debounce?:
   return 0;
 }
 
-export async function runPackage(target: string, opts: { out?: string; overwrite?: boolean }, options: OutputOptions): Promise<number> {
+export async function runPackage(
+  target: string,
+  opts: { out?: string; overwrite?: boolean; allowPlaceholderEmail?: boolean },
+  options: OutputOptions,
+): Promise<number> {
   try {
     const pre = await preflightPlugin(path.resolve(target));
     const errors = pre.findings.filter((f) => f.level === "error");
@@ -145,7 +150,11 @@ export async function runPackage(target: string, opts: { out?: string; overwrite
       for (const line of formatFindings(errors)) err(options, line);
       return 1;
     }
-    const result = await packagePlugin(path.resolve(target), { outFile: opts.out, overwrite: Boolean(opts.overwrite) });
+    const result = await packagePlugin(path.resolve(target), {
+      outFile: opts.out,
+      overwrite: Boolean(opts.overwrite),
+      allowPlaceholderEmail: Boolean(opts.allowPlaceholderEmail),
+    });
     if (options.json) {
       out(options, JSON.stringify(result, null, 2));
     } else {
