@@ -1,2 +1,2 @@
-// Placeholder entry; the real CLI is added in the cli milestone.
-export {};
+export { runInit, runValidate, runPreflight, runSync, runWatch, runPackage } from "./commands.js";
+export type { OutputOptions } from "./commands.js";
