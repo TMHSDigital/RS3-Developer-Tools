@@ -1,0 +1,109 @@
+{
+  "$comment": "Hand-maintained facts the HTML parser cannot derive from table structure. Every entry cites the docs page it comes from and is listed in unresolved.md under 'Overrides applied'. No descriptions, only signatures.",
+  "classParents": [
+    {
+      "class": "Vector2",
+      "parent": "Vector",
+      "see": "math/vector.html#common-methods-and-properties",
+      "reason": "The vector page documents shared methods under 'Common Methods and Properties' and states they apply to every vector type."
+    },
+    {
+      "class": "Vector3",
+      "parent": "Vector",
+      "see": "math/vector.html#common-methods-and-properties",
+      "reason": "Same as Vector2."
+    },
+    {
+      "class": "Vector4",
+      "parent": "Vector",
+      "see": "math/vector.html#common-methods-and-properties",
+      "reason": "Same as Vector2."
+    }
+  ],
+  "eventCallbackReturnsBoolean": [
+    {
+      "event": "EntityDraw",
+      "see": "core/events.html#entitydraw",
+      "reason": "The event page states the callback must return a boolean deciding whether the entity keeps drawing."
+    }
+  ],
+  "extraFields": [
+    {
+      "class": "Plugin",
+      "name": "urls",
+      "type": "table<string, PluginURL>",
+      "see": "core/plugin.html#urls",
+      "reason": "Documented as a heading without a signature table; the manifest urls map becomes Plugin.urls.<name>."
+    },
+    {
+      "class": "Plugin",
+      "name": "resources",
+      "type": "table<string, any>",
+      "see": "core/plugin.html#resources",
+      "reason": "Documented as a heading without a signature table; nested folders become nested tables."
+    }
+  ],
+  "ownerPlaceholders": [
+    {
+      "owner": "game.options.<option name>",
+      "class": "ClientOption",
+      "table": "game.options",
+      "see": "core/clientoptions.html#methods",
+      "reason": "Every client option shares one method set; the docs write the owner as a placeholder. Option names come from the lists on the same page."
+    }
+  ],
+  "returnTypes": [
+    {
+      "function": "AABB:GetCorner",
+      "type": "Vector3",
+      "see": "math/aabb.html#getcorner",
+      "reason": "Signature line says Boolean, the returns table says Vector3; the table matches the method name."
+    },
+    {
+      "function": "AchievementType:GetSubItemCompletionCountForPrereqGroup",
+      "type": "integer",
+      "see": "game/config/achievementtype.html#getsubitemcompletioncountforprereqgroup",
+      "reason": "Signature line says Boolean, the returns table says Integer; a count is an integer."
+    },
+    {
+      "function": "AchievementType:GetSubItemCompletionCountForRequirementGroup",
+      "type": "integer",
+      "see": "game/config/achievementtype.html#getsubitemcompletioncountforrequirementgroup",
+      "reason": "Signature line says Boolean, the returns table says Integer; a count is an integer."
+    },
+    {
+      "function": "lerp",
+      "type": "number|Vector2|Vector3|Vector4|Matrix33",
+      "see": "math/index.html#lerp",
+      "reason": "The returns table lists every interpolable type; the signature line shows only the last overload."
+    },
+    {
+      "function": "slerp",
+      "type": "Vector3|Quaternion",
+      "see": "math/index.html#slerp",
+      "reason": "The returns table lists both interpolable types; the signature line shows only the last overload."
+    }
+  ],
+  "globalFunctions": [
+    {
+      "name": "PluginDependencyUpdate",
+      "params": [{ "name": "optionalDependencyChangedEvent", "type": "OptionalDependencyChangedEvent" }],
+      "see": "structure.html#dependency-updates",
+      "reason": "Optional hook a plugin may define in global scope; documented on the structure page, which is not an API module page."
+    },
+    {
+      "name": "PluginShutdown",
+      "params": [],
+      "see": "core/clientoptions.html#example",
+      "reason": "Optional hook a plugin may define in global scope; shown in the client options example and the database tutorial, never declared as a signature."
+    }
+  ],
+  "aliases": [
+    {
+      "name": "PluginURL",
+      "type": "string",
+      "see": "core/http.html#constructor",
+      "reason": "Values of Plugin.urls are the manifest URL strings; HTTPRequest.new takes one as baseURL."
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@tmhs/rs3-stubs-generator",
+  "version": "0.1.0",
+  "description": "Crawls the RuneScape Client API documentation and emits LuaLS ---@meta stubs containing signatures only",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": { "rs3-stubs": "dist/cli.js" },
+  "files": ["dist", "overrides.json", "README.md"],
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "license": "MIT",
+  "author": "TMHSDigital",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TMHSDigital/RS3-Developer-Tools.git",
+    "directory": "packages/stubs-generator"
+  },
+  "engines": { "node": ">=22.0.0" },
+  "dependencies": {
+    "@tmhs/rs3-devtools-core": "0.1.0",
+    "cheerio": "^1.0.0"
+  }
+}
