@@ -1,0 +1,39 @@
+---
+description: Follow the Jagex AI policy; never ingest other developers' plugin code or the docs into a model, and review every generated line.
+globs: []
+alwaysApply: true
+standards-version: 1.10.1
+---
+
+# RS3 AI policy and copyright
+
+Jagex publishes an AI policy for plugin development (https://developer.runescape.com/rs/submission/guidelines.html#ai-policy) and the RuneScape Client API documentation is copyrighted. These rules keep an assistant inside both lines.
+
+## Applies to
+
+- Every interaction in a plugin workspace, including tool use.
+
+## Rules
+
+- Read, index, or send to a model only two sources: files inside this workspace (the developer's own plugin) and pages on developer.runescape.com fetched at runtime.
+- Never open, copy, summarise, or learn from other developers' plugin code: nothing from mod.io downloads, nothing from the client's `plugins/` folder, nothing from third-party repositories. The `rs3-plugin-mcp` tools refuse paths outside the workspace and `dev_plugins`; do not work around that.
+- Do not paste documentation prose into code, comments, README files, or stubs. Link the page instead (`@see https://developer.runescape.com/rs/...`). Signatures and type names are fine.
+- Treat every generated line as a draft the developer must read and understand before it is synced or packaged. Unreviewed AI output is a stated rejection reason.
+- Disclose assistant use where the submission process asks for it, and keep commit messages honest about what was generated.
+- Prefer small, well-commented changes the developer can verify in the client over large rewrites.
+
+## Examples
+
+### Good
+
+```lua
+-- Entities can vanish between ticks; the API documents isValid for this.
+---@see https://developer.runescape.com/rs/game/entity/npcentity.html
+if npc.isValid then ... end
+```
+
+### Bad
+
+```lua
+-- Copied from the PersistentDB page: "The persistent DB system provides ..."
+```

@@ -1,0 +1,15 @@
+{
+  "accent": "#c9a227",
+  "accentLight": "#e3c766",
+  "heroGradientFrom": "#0d1117",
+  "heroGradientTo": "#1b1a14",
+  "links": {
+    "github": "https://github.com/TMHSDigital/RS3-Developer-Tools",
+    "docs": "https://developer.runescape.com/rs/"
+  },
+  "installSteps": [
+    "Install Node.js 22 or later and the Lua language server",
+    "Run <code>npm install -g @tmhs/rs3-devtools-cli</code>",
+    "Run <code>rs3dev init my-plugin</code> and open the folder in Cursor or VS Code"
+  ]
+}

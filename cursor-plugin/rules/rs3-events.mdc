@@ -1,0 +1,56 @@
+---
+description: Subscribe to client events and component hooks with namespaced reference names and release them in PluginShutdown.
+globs:
+  - "**/*.lua"
+alwaysApply: false
+standards-version: 1.10.1
+---
+
+# RS3 event subscription and cleanup
+
+Events are subscribed with `Event.<Name>.Subscribe(ref, callback)` and released with `Event.<Name>.Unsubscribe(ref)`. Component hooks use `component:Subscribe(ui.Hook.<HOOK>, [id,] callback)` and `component:Unsubscribe(ui.Hook.<HOOK>[, id])`. A reload (`prl`) disables and re-enables the plugin, so anything not released in `PluginShutdown` leaks.
+
+## Applies to
+
+- Every `.lua` file that calls `Subscribe` or `Unsubscribe`.
+
+## Rules
+
+- Use reference names of the form `<plugin>.<purpose>`; re-using a name within one plugin replaces the earlier callback for that event.
+- Keep the reference names in one table near the top of the file so `PluginShutdown` can unsubscribe them all.
+- Define `function PluginShutdown()` in every `main.lua`. Unsubscribe events, unsubscribe component hooks, and `Destroy()` the components the plugin created.
+- Match the payload class to the event: `Event.NPCEntityAdded` passes an `NPCEntityAddedEvent` with `npcEntity` and `entityType`; events without payload (`ServerLogic`, `WorldUpdated`) pass nothing. The stubs under `.luarc.json` type this for you.
+- `Event.EntityDraw` callbacks must return a boolean.
+- `Event.Draw` and `Event.Logic` run every frame or tick: no allocation-heavy work, no API list scans in them. Cache results and refresh on a counter.
+- `Event.ChatMessage` is only delivered with `chatAccess`; see the permissions rule.
+- Component hook callbacks may return `false` to stop later listeners; omit the return to let them run.
+
+## Examples
+
+### Good
+
+```lua
+local REFS = { npcAdded = "scout.npcAdded", logic = "scout.logic" }
+
+local function onNpcAdded(event)
+    log("spawned: " .. event.npcEntity.displayName)
+end
+
+Event.NPCEntityAdded.Subscribe(REFS.npcAdded, onNpcAdded)
+button:Subscribe(ui.Hook.ONBUTTONPRESSED, "scout.button", onPressed)
+
+function PluginShutdown()
+    Event.NPCEntityAdded.Unsubscribe(REFS.npcAdded)
+    button:Unsubscribe(ui.Hook.ONBUTTONPRESSED, "scout.button")
+    window:Destroy()
+end
+```
+
+### Bad
+
+```lua
+Event.Logic.Subscribe("a", function()
+    for _, npc in ipairs(NPCList.All()) do ... end   -- full scan every tick
+end)
+-- no PluginShutdown: the subscription survives a reload
+```

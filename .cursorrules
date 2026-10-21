@@ -1,0 +1,23 @@
+# RS3 Developer Tools
+
+Monorepo for a Lua-native developer toolkit for official RuneScape 3 plugins. See AGENTS.md for the full guide.
+
+## Layout
+
+- `packages/stubs-generator` crawls developer.runescape.com and emits LuaLS stubs (signatures only)
+- `packages/luals-stubs` generated stubs, index.json, unresolved.md
+- `packages/schema` plugin.json JSON Schema
+- `packages/core` shared logic: validate, scaffold, preflight, sync, watch, package, docs cache
+- `packages/cli` rs3dev command line
+- `packages/mcp` @tmhs/rs3-plugin-mcp stdio server
+- `cursor-plugin/` rules, skills and AGENTS.md installed into plugin workspaces
+- `examples/hello-counter` reference plugin checked by LuaLS in CI
+
+## Conventions
+
+- Conventional commits on main only; never force push
+- No emojis and no em dashes anywhere (code, docs, commits, output); a test enforces this
+- Never commit documentation prose from developer.runescape.com; stubs carry signatures and @see links only
+- Never read or index other developers' plugin code; only this workspace and developer.runescape.com
+- Text files are UTF-8 without BOM, LF line endings
+- TypeScript strict, ESM, Node 22+; tests with vitest

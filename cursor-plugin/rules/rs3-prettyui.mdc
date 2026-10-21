@@ -1,0 +1,56 @@
+---
+description: Depend on the PrettyUI library plugin through the manifest and treat its exported table as read-only.
+globs:
+  - "**/*.lua"
+  - "**/plugin.json"
+alwaysApply: false
+standards-version: 1.10.1
+---
+
+# PrettyUI as a dependency
+
+Library plugins are consumed through `requiredDependencies` or `optionalDependencies` in `plugin.json`. The client loads the dependency first, clones its returned table, and exposes it as a global named after the plugin (or after the alias when the map form is used).
+
+## Applies to
+
+- Plugins that list `PrettyUI` (or any library plugin) in their manifest.
+
+## Rules
+
+- Declare the dependency in the manifest; never copy library code into the plugin folder.
+- Use the alias form when the plugin name is not a valid Lua identifier or when you want a shorter name: `"requiredDependencies": { "Pretty": "PrettyUI" }` exposes `Pretty`.
+- Treat the exported table as read-only. It is shared with every importer; mutating it changes other plugins.
+- With `optionalDependencies`, guard every use (`if PrettyUI ~= nil then`) and handle `Event.OptionalDependencyChanged` or `PluginDependencyUpdate` so the feature follows the dependency's enabled state.
+- Keep PrettyUI calls behind a small local adapter module so the plugin's own UI code does not depend on the library's API shape.
+- The dependency identifier must match the installed plugin's folder name exactly; verify it with `plist` in the client console.
+
+## Examples
+
+### Good
+
+```json
+{ "optionalDependencies": { "Pretty": "PrettyUI" } }
+```
+
+```lua
+-- ui_adapter.lua: the only file that talks to PrettyUI.
+local adapter = {}
+
+function adapter.available()
+    return Pretty ~= nil
+end
+
+function PluginDependencyUpdate(info)
+    if info.pluginIdentifier == "Pretty" then
+        adapter.onAvailabilityChanged(info.enabled)
+    end
+end
+
+return adapter
+```
+
+### Bad
+
+```lua
+PrettyUI.theme.accent = 0xFF0000   -- mutates a table shared with every plugin
+```

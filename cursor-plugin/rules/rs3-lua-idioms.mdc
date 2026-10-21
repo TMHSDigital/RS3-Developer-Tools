@@ -1,0 +1,51 @@
+---
+description: Write RS3 plugin code as plain, idiomatic Lua 5.4.8 that runs inside the client sandbox.
+globs:
+  - "**/*.lua"
+alwaysApply: false
+standards-version: 1.10.1
+---
+
+# RS3 Lua 5.4.8 idioms
+
+Official RS3 plugins are Lua 5.4.8 scripts executed by the RuneScape client against the RuneScape Client API. The sandbox omits the standard `os`, `io`, `debug`, `load`, `loadstring` and `dofile` facilities, and moderators read every line, so the code has to be small, local, and obvious.
+
+## Applies to
+
+- Every `.lua` file inside a plugin folder.
+
+## Rules
+
+- Declare everything `local`. The only globals a plugin defines are the hooks the client calls: `PluginShutdown` and `PluginDependencyUpdate`.
+- Split code into modules with `require("folder/file")`: the path is relative to the plugin root, has no extension, and the result is cached after the first call.
+- Never reference `os`, `io`, `debug`, `load`, `loadstring` or `dofile`. They are not provided and their presence is a rejection reason.
+- Use `formatStr("{} has {} items", name, count)` and `log(...)` for output; `print` goes to the console only.
+- Use Lua 5.4 integer semantics deliberately: `//` for integer division, `math.floor` when converting floats, `tostring` before concatenating non-strings.
+- Prefer `ipairs` for arrays returned by the API (`NPCList.All()`), `pairs` for keyed tables such as `opNames`.
+- Check `isValid` on entities before reading them; entities can disappear between ticks.
+- Keep one responsibility per file and one idea per function. If a function needs a paragraph of explanation, split it.
+- Comment intent, not mechanics: say why a tick threshold is 600, not that a counter increments.
+
+## Examples
+
+### Good
+
+```lua
+local STORAGE_KEY = "myPlugin:clicks"
+
+-- Count stays per character; the display name is part of the key.
+local function storageKey()
+    local me = PlayerList.Self()
+    return STORAGE_KEY .. ":" .. me.displayName
+end
+
+local clicks = PersistentDB:GetInt(storageKey()) or 0
+```
+
+### Bad
+
+```lua
+clicks = PersistentDB:Get("c") or 0            -- accidental global, opaque key
+local f = io.open("counts.txt")                -- sandbox library, rejected
+local chunk = load(decoded)                    -- dynamic code, rejected
+```

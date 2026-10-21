@@ -1,0 +1,44 @@
+---
+description: Keep plugin code readable for Jagex moderators; no minified, transpiled, generated-looking or obfuscated Lua.
+globs:
+  - "**/*.lua"
+alwaysApply: false
+standards-version: 1.10.1
+---
+
+# Readability for moderators
+
+Every plugin is read by a Jagex moderator before it is published. Code that is hard to follow is rejected regardless of what it does: minified output, transpiler output, encoded strings, and unreviewed machine-generated code are all named in the guidelines (https://developer.runescape.com/rs/submission/guidelines.html).
+
+## Applies to
+
+- Every `.lua` file inside a plugin folder.
+
+## Rules
+
+- One statement per line, lines under 120 characters, four-space indentation.
+- Name things for what they are: `onNpcAdded`, `storageKey`, `refreshLabel`. No single-letter names outside tiny loops.
+- Comment the intent of each block and every non-obvious constant. Aim for a comment every ten lines of code, not a comment on every line.
+- No build steps between the source and the shipped file. What is in the folder is what the moderator reads.
+- No string escapes used to hide text (`"\x6c\x6f\x61\x64"`), no base64 blobs, no `string.char` chains, no runtime code construction.
+- Keep files under roughly 400 lines; split by feature (ui, storage, events).
+- Delete dead code and commented-out experiments before syncing or packaging.
+- `plugin.json` must carry a real `contactEmailAddress`; it is a legal requirement for publication.
+- Run `rs3dev preflight` and fix every warning it raises about long lines, comment ratio, or encoded strings.
+
+## Examples
+
+### Good
+
+```lua
+-- Refresh the label at most once every 600 ticks (about a minute) to keep the
+-- per-tick work trivial.
+local REFRESH_INTERVAL_TICKS = 600
+```
+
+### Bad
+
+```lua
+local a=1 local b=2 local function c(d)return d*a+b end print(c(3))
+local s = "\x70\x72\x69\x6e\x74"
+```

@@ -1,0 +1,53 @@
+---
+description: Store plugin state in PersistentDB with typed accessors and keys scoped per character.
+globs:
+  - "**/*.lua"
+alwaysApply: false
+standards-version: 1.10.1
+---
+
+# RS3 PersistentDB usage
+
+`PersistentDB` keeps values across reloads and sessions. Entries are isolated per plugin, but not per character, so the key has to carry the character identity when the value is character-specific.
+
+## Applies to
+
+- Every `.lua` file that calls `PersistentDB`.
+
+## Rules
+
+- Build keys as `<plugin>:<purpose>:<character>` where the character part is `PlayerList.Self().displayName`. Use a shared key only for settings that are the same for every character.
+- Use the typed accessors (`GetInt`, `GetBool`, `GetString`, `GetFloat`, `SetInt`, ...) so a wrong type is a nil result instead of a silent coercion.
+- Provide a default when reading: `PersistentDB:GetInt(key) or 0`.
+- Save at the moment the value changes, not only in `PluginShutdown`; a client crash skips shutdown.
+- Keep stored tables flat and small; only booleans, integers, floats, strings and tables of those are stored.
+- Never store other players' names, chat, or identifiers. Store nothing a user would not expect a plugin to remember.
+- `Clear()` wipes everything the plugin stored; confirm with the user through the UI before calling it.
+
+## Examples
+
+### Good
+
+```lua
+local function key(purpose)
+    local me = PlayerList.Self()
+    local character = (me ~= nil and me.isValid) and me.displayName or "shared"
+    return "fishLog:" .. purpose .. ":" .. character
+end
+
+local caught = PersistentDB:GetInt(key("caught")) or 0
+
+local function recordCatch()
+    caught = caught + 1
+    PersistentDB:SetInt(key("caught"), caught)
+end
+```
+
+### Bad
+
+```lua
+PersistentDB:Set("count", count)      -- same key for every character
+function PluginShutdown()
+    PersistentDB:Set("count", count)  -- only saved on a clean shutdown
+end
+```

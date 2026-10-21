@@ -1,0 +1,37 @@
+{
+  "name": "rs3-developer-tools",
+  "displayName": "RS3 Developer Tools",
+  "description": "Lua-native developer toolkit for official RuneScape 3 plugins: LuaLS stubs, manifest schema, rs3dev CLI, MCP server, and agent guidance",
+  "version": "0.1.0",
+  "author": {
+    "name": "TMHSDigital",
+    "email": "contact@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "runescape",
+    "rs3",
+    "lua",
+    "luals",
+    "cursor-plugin",
+    "mcp",
+    "developer-tools"
+  ],
+  "skills": [
+    "cursor-plugin/skills/new-plugin/SKILL.md",
+    "cursor-plugin/skills/add-ui-window/SKILL.md",
+    "cursor-plugin/skills/add-event-handler/SKILL.md",
+    "cursor-plugin/skills/preflight-and-package/SKILL.md"
+  ],
+  "rules": [
+    "cursor-plugin/rules/rs3-lua-idioms.mdc",
+    "cursor-plugin/rules/rs3-events.mdc",
+    "cursor-plugin/rules/rs3-permissions.mdc",
+    "cursor-plugin/rules/rs3-persistentdb.mdc",
+    "cursor-plugin/rules/rs3-prettyui.mdc",
+    "cursor-plugin/rules/rs3-readability.mdc",
+    "cursor-plugin/rules/rs3-ai-policy.mdc",
+    "cursor-plugin/rules/rs3-manifest.mdc",
+    "cursor-plugin/rules/rs3-secrets.mdc"
+  ]
+}

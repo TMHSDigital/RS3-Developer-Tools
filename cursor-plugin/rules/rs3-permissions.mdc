@@ -1,0 +1,56 @@
+---
+description: Declare httpAccess, chatAccess and trackingAccess in plugin.json and gate optional ones with Plugin.HasPermission.
+globs:
+  - "**/*.lua"
+  - "**/plugin.json"
+alwaysApply: false
+standards-version: 1.10.1
+---
+
+# RS3 permission gating
+
+Three permissions exist: `httpAccess` (HTTPRequest and Plugin.urls), `chatAccess` (Chat functions and Event.ChatMessage), and `trackingAccess` (Player.GetTrackingID). Each must be listed in `requiredPermissions` or `optionalPermissions` in `plugin.json`; the user approves them.
+
+## Applies to
+
+- `plugin.json` and every `.lua` file that touches `HTTPRequest`, `Chat`, `Event.ChatMessage` or `Player.GetTrackingID`.
+
+## Rules
+
+- Prefer `optionalPermissions`. Mark a permission required only when the plugin is useless without it.
+- Gate every optional feature with `Plugin.HasPermission(PluginPermissions.<name>)` at the point of use, and keep the plugin working when it returns false.
+- Subscribe to `Event.OptionalPermissionChanged` when a feature should switch on or off while the plugin runs.
+- HTTP: every base URL goes in the manifest `urls` map and is reached through `Plugin.urls.<name>`; never build a URL to another host in code. Redirect or shortener URLs are rejected.
+- Chat: `Chat.AddMessage` posts to the local client only. Do not mirror or store other players' messages beyond what the feature needs.
+- Tracking: `Player.GetTrackingID` is for the local character only. Do not persist it alongside personal data.
+- Run `rs3dev preflight` before committing: it reports gated APIs used without the matching permission.
+
+## Examples
+
+### Good
+
+```json
+{
+  "requiredPermissions": [],
+  "optionalPermissions": ["httpAccess"],
+  "urls": { "wiki": "https://runescape.wiki/" }
+}
+```
+
+```lua
+local function fetchPrices()
+    if not Plugin.HasPermission(PluginPermissions.httpAccess) then
+        label.content = "Enable httpAccess to load prices"
+        return
+    end
+    local request = HTTPRequest.new(Plugin.urls.wiki, "api.php?action=query")
+    request:Get(onPricesLoaded)
+end
+```
+
+### Bad
+
+```lua
+HTTPRequest.new("https://example.org/prices")   -- host not in urls, no permission check
+Chat.AddMessage("hi")                           -- chatAccess never declared
+```

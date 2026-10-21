@@ -1,0 +1,48 @@
+---
+description: Keep plugin.json valid against the RS3 manifest schema with a contact email, explicit permissions and declared URLs.
+globs:
+  - "**/plugin.json"
+alwaysApply: false
+standards-version: 1.10.1
+---
+
+# RS3 plugin.json manifest
+
+`plugin.json` is the only metadata the client and moderators read. The fields are documented at https://developer.runescape.com/rs/structure.html#manifest and enforced by `packages/schema/plugin.schema.json`.
+
+## Applies to
+
+- `plugin.json` at the root of every plugin folder.
+
+## Rules
+
+- Always present: `name`, `version`, `contactEmailAddress`. The email is a legal requirement; use one that is not your mod.io login.
+- `requiredDependencies` and `optionalDependencies` are either arrays of plugin names or maps of Lua alias to plugin name. Do not mix forms inside one field.
+- `requiredPermissions` and `optionalPermissions` contain only `httpAccess`, `chatAccess`, `trackingAccess`. A permission appears in one list, never both.
+- `urls` maps Lua identifiers to `http://` or `https://` base URLs and is only meaningful with `httpAccess`.
+- `hasSettingsIcon` and `hasRibbonIcon` opt into `Event.SettingsLayerReady` and `Event.ContentLayerReady`.
+- Do not hand-write `remote*` fields; the plugin repository sets them.
+- Add the `$schema` line so the editor validates while you type, and run `rs3dev validate` before syncing.
+
+## Examples
+
+### Good
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/TMHSDigital/RS3-Developer-Tools/main/packages/schema/plugin.schema.json",
+  "name": "Fish Log",
+  "version": "0.3.0",
+  "contactEmailAddress": "fishlog-support@example.com",
+  "requiredDependencies": [],
+  "optionalDependencies": { "Pretty": "PrettyUI" },
+  "requiredPermissions": [],
+  "optionalPermissions": ["chatAccess"]
+}
+```
+
+### Bad
+
+```json
+{ "name": "Fish Log", "version": "0.3.0", "permissions": ["chat"] }
+```
