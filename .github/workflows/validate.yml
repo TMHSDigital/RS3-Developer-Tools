@@ -1,0 +1,112 @@
+name: Validate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  validate-json:
+    name: Validate JSON files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate plugin.json, mcp-tools.json, site.json and the MCP examples
+        run: |
+          python3 - <<'PYEOF'
+          import json, glob
+          files = ['.cursor-plugin/plugin.json', 'mcp-tools.json', 'site.json', 'packages/schema/plugin.schema.json'] + glob.glob('packages/mcp/examples/*.json')
+          for f in files:
+              json.load(open(f, encoding='utf-8'))
+              print('OK', f)
+          PYEOF
+
+  validate-plugin-manifest:
+    name: Validate plugin manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check required manifest fields and referenced files
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, re
+          m = json.load(open('.cursor-plugin/plugin.json', encoding='utf-8'))
+          required = ['name', 'displayName', 'description', 'version', 'author', 'license', 'skills', 'rules']
+          missing = [f for f in required if f not in m]
+          assert not missing, f'Missing fields: {missing}'
+          assert re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', m['name']), 'name must be lowercase kebab-case'
+          for skill in m['skills']:
+              assert os.path.exists(skill), f'Skill not found: {skill}'
+          for rule in m['rules']:
+              assert os.path.exists(rule), f'Rule not found: {rule}'
+          print(f"Manifest valid: {len(m['skills'])} skills, {len(m['rules'])} rules")
+          PYEOF
+
+  validate-content:
+    name: Validate content quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check for hardcoded credentials
+        run: |
+          patterns='password\s*=\s*["\x27][^"\x27]+|api_key\s*=\s*["\x27][^"\x27]+|token\s*=\s*["\x27][A-Za-z0-9]+'
+          if grep -rPi "$patterns" --include='*.ts' --include='*.js' --include='*.mjs' --include='*.json' --include='*.lua' --exclude-dir=node_modules --exclude-dir=dist . 2>/dev/null | grep -v 'example\|placeholder\|mock\|YOUR_'; then
+            echo "::error::Possible hardcoded credentials found."
+            exit 1
+          fi
+          echo "No hardcoded credentials found"
+
+      - name: Validate skill frontmatter
+        run: |
+          for dir in cursor-plugin/skills/*/; do
+            skill_file="$dir/SKILL.md"
+            [ -f "$skill_file" ] || { echo "FAIL: Missing SKILL.md in $dir"; exit 1; }
+            head -1 "$skill_file" | grep -q "^---" || { echo "FAIL: $skill_file missing YAML frontmatter"; exit 1; }
+            echo "OK: $skill_file"
+          done
+
+      - name: Validate rule frontmatter
+        run: |
+          for rule_file in cursor-plugin/rules/*.mdc; do
+            head -1 "$rule_file" | grep -q "^---" || { echo "FAIL: $rule_file missing YAML frontmatter"; exit 1; }
+            echo "OK: $rule_file"
+          done
+
+      - name: Reject em dashes and emoji in prose and code
+        run: |
+          if grep -rnP '[\x{2013}\x{2014}\x{1F300}-\x{1FAFF}]' --include='*.md' --include='*.mdc' --include='*.ts' --include='*.lua' --include='*.yml' --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=fixtures .; then
+            echo "::error::Em dashes or emoji are not allowed in this repository."
+            exit 1
+          fi
+          echo "Writing style check passed"
+
+  validate-counts:
+    name: Validate content counts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check content counts match README
+        run: |
+          python3 - <<'PYEOF'
+          import os, sys, json
+          skill_count = len([d for d in os.listdir('cursor-plugin/skills') if os.path.exists(os.path.join('cursor-plugin/skills', d, 'SKILL.md'))])
+          rule_count = len([f for f in os.listdir('cursor-plugin/rules') if f.endswith('.mdc')])
+          tool_count = len(json.load(open('mcp-tools.json', encoding='utf-8'))['tools'])
+          readme = open('README.md', encoding='utf-8').read()
+          errors = []
+          for label, count in (('skills', skill_count), ('rules', rule_count), ('MCP tools', tool_count)):
+              if f'{count} {label}' not in readme:
+                  errors.append(f'README count mismatch (expected "{count} {label}")')
+          for e in errors:
+              print(f'::error::{e}', file=sys.stderr)
+          sys.exit(1 if errors else 0)
+          PYEOF

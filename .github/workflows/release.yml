@@ -1,0 +1,169 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - "LICENSE"
+      - ".github/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version-and-release:
+    name: Bump version, tag, and release
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get current version
+        id: current
+        run: |
+          version=$(python3 -c "import json; print(json.load(open('.cursor-plugin/plugin.json'))['version'])")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Current version: $version"
+
+      - name: Determine bump type from commits
+        id: bump
+        run: |
+          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$last_tag" ]; then
+            commits=$(git log --oneline --format="%s")
+          else
+            commits=$(git log "$last_tag"..HEAD --oneline --format="%s")
+          fi
+          echo "Commits since last release:"
+          echo "$commits"
+          bump="patch"
+          if echo "$commits" | grep -qiE "^(feat|feature)(\(.+\))?!:|BREAKING CHANGE"; then
+            bump="major"
+          elif echo "$commits" | grep -qiE "^(feat|feature)(\(.+\))?:"; then
+            bump="minor"
+          fi
+          echo "bump=$bump" >> "$GITHUB_OUTPUT"
+          echo "Bump type: $bump"
+
+      - name: Compute new version
+        id: new
+        run: |
+          current="${{ steps.current.outputs.version }}"
+          bump="${{ steps.bump.outputs.bump }}"
+          IFS='.' read -r major minor patch <<< "$current"
+          # First release keeps the scaffolded version; later releases follow the bump type.
+          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$last_tag" ]; then
+            new_version="$current"
+          else
+            case "$bump" in
+              major) major=$((major + 1)); minor=0; patch=0 ;;
+              minor) minor=$((minor + 1)); patch=0 ;;
+              patch) patch=$((patch + 1)) ;;
+            esac
+            new_version="$major.$minor.$patch"
+          fi
+          echo "version=$new_version" >> "$GITHUB_OUTPUT"
+          echo "New version: $new_version"
+
+      - name: Check if tag already exists
+        id: check
+        run: |
+          new_version="${{ steps.new.outputs.version }}"
+          if git rev-parse "v$new_version" >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Tag v$new_version already exists, skipping"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update version files
+        if: steps.check.outputs.skip == 'false'
+        env:
+          NEW_VERSION: ${{ steps.new.outputs.version }}
+          OLD_VERSION: ${{ steps.current.outputs.version }}
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, glob
+          new_version = os.environ['NEW_VERSION']
+          old_version = os.environ['OLD_VERSION']
+
+          def bump(path):
+              with open(path, encoding='utf-8') as f:
+                  data = json.load(f)
+              data['version'] = new_version
+              # Workspace packages depend on each other by exact version.
+              for section in ('dependencies', 'devDependencies'):
+                  for name, spec in list(data.get(section, {}).items()):
+                      if name.startswith('@tmhs/') and spec == old_version:
+                          data[section][name] = new_version
+              with open(path, 'w', encoding='utf-8') as f:
+                  json.dump(data, f, indent=2)
+                  f.write('\n')
+
+          bump('.cursor-plugin/plugin.json')
+          bump('package.json')
+          for path in glob.glob('packages/*/package.json'):
+              bump(path)
+
+          if os.path.exists('README.md'):
+              with open('README.md', encoding='utf-8') as f:
+                  content = f.read()
+              content = content.replace(f'version-{old_version}-blue', f'version-{new_version}-blue')
+              with open('README.md', 'w', encoding='utf-8') as f:
+                  f.write(content)
+          PYEOF
+          # Keep package-lock.json consistent with the bumped versions.
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Sync release docs
+        if: steps.check.outputs.skip == 'false'
+        uses: TMHSDigital/Developer-Tools-Directory/.github/actions/release-doc-sync@v1
+        with:
+          plugin-version: ${{ steps.new.outputs.version }}
+          previous-version: ${{ steps.current.outputs.version }}
+          meta-repo-ref: v1.20.0
+
+      - name: Commit version bump
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: bump version to ${{ steps.new.outputs.version }} [skip ci]"
+            git push origin main
+          fi
+
+      - name: Create and push tags
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          new_version="${{ steps.new.outputs.version }}"
+          IFS='.' read -r major minor _patch <<< "$new_version"
+          git tag "v$new_version"
+          git tag -f "v$major"
+          git tag -f "v$major.$minor"
+          git push origin "v$new_version"
+          git push origin "v$major" --force
+          git push origin "v$major.$minor" --force
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.new.outputs.version }}" \
+            --title "v${{ steps.new.outputs.version }}" \
+            --generate-notes

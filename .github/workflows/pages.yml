@@ -1,0 +1,64 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cursor-plugin/**"
+      - "mcp-tools.json"
+      - "site.json"
+      - ".cursor-plugin/plugin.json"
+      - "assets/**"
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Checkout site template
+        uses: actions/checkout@v7
+        with:
+          repository: TMHSDigital/Developer-Tools-Directory
+          sparse-checkout: site-template
+          path: _template
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - run: pip install Jinja2
+
+      # The shared site builder expects skills/ and rules/ at the repo root;
+      # this repository keeps them under cursor-plugin/, so stage a copy.
+      - name: Stage site inputs
+        run: |
+          mkdir -p _site_src
+          cp -r .cursor-plugin site.json mcp-tools.json README.md _site_src/
+          cp -r cursor-plugin/skills _site_src/skills
+          cp -r cursor-plugin/rules _site_src/rules
+          [ -d assets ] && cp -r assets _site_src/assets || true
+
+      - name: Build site
+        run: python _template/site-template/build_site.py --repo-root _site_src --out docs
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs
+
+      - uses: actions/deploy-pages@v5
+        id: deployment

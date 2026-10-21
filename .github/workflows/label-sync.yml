@@ -1,0 +1,49 @@
+name: Label PRs
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    name: Auto-label by path
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Get changed files
+        id: changed
+        run: |
+          FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only)
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$FILES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply labels
+        run: |
+          LABELS=""
+          echo "$FILES" | grep -q "^cursor-plugin/skills/" && LABELS="$LABELS skills"
+          echo "$FILES" | grep -q "^cursor-plugin/rules/" && LABELS="$LABELS rules"
+          echo "$FILES" | grep -q "^packages/mcp/" && LABELS="$LABELS mcp-server"
+          echo "$FILES" | grep -q "^packages/luals-stubs/\|^packages/stubs-generator/" && LABELS="$LABELS stubs"
+          echo "$FILES" | grep -q "^packages/cli/\|^packages/core/" && LABELS="$LABELS cli"
+          echo "$FILES" | grep -q "\.md$" && LABELS="$LABELS documentation"
+          echo "$FILES" | grep -q "^\.github/" && LABELS="$LABELS ci"
+          if [ -n "$LABELS" ]; then
+            for label in $LABELS; do
+              gh label create "$label" --force --color "ededed" 2>/dev/null || true
+              gh pr edit ${{ github.event.pull_request.number }} --add-label "$label"
+            done
+            echo "Applied labels:$LABELS"
+          else
+            echo "No labels to apply"
+          fi
+        env:
+          FILES: ${{ steps.changed.outputs.files }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
