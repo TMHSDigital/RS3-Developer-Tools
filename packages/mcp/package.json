@@ -35,6 +35,6 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@tmhs/rs3-devtools-core": "0.1.0",
     "@tmhs/rs3-luals-stubs": "0.1.0",
-    "zod": "^3.25.0"
+    "zod": "^4.6.7"
   }
 }
