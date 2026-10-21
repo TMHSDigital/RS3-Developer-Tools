@@ -5,9 +5,17 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": { "rs3-stubs": "dist/cli.js" },
-  "files": ["dist", "overrides.json", "README.md"],
-  "publishConfig": { "access": "public" },
+  "bin": {
+    "rs3-stubs": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "overrides.json",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -20,7 +28,9 @@
     "url": "git+https://github.com/TMHSDigital/RS3-Developer-Tools.git",
     "directory": "packages/stubs-generator"
   },
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "dependencies": {
     "@tmhs/rs3-devtools-core": "0.1.0",
     "cheerio": "^1.0.0"

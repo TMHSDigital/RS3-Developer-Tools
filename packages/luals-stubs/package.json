@@ -4,12 +4,27 @@
   "description": "Generated LuaLS ---@meta stubs for the RuneScape Client API (signatures only) plus a .luarc.json template",
   "license": "MIT",
   "author": "TMHSDigital",
-  "files": ["stubs", "index.json", "unresolved.md", "luarc.template.json", "README.md"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "stubs",
+    "index.json",
+    "unresolved.md",
+    "luarc.template.json",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/TMHSDigital/RS3-Developer-Tools.git",
     "directory": "packages/luals-stubs"
   },
-  "keywords": ["runescape", "rs3", "lua", "luals", "lua-language-server", "stubs"]
+  "keywords": [
+    "runescape",
+    "rs3",
+    "lua",
+    "luals",
+    "lua-language-server",
+    "stubs"
+  ]
 }

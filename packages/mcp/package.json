@@ -5,9 +5,17 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": { "rs3-plugin-mcp": "dist/index.js" },
-  "files": ["dist", "examples", "README.md"],
-  "publishConfig": { "access": "public" },
+  "bin": {
+    "rs3-plugin-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -20,7 +28,9 @@
     "url": "git+https://github.com/TMHSDigital/RS3-Developer-Tools.git",
     "directory": "packages/mcp"
   },
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@tmhs/rs3-devtools-core": "0.1.0",

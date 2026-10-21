@@ -12,8 +12,15 @@
     },
     "./plugin.schema.json": "./plugin.schema.json"
   },
-  "files": ["dist", "plugin.schema.json", "settings.sample.json", "README.md"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "plugin.schema.json",
+    "settings.sample.json",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -26,7 +33,9 @@
     "url": "git+https://github.com/TMHSDigital/RS3-Developer-Tools.git",
     "directory": "packages/schema"
   },
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "devDependencies": {
     "ajv": "^8.17.0",
     "ajv-formats": "^3.0.0"
