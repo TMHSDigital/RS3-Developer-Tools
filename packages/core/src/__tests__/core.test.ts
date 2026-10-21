@@ -211,13 +211,25 @@ describe("package", () => {
 
 describe("luarc stubs resolution", () => {
   it("honours RS3_STUBS_DIR and explicit overrides", async () => {
-    expect(await resolveStubsDir({ stubsDir: "C:/explicit", env: { RS3_STUBS_DIR: "C:/env" } })).toBe(path.resolve("C:/explicit"));
-    expect(await resolveStubsDir({ env: { RS3_STUBS_DIR: "C:/env" } })).toBe(path.resolve("C:/env"));
+    const base = await tempDir("rs3-stubs-");
+    const explicit = path.join(base, "explicit");
+    const fromEnv = path.join(base, "env");
+    expect(await resolveStubsDir({ stubsDir: explicit, env: { RS3_STUBS_DIR: fromEnv } })).toBe(explicit);
+    expect(await resolveStubsDir({ env: { RS3_STUBS_DIR: fromEnv } })).toBe(fromEnv);
     expect(await resolveStubsDir({ env: {} })).toMatch(/luals-stubs[\\/]stubs$/);
   });
   it("writes a relative library path on the same drive and an absolute one otherwise", () => {
+    // Windows-style inputs are handled with win32 semantics on every host platform.
     expect(libraryPathFor("C:/dev/plugins/my-plugin", "C:/dev/tools/stubs")).toBe("../../tools/stubs");
+    expect(libraryPathFor("C:\\dev\\plugins\\my-plugin", "c:\\dev\\tools\\stubs")).toBe("../../tools/stubs");
     expect(libraryPathFor("C:/dev/my-plugin", "D:/tools/stubs")).toBe("D:/tools/stubs");
+    expect(libraryPathFor("C:/dev/my-plugin", "\\\\server\\share\\stubs")).toBe("//server/share/stubs");
+    // POSIX inputs use posix semantics.
+    expect(libraryPathFor("/home/u/plugins/p", "/home/u/tools/stubs")).toBe("../../tools/stubs");
+    expect(libraryPathFor("/home/u/plugins/p", "/home/u/plugins/p")).toBe(".");
+    // Mixed flavours keep the stubs path.
+    expect(libraryPathFor("/home/u/plugins/p", "D:/tools/stubs")).toBe("D:/tools/stubs");
+    expect(libraryPathFor("C:/dev/my-plugin", "/opt/stubs")).toBe("/opt/stubs");
   });
 });
 
@@ -225,7 +237,8 @@ describe("scaffold", () => {
   it("creates a plugin that passes validate and preflight", async () => {
     const base = await tempDir("rs3-init-");
     const dir = path.join(base, "my-plugin");
-    const result = await scaffoldPlugin({ dir, permissions: ["httpAccess"], prettyUi: true, agentFiles: false, stubsDir: "C:/stubs" });
+    const stubsDir = path.join(base, "stubs");
+    const result = await scaffoldPlugin({ dir, permissions: ["httpAccess"], prettyUi: true, agentFiles: false, stubsDir });
     expect(result.files).toEqual([".luarc.json", "main.lua", "plugin.json"]);
     const manifest = JSON.parse(await readUtf8(path.join(dir, "plugin.json")));
     expect(manifest.optionalPermissions).toEqual(["httpAccess"]);
@@ -236,10 +249,8 @@ describe("scaffold", () => {
     expect(main.charCodeAt(0)).not.toBe(0xfeff);
     const pre = await preflightPlugin(dir);
     expect(pre.findings.filter((f) => f.level === "error")).toEqual([]);
-    // The stubs override is on the same drive as the temp folder when both are on the system drive;
-    // either way the entry resolves back to the override.
-    const library = JSON.parse(await readUtf8(path.join(dir, ".luarc.json")))["workspace.library"][0] as string;
-    expect(path.resolve(dir, library)).toBe(path.resolve("C:/stubs"));
+    // The stubs folder sits beside the plugin, so the entry is relative on every platform.
+    expect(JSON.parse(await readUtf8(path.join(dir, ".luarc.json")))["workspace.library"]).toEqual(["../stubs"]);
   });
   it("refuses non-empty folders and unknown permissions", async () => {
     const base = await tempDir("rs3-init2-");

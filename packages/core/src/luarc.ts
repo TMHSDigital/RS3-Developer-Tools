@@ -14,7 +14,7 @@
 import * as path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { pathExists, toPosix, writeUtf8NoBom } from "./fs.js";
+import { pathExists, writeUtf8NoBom } from "./fs.js";
 
 const localRequire = createRequire(import.meta.url);
 
@@ -71,14 +71,32 @@ export async function stubsIndexPath(options: StubsResolveOptions = {}): Promise
   return path.join(await stubsPackageDir(options), "index.json");
 }
 
-/** The library entry written to .luarc.json: relative to the plugin folder when possible. */
+/** Drive-letter ("C:\" or "C:/") or UNC ("\\server\share", "//server/share") prefix. */
+const WINDOWS_PATH = /^(?:[A-Za-z]:[\\/]|\\\\[^\\]|\/\/[^/])/;
+
+function slashes(p: string): string {
+  return p.replace(/\\/g, "/");
+}
+
+/**
+ * The library entry written to .luarc.json: relative to the plugin folder when
+ * both paths live on the same drive, otherwise the absolute stubs path.
+ * Both inputs must already be absolute. The path flavour is chosen from the
+ * inputs, not from the host platform, so the result is the same on every OS.
+ */
 export function libraryPathFor(pluginDir: string, stubsDir: string): string {
-  const from = path.resolve(pluginDir);
-  const to = path.resolve(stubsDir);
-  const sameRoot = path.parse(from).root.toLowerCase() === path.parse(to).root.toLowerCase();
-  if (!sameRoot) return toPosix(to);
-  const rel = path.relative(from, to);
-  return toPosix(rel === "" ? "." : rel);
+  const windowsFrom = WINDOWS_PATH.test(pluginDir);
+  const windowsTo = WINDOWS_PATH.test(stubsDir);
+  // One Windows-style and one POSIX path can never be related; keep the stubs path.
+  if (windowsFrom !== windowsTo) return slashes(stubsDir);
+  const flavour = windowsFrom ? path.win32 : path.posix;
+  const from = flavour.normalize(pluginDir);
+  const to = flavour.normalize(stubsDir);
+  if (windowsFrom && flavour.parse(from).root.toLowerCase() !== flavour.parse(to).root.toLowerCase()) {
+    return slashes(to);
+  }
+  const rel = flavour.relative(from, to);
+  return slashes(rel === "" ? "." : rel);
 }
 
 export function luarcTemplate(libraryPath: string): Record<string, unknown> {
@@ -104,6 +122,7 @@ export function luarcTemplate(libraryPath: string): Record<string, unknown> {
 export async function writeLuarc(pluginDir: string, options: StubsResolveOptions = {}): Promise<string> {
   const stubs = await resolveStubsDir(options);
   const file = path.join(pluginDir, ".luarc.json");
-  await writeUtf8NoBom(file, JSON.stringify(luarcTemplate(libraryPathFor(pluginDir, stubs)), null, 2) + "\n");
+  const library = libraryPathFor(path.resolve(pluginDir), stubs);
+  await writeUtf8NoBom(file, JSON.stringify(luarcTemplate(library), null, 2) + "\n");
   return file;
 }
