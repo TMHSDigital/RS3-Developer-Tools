@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "rs3-plugin": {
+      "command": "npx",
+      "args": ["-y", "@tmhs/rs3-plugin-mcp", "--workspace", "${workspaceFolder}"],
+      "env": {
+        "RS3_DEV_PLUGINS_DIR": "C:\\ProgramData\\Jagex\\RuneScape-BETA\\dev_plugins"
+      }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "server": "rs3-plugin-mcp",
+  "prefix": "",
+  "note": "Tool names follow the names fixed in the toolkit specification rather than the <prefix>_<verbNoun> convention; see AGENTS.md.",
+  "tools": [
+    {
+      "name": "docs_search",
+      "description": "Search API symbols and documentation pages by name and return signatures with docs URLs.",
+      "category": "docs",
+      "destructive": false,
+      "requiresConfirm": false
+    },
+    {
+      "name": "docs_get",
+      "description": "Fetch a developer.runescape.com page live with a local ETag cache and return its text or one section.",
+      "category": "docs",
+      "destructive": false,
+      "requiresConfirm": false
+    },
+    {
+      "name": "api_lookup",
+      "description": "Return the LuaLS signature, stub file and docs URL for an API symbol.",
+      "category": "docs",
+      "destructive": false,
+      "requiresConfirm": false
+    },
+    {
+      "name": "manifest_validate",
+      "description": "Validate a plugin folder's plugin.json against the schema and check the folder structure.",
+      "category": "plugin",
+      "destructive": false,
+      "requiresConfirm": false
+    },
+    {
+      "name": "guidelines_preflight",
+      "description": "Run static sandbox, permission and readability checks and link each finding to the docs.",
+      "category": "plugin",
+      "destructive": false,
+      "requiresConfirm": false
+    },
+    {
+      "name": "plugin_scaffold",
+      "description": "Create a new plugin folder inside the workspace without overwriting existing files.",
+      "category": "plugin",
+      "destructive": false,
+      "requiresConfirm": false
+    },
+    {
+      "name": "devplugins_sync",
+      "description": "Copy a plugin into the client's dev_plugins root, replacing the previous copy. Requires confirm=true.",
+      "category": "client",
+      "destructive": true,
+      "requiresConfirm": true
+    },
+    {
+      "name": "package_zip",
+      "description": "Run preflight and build the mod.io zip inside the workspace dist folder.",
+      "category": "plugin",
+      "destructive": false,
+      "requiresConfirm": false
+    }
+  ]
+}

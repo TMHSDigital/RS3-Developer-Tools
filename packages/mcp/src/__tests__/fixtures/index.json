@@ -1,0 +1,11 @@
+{
+  "baseUrl": "https://example.test/rs/",
+  "modules": [
+    { "id": "core/sample", "title": "Sample", "url": "https://example.test/rs/core/sample.html", "file": "stubs/core/sample.lua" }
+  ],
+  "symbols": [
+    { "name": "Sample", "kind": "class", "module": "core/sample", "file": "stubs/core/sample.lua", "url": "https://example.test/rs/core/sample.html", "signature": "---@class Sample" },
+    { "name": "Sample:Get", "kind": "method", "module": "core/sample", "file": "stubs/core/sample.lua", "url": "https://example.test/rs/core/sample.html#get", "signature": "function Sample:Get(key: string): integer?" },
+    { "name": "SampleKind", "kind": "enum", "module": "core/sample", "file": "stubs/core/sample.lua", "url": "https://example.test/rs/core/sample.html#samplekind", "signature": "---@enum SampleKind" }
+  ]
+}
