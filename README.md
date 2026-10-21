@@ -79,6 +79,16 @@ rs3dev package
 
 `rs3dev --json <command>` prints machine-readable output. Every validate and preflight finding links to the documentation page that states the rule.
 
+`rs3dev init` writes a placeholder `contactEmailAddress` (`change-me@example.com`). Preflight reports it as a `placeholder-email` warning and `rs3dev package` refuses to build until a real address is set; addresses on `example.com`, `example.org`, `example.net` or containing `change-me` count as placeholders. The shipped `plugin.json` inside the zip has the editor-only `$schema` key removed.
+
+### LuaLS stubs location
+
+`.luarc.json` points `workspace.library` at the stubs folder, written relative to the plugin folder when both are on the same drive. The folder is found in this order: `--stubs <dir>`, the `RS3_STUBS_DIR` environment variable, the `@tmhs/rs3-luals-stubs` package installed next to the CLI, then the monorepo checkout. Set `RS3_STUBS_DIR` when you keep a regenerated copy of the stubs somewhere else:
+
+```powershell
+$env:RS3_STUBS_DIR = "C:\dev\RS3-Developer-Tools\packages\luals-stubs\stubs"
+```
+
 ## MCP server
 
 `@tmhs/rs3-plugin-mcp` is a stdio MCP server that exposes the same functions to Claude Code, Cursor and other MCP clients. Copy one of the example configurations:
@@ -172,7 +182,13 @@ npm run stubs:generate # regenerate packages/luals-stubs from the live docs
 npm run luals:check    # requires lua-language-server on PATH or LUA_LANGUAGE_SERVER
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md).
+Releases are cut manually. The workflow reads the conventional commits since the last tag, bumps every version field, tags and publishes the GitHub Release:
+
+```powershell
+gh workflow run release.yml
+```
+
+Dependency updates are applied manually on `main`; there is no Dependabot configuration. See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md).
 
 ## Roadmap
 

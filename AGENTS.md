@@ -41,13 +41,13 @@ See [`.github/workflows/README.md`](.github/workflows/README.md) for the full ta
 - `ci.yml` (push, PR): build, `npm test`, validate and preflight the example, LuaLS check on windows-latest and ubuntu-latest.
 - `stubs-regenerate.yml` (weekly, manual): regenerates stubs, runs tests and the LuaLS check, commits `chore(stubs): regenerate from docs` directly to `main` as github-actions[bot].
 - `validate.yml` (push, PR): manifest fields, skill and rule frontmatter, README counts, credential scan, em dash and emoji check.
-- `release.yml` (push): bumps `.cursor-plugin/plugin.json`, root and workspace `package.json` versions, tags, creates the GitHub Release.
-- `drift-check.yml`, `pages.yml`, `codeql.yml`, `stale.yml`, `label-sync.yml`: ecosystem standard workflows.
+- `release.yml` (manual, `gh workflow run release.yml`): bumps `.cursor-plugin/plugin.json`, root and workspace `package.json` versions, tags, creates the GitHub Release.
+- `drift-check.yml`, `pages.yml`, `codeql.yml`: ecosystem standard workflows. There is no Dependabot, stale or label-sync automation; dependency updates are applied manually on `main`.
 
 ## Version management
 
 - The **source of truth** for the current version is `.cursor-plugin/plugin.json`. Every `package.json` carries the same version and the schemas test enforces it.
-- The release workflow bumps them and the README badge on every qualifying push to main. Never change versions by hand.
+- The release workflow bumps them and the README badge when a maintainer runs it. Never change versions by hand.
 
 ## Code conventions
 
@@ -103,6 +103,8 @@ Entry point `packages/mcp/src/index.ts` (stdio). Tools are defined in `packages/
 - Manifest fields: `name`, `version`, `contactEmailAddress`, `requiredDependencies`, `optionalDependencies` (array or alias map), `requiredPermissions`, `optionalPermissions`, `urls`, `hasSettingsIcon`, `hasRibbonIcon`. Permissions: `httpAccess`, `chatAccess`, `trackingAccess`.
 - Dev root on Windows: `C:\ProgramData\Jagex\RuneScape-BETA\dev_plugins\<plugin>\`, detected by `*.jcache` files in the client folder; override with `RS3_DEV_PLUGINS_DIR` or `--root`. Console: `prf`, `plist`, `pon`, `poff`, `prl`.
 - Sandbox forbids `os`, `io`, `debug`, `load`, `loadstring`, `dofile`.
+- `contactEmailAddress` on `example.com`, `example.org`, `example.net` or containing `change-me` is a placeholder: preflight warns (`placeholder-email`), package refuses unless `--allow-placeholder-email` (tests only). The zip ships `plugin.json` without `$schema`, four-space indented.
+- Stubs folder resolution for `.luarc.json`: `--stubs`, then `RS3_STUBS_DIR`, then `require.resolve("@tmhs/rs3-luals-stubs/package.json")` from the CLI, then the monorepo; the path is written relative to the plugin folder when the drives match.
 - The client calls `PluginShutdown()` on disable or reload and `PluginDependencyUpdate(event)` when an optional dependency toggles.
 - Events: `Event.<Name>.Subscribe(ref, fn)` / `Unsubscribe(ref)`; component hooks: `component:Subscribe(ui.Hook.X, [id,] fn)`.
 - Stub output: `packages/luals-stubs/stubs/<section>/<page>.lua`, plus `_globals.lua` (`config`, `id`, `var`), `_namespaces.lua`, `_extras.lua`, `_unresolved.lua`.

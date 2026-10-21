@@ -17,3 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Cursor rules (9) and Claude Code skills (4) for RS3 plugin development, installed by `rs3dev init`
 - `examples/hello-counter` reference plugin checked by LuaLS in CI
 - CI on windows-latest and ubuntu-latest, scheduled stub regeneration committing to `main`
+- Preflight `placeholder-email` warning; `package` refuses placeholder addresses (`--allow-placeholder-email` for tests) and ships `plugin.json` without `$schema`
+- `.luarc.json` library path written relative to the plugin folder; `RS3_STUBS_DIR` override
+
+### Changed
+
+- Releases are manual (`gh workflow run release.yml`); Dependabot, stale and label-sync automation removed

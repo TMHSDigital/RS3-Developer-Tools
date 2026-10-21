@@ -42,6 +42,10 @@ No emojis and no em dashes in commits, code, or docs.
 2. Update `CHANGELOG.md` for user-facing changes.
 3. Use a conventional-commit PR title; it becomes the squash commit subject.
 
+## Releases and dependencies
+
+Releases are cut manually by a maintainer with `gh workflow run release.yml`. The workflow determines the bump from the conventional commits since the last tag, updates `.cursor-plugin/plugin.json`, the root and workspace `package.json` files and the README badge, commits to `main`, tags, and creates the GitHub Release. Dependency updates are applied manually on `main`; the repository has no Dependabot configuration.
+
 ## Inbound license grant and DCO
 
 This project's outbound license is MIT. Contributions are accepted inbound under a broader grant via the Developer Certificate of Origin (DCO).
