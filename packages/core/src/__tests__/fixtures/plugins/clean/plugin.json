@@ -1,0 +1,9 @@
+{
+  "name": "Clean Fixture",
+  "version": "0.1.0",
+  "contactEmailAddress": "clean@example.com",
+  "requiredDependencies": [],
+  "optionalDependencies": [],
+  "requiredPermissions": [],
+  "optionalPermissions": ["chatAccess"]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Bad Permission",
+  "version": "1.0",
+  "contactEmailAddress": "bad@example.com",
+  "requiredPermissions": ["fileAccess"]
+}

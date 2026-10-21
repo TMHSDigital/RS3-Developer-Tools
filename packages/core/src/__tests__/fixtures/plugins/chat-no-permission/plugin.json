@@ -1,0 +1,7 @@
+{
+  "name": "Chat Without Permission",
+  "version": "0.1.0",
+  "contactEmailAddress": "chat@example.com",
+  "requiredPermissions": [],
+  "optionalPermissions": []
+}

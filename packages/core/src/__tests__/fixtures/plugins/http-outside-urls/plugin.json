@@ -1,0 +1,8 @@
+{
+  "name": "HTTP Outside URLs",
+  "version": "0.1.0",
+  "contactEmailAddress": "http@example.com",
+  "requiredPermissions": ["httpAccess"],
+  "optionalPermissions": [],
+  "urls": { "wiki": "https://runescape.wiki/" }
+}

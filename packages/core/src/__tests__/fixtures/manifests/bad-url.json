@@ -1,0 +1,7 @@
+{
+  "name": "Bad URL",
+  "version": "1.0",
+  "contactEmailAddress": "bad@example.com",
+  "requiredPermissions": ["httpAccess"],
+  "urls": { "ftp": "ftp://files.example.com/", "bad key": "https://example.com/" }
+}

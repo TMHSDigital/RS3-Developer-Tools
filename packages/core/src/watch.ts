@@ -1,0 +1,63 @@
+// Re-sync a plugin folder whenever a file inside it changes, debounced so a
+// burst of saves produces a single copy.
+
+import * as path from "node:path";
+import chokidar from "chokidar";
+import { syncPlugin, type SyncOptions, type SyncResult } from "./sync.js";
+
+export interface WatchOptions extends SyncOptions {
+  /** Quiet period after the last change before syncing. Default 300 ms. */
+  debounceMs?: number;
+  onSync?: (result: SyncResult) => void;
+  onError?: (error: Error) => void;
+  onChange?: (file: string) => void;
+}
+
+export interface Watcher {
+  close(): Promise<void>;
+  /** Resolves after the first sync completes. */
+  ready: Promise<SyncResult>;
+}
+
+export function watchPlugin(pluginDir: string, options: WatchOptions = {}): Watcher {
+  const source = path.resolve(pluginDir);
+  const debounceMs = options.debounceMs ?? 300;
+  let timer: NodeJS.Timeout | undefined;
+  let running: Promise<void> = Promise.resolve();
+
+  const runSync = async (): Promise<SyncResult> => {
+    const result = await syncPlugin(source, options);
+    options.onSync?.(result);
+    return result;
+  };
+
+  const schedule = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      running = running.then(() => runSync().then(() => undefined, (error: Error) => options.onError?.(error)));
+    }, debounceMs);
+  };
+
+  const watcher = chokidar.watch(source, {
+    ignoreInitial: true,
+    ignored: (file: string) => {
+      const rel = path.relative(source, file);
+      if (rel === "") return false;
+      return rel.split(path.sep).some((part) => part.startsWith(".") || part === "node_modules");
+    },
+  });
+  watcher.on("all", (_event: string, file: string) => {
+    options.onChange?.(path.relative(source, file));
+    schedule();
+  });
+
+  const ready = runSync();
+  return {
+    ready,
+    async close() {
+      if (timer) clearTimeout(timer);
+      await watcher.close();
+      await running;
+    },
+  };
+}

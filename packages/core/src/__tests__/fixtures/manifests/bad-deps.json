@@ -1,0 +1,7 @@
+{
+  "name": "Bad Deps",
+  "version": "1.0",
+  "contactEmailAddress": "bad@example.com",
+  "requiredDependencies": "LibraryPlugin",
+  "unknownField": true
+}
