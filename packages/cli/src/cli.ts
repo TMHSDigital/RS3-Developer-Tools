@@ -8,6 +8,8 @@ import {
   runPackage,
   runPreflight,
   runSync,
+  runDoctor,
+  runCache,
   runValidate,
   runWatch,
   type OutputOptions,
@@ -78,6 +80,21 @@ program
   .option("--debounce <ms>", "quiet period after the last change", "300")
   .action(async (target: string | undefined, opts) => {
     process.exitCode = await runWatch(target ?? ".", opts, output());
+  });
+
+program
+  .command("doctor [path]")
+  .description("report the client folder, stubs, LuaLS binary, .luarc.json and docs cache; exits 1 when something is missing")
+  .option("--stubs <dir>", "stubs folder to check instead of RS3_STUBS_DIR or the installed package")
+  .action(async (target: string | undefined, opts) => {
+    process.exitCode = await runDoctor(target, opts, output());
+  });
+
+program
+  .command("cache <action>")
+  .description("manage the documentation cache: 'path' prints its location, 'clear' removes it")
+  .action(async (action: string) => {
+    process.exitCode = await runCache(action, output());
   });
 
 program

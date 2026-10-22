@@ -11,5 +11,6 @@ export * from "./watch.js";
 export * from "./package.js";
 export * from "./luarc.js";
 export * from "./scaffold.js";
+export * from "./doctor.js";
 export type { PluginManifest, Permission } from "@tmhs/rs3-plugin-schema";
 export { PERMISSIONS } from "@tmhs/rs3-plugin-schema";

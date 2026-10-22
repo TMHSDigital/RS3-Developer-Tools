@@ -3,8 +3,13 @@
 
 import * as path from "node:path";
 import {
+  DocsClient,
+  cacheDir,
+  formatDoctorReport,
   formatFindings,
+  listFilesRecursive,
   packagePlugin,
+  runDoctor as doctorReport,
   preflightPlugin,
   scaffoldPlugin,
   summarise,
@@ -157,6 +162,37 @@ export async function runWatch(target: string, opts: { root?: string; debounce?:
     process.once("SIGTERM", stop);
   });
   return 0;
+}
+
+export async function runDoctor(target: string | undefined, opts: { stubs?: string }, options: OutputOptions): Promise<number> {
+  const report = await doctorReport({ pluginDir: target ? path.resolve(target) : undefined, stubsDir: opts.stubs, resolveFrom: import.meta.url });
+  if (options.json) {
+    out(options, JSON.stringify({ command: "doctor", ...report }, null, 2));
+  } else {
+    for (const line of formatDoctorReport(report)) out(options, line);
+  }
+  return report.ok ? 0 : 1;
+}
+
+export async function runCache(action: string, options: OutputOptions): Promise<number> {
+  const dir = path.join(cacheDir(), "docs");
+  if (action === "path") {
+    out(options, options.json ? JSON.stringify({ command: "cache", path: dir }) : dir);
+    return 0;
+  }
+  if (action === "clear") {
+    let removed = 0;
+    try {
+      removed = (await listFilesRecursive(dir)).length;
+    } catch {
+      removed = 0;
+    }
+    await new DocsClient().clearCache();
+    out(options, options.json ? JSON.stringify({ command: "cache", path: dir, removed }) : `Removed ${removed} cached file(s) from ${dir}`);
+    return 0;
+  }
+  err(options, `unknown cache action "${action}"; use "path" or "clear"`);
+  return 1;
 }
 
 export async function runPackage(

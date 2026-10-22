@@ -11,6 +11,7 @@ import { preflightPlugin } from "../preflight.js";
 import { enclosingCall, scanLua, globalReads, indirectGlobalReads, memberChains, requireCalls } from "../lua-scan.js";
 import { syncPlugin } from "../sync.js";
 import { watchPlugin } from "../watch.js";
+import { formatDoctorReport, runDoctor } from "../doctor.js";
 import { packagePlugin } from "../package.js";
 import { scaffoldPlugin } from "../scaffold.js";
 import { findDevPluginsRoot } from "../paths.js";
@@ -299,6 +300,55 @@ describe("sync", () => {
     expect(overlap).toBe(0);
     expect(syncs).toBeGreaterThanOrEqual(2);
     expect(await readUtf8(path.join(root, "watched", "extra5.lua"))).toBe("-- 5");
+  });
+});
+
+describe("doctor", () => {
+  it("reports what is missing on a machine without the client or LuaLS, with hints", async () => {
+    const base = await tempDir("rs3-doctor-");
+    const stubs = path.join(base, "stubs");
+    await fsp.mkdir(stubs);
+    const env = { RS3_DEVTOOLS_CACHE_DIR: path.join(base, "cache"), RS3_STUBS_DIR: stubs };
+    const report = await runDoctor({ env, luaLanguageServer: path.join(base, "no-such-luals"), pluginDir: path.join(base, "no-plugin") });
+    const byItem = Object.fromEntries(report.rows.map((r) => [r.item, r]));
+    expect(Object.keys(byItem)).toEqual(["node", "dev_plugins", "stubs", "luals", "luarc", "cache"]);
+    expect(byItem.node!.status).toBe("ok");
+    expect(byItem.dev_plugins!.status).toBe("missing");
+    expect(byItem.dev_plugins!.hint).toContain("jcache");
+    expect(byItem.stubs!.status).toBe("ok");
+    expect(byItem.stubs!.value).toContain("RS3_STUBS_DIR");
+    expect(byItem.luals!.status).toBe("missing");
+    expect(byItem.luals!.hint).toContain("LUA_LANGUAGE_SERVER");
+    expect(byItem.luarc!.status).toBe("missing");
+    expect(byItem.cache!.status).toBe("ok");
+    expect(byItem.cache!.value).toContain("empty");
+    expect(report.ok).toBe(false);
+    const text = formatDoctorReport(report);
+    expect(text.at(-1)).toContain("something is missing");
+    expect(text.some((l) => l.startsWith("missing  luals"))).toBe(true);
+  });
+  it("is green when the client root, the stubs and the plugin luarc are all present", async () => {
+    const base = await tempDir("rs3-doctor-ok-");
+    const client = path.join(base, "client");
+    await fsp.mkdir(path.join(client, "dev_plugins"), { recursive: true });
+    await fsp.writeFile(path.join(client, "main.jcache"), "");
+    const stubs = path.join(base, "stubs");
+    await fsp.mkdir(stubs);
+    const pluginDir = path.join(base, "plugin");
+    await scaffoldPlugin({ dir: pluginDir, agentFiles: false, stubsDir: stubs });
+    const env = { RS3_DEVTOOLS_CACHE_DIR: path.join(base, "cache"), RS3_DEV_PLUGINS_DIR: path.join(client, "dev_plugins"), RS3_STUBS_DIR: stubs };
+    // Use node itself as a stand-in LuaLS binary: it answers --version with exit 0.
+    const report = await runDoctor({ env, luaLanguageServer: process.execPath, pluginDir });
+    const byItem = Object.fromEntries(report.rows.map((r) => [r.item, r]));
+    expect(byItem.dev_plugins!.status).toBe("ok");
+    expect(byItem.luals!.status).toBe("ok");
+    expect(byItem.luarc!.status).toBe("ok");
+    expect(report.ok).toBe(true);
+    // A moved stubs folder is reported against the plugin's .luarc.json.
+    await fsp.rm(stubs, { recursive: true, force: true });
+    const moved = await runDoctor({ env: { ...env, RS3_STUBS_DIR: path.join(base, "elsewhere") }, luaLanguageServer: process.execPath, pluginDir });
+    expect(moved.rows.find((r) => r.item === "luarc")!.status).toBe("missing");
+    expect(moved.rows.find((r) => r.item === "stubs")!.status).toBe("missing");
   });
 });
 

@@ -46,12 +46,12 @@ const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), "rs3-luals-"));
 const configPath = path.join(tmp, "luarc.json");
 await fsp.writeFile(configPath, JSON.stringify(config, null, 2));
 
+const lualsArgs = ["--check", workspace, "--configpath", configPath, "--checklevel", "Warning", "--logpath", path.join(tmp, "log")];
 function runLuals(useShell) {
-  return spawnSync(
-    bin,
-    ["--check", workspace, "--configpath", configPath, "--checklevel", "Warning", "--logpath", path.join(tmp, "log")],
-    { encoding: "utf8", shell: useShell },
-  );
+  // With a shell (Windows .cmd shims) pass one quoted command string so Node
+  // does not warn about unescaped arguments (DEP0190).
+  if (useShell) return spawnSync([bin, ...lualsArgs].map((a) => `"${a}"`).join(" "), { encoding: "utf8", shell: true });
+  return spawnSync(bin, lualsArgs, { encoding: "utf8" });
 }
 // Prefer a direct spawn; fall back to the shell for .cmd shims on Windows.
 let result = runLuals(false);

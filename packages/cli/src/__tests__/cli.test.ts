@@ -4,7 +4,7 @@ import * as os from "node:os";
 import { promises as fsp } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { parseUrlFlags, runInit, runPackage, runPreflight, runSync, runValidate } from "../commands.js";
+import { parseUrlFlags, runCache, runDoctor, runInit, runPackage, runPreflight, runSync, runValidate } from "../commands.js";
 
 // Reuse the core fixtures so the CLI and the library agree on their verdicts.
 const coreFixtures = fileURLToPath(new URL("../../../core/src/__tests__/fixtures/plugins/", import.meta.url));
@@ -114,6 +114,42 @@ describe("rs3dev commands", () => {
     expect(() => parseUrlFlags(["api=ftp://nope"])).toThrow(/not an http or https URL/);
     const bad = capture();
     expect(await runInit("http-bad", { cwd: base, agentFiles: false, stubs: "C:/stubs", url: ["x"] }, bad.options)).toBe(1);
+  });
+
+  it("doctor prints a report, exits 1 when something is missing, and cache path/clear work", async () => {
+    const base = await tempDir("rs3-cli-doctor-");
+    const cache = path.join(base, "cache");
+    await fsp.mkdir(path.join(cache, "docs"), { recursive: true });
+    await fsp.writeFile(path.join(cache, "docs", "x.html"), "<html></html>");
+    const previous = { cache: process.env.RS3_DEVTOOLS_CACHE_DIR, luals: process.env.LUA_LANGUAGE_SERVER, root: process.env.RS3_DEV_PLUGINS_DIR };
+    process.env.RS3_DEVTOOLS_CACHE_DIR = cache;
+    process.env.LUA_LANGUAGE_SERVER = path.join(base, "missing-luals");
+    delete process.env.RS3_DEV_PLUGINS_DIR;
+    try {
+      const c = capture();
+      await runDoctor(undefined, { stubs: "C:/stubs-not-here" }, { ...c.options, json: true });
+      const report = JSON.parse(c.lines.join("\n"));
+      expect(report.command).toBe("doctor");
+      expect(report.rows.map((r: { item: string }) => r.item)).toEqual(["node", "dev_plugins", "stubs", "luals", "cache"]);
+      expect(report.ok).toBe(false);
+      const text = capture();
+      expect(await runDoctor(undefined, { stubs: "C:/stubs-not-here" }, text.options)).toBe(1);
+      expect(text.lines.join("\n")).toContain("missing  luals");
+      const p = capture();
+      expect(await runCache("path", p.options)).toBe(0);
+      expect(p.lines[0]).toBe(path.join(cache, "docs"));
+      const clear = capture();
+      expect(await runCache("clear", clear.options)).toBe(0);
+      expect(clear.lines[0]).toContain("Removed 1 cached file(s)");
+      await expect(fsp.stat(path.join(cache, "docs"))).rejects.toThrow();
+      expect(await runCache("nope", capture().options)).toBe(1);
+    } finally {
+      if (previous.cache === undefined) delete process.env.RS3_DEVTOOLS_CACHE_DIR;
+      else process.env.RS3_DEVTOOLS_CACHE_DIR = previous.cache;
+      if (previous.luals === undefined) delete process.env.LUA_LANGUAGE_SERVER;
+      else process.env.LUA_LANGUAGE_SERVER = previous.luals;
+      if (previous.root !== undefined) process.env.RS3_DEV_PLUGINS_DIR = previous.root;
+    }
   });
 
   it("the built binary prints help", async () => {
