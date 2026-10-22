@@ -55,7 +55,8 @@ function pageOf(see: string): string {
 
 /** Rewrite type names inside a LuaLS type expression, leaving parameter names alone. */
 function rewriteType(type: string, map: Map<string, string>): string {
-  return type.replace(/([A-Za-z_][A-Za-z0-9_.]*)(\s*\??\s*:)?/g, (whole, name: string, colon?: string) => {
+  // Emitted type expressions use single spaces, so the gaps are bounded (no \s*).
+  return type.replace(/([A-Za-z_][A-Za-z0-9_.]*)( ?\?? ?:)?/g, (whole, name: string, colon?: string) => {
     if (colon) return whole;
     const mapped = map.get(name);
     return mapped ? whole.replace(name, mapped) : whole;

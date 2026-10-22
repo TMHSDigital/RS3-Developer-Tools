@@ -5,7 +5,8 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { promises as fsp } from "node:fs";
 import { generate, loadOverrides } from "../generate.js";
-import { convertType, parseParam } from "../lua-types.js";
+import { convertType, parseParam, stripAngleBrackets } from "../lua-types.js";
+import { collapseWhitespace } from "../model.js";
 import { checkCrawlGuard, readBaseline } from "../guard.js";
 
 const fixtures = fileURLToPath(new URL("./fixtures/", import.meta.url));
@@ -125,6 +126,30 @@ describe("generate (synthetic fixtures)", () => {
     const b = await run();
     expect(a.files).toEqual(b.files);
     expect(JSON.stringify(a.notes)).toBe(JSON.stringify(b.notes));
+  });
+});
+
+describe("pathological input stays linear", () => {
+  it("converts 100 KB strings of repeated delimiters within a time budget", () => {
+    const budgetMs = 500;
+    const inputs = [
+      "{ " + " ".repeat(100000) + "x",
+      "[ " + "[".repeat(50000) + " ]",
+      "( " + "(".repeat(50000),
+      "function " + " ".repeat(100000) + "(",
+      "Component" + "<".repeat(100000),
+      "<a".repeat(50000) + ">".repeat(50000),
+      "String" + " ".repeat(100000) + "Properties",
+    ];
+    const started = Date.now();
+    for (const input of inputs) {
+      const out = convertType(input);
+      expect(typeof out.type).toBe("string");
+    }
+    expect(stripAngleBrackets("Component<Map<K, V>>Rest")).toBe("ComponentRest");
+    expect(stripAngleBrackets("<<a>>b")).toBe("b");
+    expect(collapseWhitespace("  a \t\n b  ")).toBe("a b");
+    expect(Date.now() - started).toBeLessThan(budgetMs);
   });
 });
 

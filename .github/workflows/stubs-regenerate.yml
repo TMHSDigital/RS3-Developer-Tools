@@ -17,20 +17,24 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  # Bump the version and the hash together; the download is verified before it runs.
   LUALS_VERSION: "3.19.2"
+  LUALS_SHA256_LINUX: "93ad326b10f6c00911dd8c450fa098332dbd8f9f45d1052f5636a2d54479b947"
 
+# This job pushes to main, so its actions are pinned to commit SHAs (version in
+# the trailing comment). Bump them by hand together with the other workflows.
 jobs:
   regenerate:
     name: Regenerate from docs
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
           fetch-depth: 0
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24
           cache: npm
@@ -54,7 +58,7 @@ jobs:
 
       - name: Upload the generator log
         if: steps.generate.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: stubs-generate-log
           path: ${{ runner.temp }}/stubs-generate.log
@@ -93,6 +97,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/luals"
           curl -sSL -o "$RUNNER_TEMP/luals.tar.gz" \
             "https://github.com/LuaLS/lua-language-server/releases/download/${LUALS_VERSION}/lua-language-server-${LUALS_VERSION}-linux-x64.tar.gz"
+          echo "${LUALS_SHA256_LINUX}  $RUNNER_TEMP/luals.tar.gz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/luals.tar.gz" -C "$RUNNER_TEMP/luals"
           echo "LUA_LANGUAGE_SERVER=$RUNNER_TEMP/luals/bin/lua-language-server" >> "$GITHUB_ENV"
 

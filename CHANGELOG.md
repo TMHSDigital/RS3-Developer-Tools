@@ -24,6 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - `rs3dev watch --no-prune`; `package` writes to `dist/<plugin>-<version>.zip` under the current directory by default and the watcher ignores the same dev artefacts that `sync` and `package` exclude; `init` writes `urls` only from repeatable `--url name=https://host/` flags; `validate --strict` and `preflight --strict` fail on warnings
 - `docs_get` resolves `section` by anchor first, then heading, slices by recorded line offsets and returns a `DOCS_SECTION` error listing the anchors when a heading repeats; the page converter handles `dl`, nested lists, admonition titles and inline `code`
 - The stub generator refuses to write (exit 2) when a crawl visits fewer than 50 pages or shrinks modules or symbols by more than 10 percent against the committed `index.json`, or when unresolved notes balloon; `--allow-shrink` overrides. `stubs-regenerate.yml` opens or updates a tracking issue and uploads the log instead of committing
+- CI verifies the SHA-256 of the LuaLS archive before extracting it; jobs that can write (`stubs-regenerate.yml`, `release.yml`, `pages.yml`, `stale.yml`) pin GitHub actions to commit SHAs and read-only jobs check out with `persist-credentials: false`
+- Weekly `audit.yml` runs `npm audit` over every dependency and `ci.yml` audits production dependencies on every push; Dependabot alerts and private vulnerability reporting are enabled on the repository
+- Stub generator regexes rewritten so whitespace is collapsed once and `<...>` groups are stripped in a single pass (clears the CodeQL polynomial-ReDoS and incomplete-sanitization alerts); output is byte-identical
 
 ### Changed
 

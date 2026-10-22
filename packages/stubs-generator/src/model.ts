@@ -8,6 +8,7 @@
 // instead of being guessed.
 
 import type { Block, Heading, ParsedPage, TableBlock } from "./parse.js";
+import { stripAngleBrackets } from "./lua-types.js";
 import {
   convertReturns,
   convertType,
@@ -43,7 +44,9 @@ const SECTION_WORDS = new Set(
   ].map((s) => s.toLowerCase()),
 );
 
-const SECTION_SUFFIX = /\s+(Properties|Methods|Functions|Enumerations|Constructors)$/;
+// Headings are whitespace-normalised before matching so the pattern needs no
+// unbounded whitespace quantifier (CodeQL js/polynomial-redos).
+const SECTION_SUFFIX = / (Properties|Methods|Functions|Enumerations|Constructors)$/;
 
 export interface PageScan {
   /** Identifiers used as tables in code, e.g. "NPCList", "ui.Button", "game.options". */
@@ -97,8 +100,14 @@ function headingNamesExample(path: Heading[]): boolean {
 }
 
 function stripSectionSuffix(text: string): string {
-  return text.replace(SECTION_SUFFIX, "").trim();
+  return collapseWhitespace(text).replace(SECTION_SUFFIX, "").trim();
 }
+
+/** Collapse runs of whitespace to one space and trim, so regexes can use single spaces. */
+export function collapseWhitespace(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
 
 function isSectionWord(text: string): boolean {
   return SECTION_WORDS.has(text.trim().toLowerCase());
@@ -127,10 +136,12 @@ function logicalLines(lines: string[]): string[] {
   return out;
 }
 
-const SIG_WITH_OWNER = /^function\s+([A-Za-z_][\w.]*?(?:<[^>]*>)?)([:.])(\w+)\s*\((.*)\)\s*(?:->\s*(.+?))?\s*;?$/;
-const SIG_FREE = /^function\s+(\w+)\s*\((.*)\)\s*(?:->\s*(.+?))?\s*;?$/;
-const SIG_NO_KEYWORD = /^([A-Z][\w.]*?(?:<[^>]*>)?)([:.])(\w+)\s*\((.*)\)\s*(?:->\s*(.+?))?\s*;?$/;
-const SIG_INDEX = /^([A-Za-z_][\w.]*)\[(\w+)\s*:\s*([^\]]+)\]\s*(?:->\s*(.+)|=\s*(\w+)\s*:\s*(.+))?$/;
+// Signature lines are whitespace-normalised (collapseWhitespace) before these
+// run, so every optional gap is a single " ?" and the patterns stay linear.
+const SIG_WITH_OWNER = /^function ([A-Za-z_][\w.]*?(?:<[^>]*>)?)([:.])(\w+) ?\((.*)\) ?(?:-> ?(.+?))? ?;?$/;
+const SIG_FREE = /^function (\w+) ?\((.*)\) ?(?:-> ?(.+?))? ?;?$/;
+const SIG_NO_KEYWORD = /^([A-Z][\w.]*?(?:<[^>]*>)?)([:.])(\w+) ?\((.*)\) ?(?:-> ?(.+?))? ?;?$/;
+const SIG_INDEX = /^([A-Za-z_][\w.]*)\[(\w+) ?: ?([^\]]+)\] ?(?:-> ?(.+)|= ?(\w+) ?: ?(.+))?$/;
 
 function makeSig(owner: string, sep: ":" | "." | "", name: string, paramText: string, retText: string | undefined, anchor: string, raw: string): FunctionSig {
   return {
@@ -147,7 +158,7 @@ function makeSig(owner: string, sep: ":" | "." | "", name: string, paramText: st
 
 function parseSignatureLine(line: string, anchor: string): Parsed | "unparsed" | undefined {
   // The docs occasionally write "ui.function StyleSheets:Contains(...)"; normalise it.
-  const text = line.replace(/^(\w+)\.function\s+/, "function $1.");
+  const text = collapseWhitespace(line).replace(/^(\w+)\.function /, "function $1.");
 
   let m = SIG_WITH_OWNER.exec(text);
   if (m) return { kind: "function", sig: makeSig(m[1]!, m[2] as ":" | ".", m[3]!, m[4]!, m[5], anchor, line) };
@@ -202,7 +213,7 @@ export function buildPageModel(page: ParsedPage, options: BuildOptions): PageMod
         return p.class;
       }
     }
-    return owner.replace(/<[^>]*>/g, "").replace(/\.$/, "");
+    return stripAngleBrackets(owner).replace(/\.$/, "");
   };
 
   // Pass 1: parse every signature and remember which headings own one.

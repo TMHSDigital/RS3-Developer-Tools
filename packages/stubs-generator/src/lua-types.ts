@@ -120,9 +120,26 @@ export function convertReturns(text: string | undefined): { types: string[]; ref
   };
 }
 
+/**
+ * Remove every <...> group, including nested ones, in a single pass. A regex
+ * such as /<[^>]*>/g leaves "<<a>>" half-stripped, which CodeQL reports as
+ * incomplete sanitization; a depth counter does not.
+ */
+export function stripAngleBrackets(text: string): string {
+  let out = "";
+  let depth = 0;
+  for (const ch of text) {
+    if (ch === "<") depth++;
+    else if (ch === ">" && depth > 0) depth--;
+    else if (depth === 0) out += ch;
+  }
+  return out;
+}
+
 /** Parse "function (a : T, b : U) -> R" or "function? (self : X)" into a LuaLS fun type. */
 function convertFunctionType(text: string): ConvertedType {
-  const m = /^function(\?)?\s*(?:\((.*)\))?\s*(?:->\s*(.+))?$/s.exec(text.trim());
+  // convertType collapses whitespace first, so single optional spaces suffice (linear).
+  const m = /^function(\?)? ?(?:\((.*)\))? ?(?:-> ?(.+))?$/s.exec(text.replace(/\s+/g, " ").trim());
   if (!m) return { type: "function", optional: false, references: [], malformed: false };
   const optional = Boolean(m[1]);
   const params = splitTopLevel(m[2] ?? "", ",").map(parseParam);
@@ -160,7 +177,7 @@ export function convertType(input: string): ConvertedType {
   }
 
   // Map notation "{ K -> V }"
-  const map = /^\{\s*(.+?)\s*->\s*(.+?)\s*\}$/.exec(text);
+  const map = /^\{ ?(.+?) ?-> ?(.+?) ?\}$/.exec(text);
   if (map) {
     const key = convertType(map[1]!);
     const value = convertType(map[2]!);
@@ -173,7 +190,7 @@ export function convertType(input: string): ConvertedType {
   }
 
   // Array "[ X ]" or tuple "[ A, B ]"
-  const arr = /^\[\s*(.+?)\s*\]$/.exec(text);
+  const arr = /^\[ ?(.+?) ?\]$/.exec(text);
   if (arr) {
     const parts = splitTopLevel(arr[1]!, ",");
     if (parts.length > 1) return tupleType(parts, optional);
@@ -187,7 +204,7 @@ export function convertType(input: string): ConvertedType {
   }
 
   // Tuple written with parentheses "(Int, Int)" or bare "Integer,Integer"
-  const paren = /^\(\s*(.+?)\s*\)$/.exec(text);
+  const paren = /^\( ?(.+?) ?\)$/.exec(text);
   if (paren) {
     const parts = splitTopLevel(paren[1]!, ",");
     if (parts.length > 1) return tupleType(parts, optional);
@@ -208,8 +225,8 @@ export function convertType(input: string): ConvertedType {
     };
   }
 
-  // Generic markers like Component<T>: drop the type argument.
-  text = text.replace(/<[^>]*>/g, "").trim();
+  // Generic markers like Component<T>: drop the type argument (single pass, nested-safe).
+  text = stripAngleBrackets(text).trim();
 
   const primitive = PRIMITIVES[text.toLowerCase()];
   if (primitive) return { type: primitive, optional, references: [], malformed: false };

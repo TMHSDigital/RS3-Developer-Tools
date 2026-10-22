@@ -33,8 +33,10 @@ jobs:
     name: Verify, bump version, tag, and release
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # This job pushes to main and publishes a release, so its actions are
+    # pinned to commit SHAs (version in the trailing comment).
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -52,7 +54,7 @@ jobs:
             *) echo "::error::no successful ci.yml run for $sha. Wait for CI, or re-run with require_ci=false after checking by hand."; exit 1 ;;
           esac
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24
           cache: npm

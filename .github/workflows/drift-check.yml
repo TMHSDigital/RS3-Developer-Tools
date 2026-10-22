@@ -16,6 +16,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: TMHSDigital/Developer-Tools-Directory/.github/actions/drift-check@v1.20
         with:
           mode: self

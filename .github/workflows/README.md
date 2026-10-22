@@ -14,10 +14,11 @@ Every workflow runs on `main` only. Direct pushes land on `main`; there are no b
 | `stale.yml` | manual only | Present because the ecosystem drift check requires it for cursor-plugin repos. It has no schedule; a manual run defaults to a dry run that only reports. The repository policy stays: no stale automation. |
 | `pages.yml` | push touching plugin content, manual | Builds the GitHub Pages site with the shared site template; `cursor-plugin/skills` and `cursor-plugin/rules` are staged as `skills/` and `rules/` because the template expects them at the root. Requires Pages to be enabled with the GitHub Actions source. |
 | `codeql.yml` | push, pull request, weekly | CodeQL for TypeScript. |
+| `audit.yml` | weekly (Monday 07:00 UTC), manual | `npm audit --audit-level=high` over every dependency including dev tooling, plus an informational `npm outdated`. `ci.yml` audits production dependencies on every push. Dependabot alerts are enabled on the repository; neither opens pull requests. |
 
 ## Action pinning
 
-GitHub-published actions (`actions/*`, `github/*`) use major-version tags. The Developer-Tools-Directory composite actions are pinned to the meta-repo `MAJOR.MINOR` (`drift-check@v1.20`) and `MAJOR` (`release-doc-sync@v1`) trains, as the ecosystem standards require. No other third-party actions are used; LuaLS is downloaded from its pinned GitHub release (`LUALS_VERSION`). Bump the pin deliberately.
+Jobs that can write (`stubs-regenerate.yml` pushes to `main`, `release.yml` pushes and publishes, `pages.yml` deploys with an id token, `stale.yml` labels issues) pin every GitHub-published action to a full commit SHA with the version in a trailing comment. Read-only jobs (`ci.yml`, `validate.yml`, `codeql.yml`, `drift-check.yml`, `audit.yml`) use major-version tags and check out with `persist-credentials: false`. The Developer-Tools-Directory composite actions are pinned to the meta-repo `MAJOR.MINOR` (`drift-check@v1.20`) and `MAJOR` (`release-doc-sync@v1`) trains, as the ecosystem standards require. LuaLS is downloaded from its pinned GitHub release (`LUALS_VERSION`) and the archive's SHA-256 is checked against `LUALS_SHA256_*` before it is extracted; bump the version and the hashes together. There is no Dependabot, so SHA bumps are manual: resolve the new SHA with `gh api repos/<owner>/<action>/git/ref/tags/<tag>` and update the comment.
 
 ## Branch protection
 

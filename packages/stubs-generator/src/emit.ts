@@ -42,6 +42,18 @@ const HEADER_NOTE = [
   "-- Do not edit by hand; regenerate with: npm run stubs:generate",
 ];
 
+/**
+ * Join lines and end the file with exactly one newline. A loop rather than
+ * /\n+$/ so a long run of blank lines cannot make the regex engine
+ * backtrack (CodeQL js/polynomial-redos).
+ */
+function withSingleTrailingNewline(lines: string[]): string {
+  const text = lines.join("\n");
+  let end = text.length;
+  while (end > 0 && text[end - 1] === "\n") end--;
+  return text.slice(0, end) + "\n";
+}
+
 function header(title: string, url: string): string[] {
   return ["---@meta", `-- RuneScape Client API stubs: ${title}`, ...HEADER_NOTE, `-- Docs: ${url}`, ""];
 }
@@ -170,13 +182,13 @@ export function emitModule(mod: ModuleDef): EmittedFile | undefined {
   for (const fn of mod.freeFunctions) lines.push(...functionBlock(fn, "", mod.url));
   for (const ev of mod.events) lines.push(...eventBlock(ev, mod.url));
   lines.push(...hookBlocks(mod.hooks, mod.url));
-  return { path: moduleFilePath(mod.id), content: lines.join("\n").replace(/\n+$/, "") + "\n" };
+  return { path: moduleFilePath(mod.id), content: withSingleTrailingNewline(lines) };
 }
 
 export function emitNamespaces(namespaces: string[], baseUrl: string): EmittedFile {
   const lines = header("namespace tables", baseUrl);
   for (const ns of namespaces) lines.push(`---@class ${ns}`, `${ns} = {}`, "");
-  return { path: "stubs/_namespaces.lua", content: lines.join("\n").replace(/\n+$/, "") + "\n" };
+  return { path: "stubs/_namespaces.lua", content: withSingleTrailingNewline(lines) };
 }
 
 export function emitGlobals(globals: GlobalTables, baseUrl: string): EmittedFile {
@@ -201,7 +213,7 @@ export function emitGlobals(globals: GlobalTables, baseUrl: string): EmittedFile
     lines.push(`---@class var.${name}`, "---@field [string] VarType", `var.${name} = {}`, "");
     lines.push("---@param id integer", "---@return VarType", `function var.${name}.FromID(id) end`, "");
   }
-  return { path: "stubs/_globals.lua", content: lines.join("\n").replace(/\n+$/, "") + "\n" };
+  return { path: "stubs/_globals.lua", content: withSingleTrailingNewline(lines) };
 }
 
 export function emitExtras(options: EmitOptions): EmittedFile {
@@ -212,7 +224,7 @@ export function emitExtras(options: EmitOptions): EmittedFile {
   for (const fn of options.globalFunctions) {
     lines.push(`---@see ${options.baseUrl}${fn.see}`, ...paramLines(fn.params), `function ${fn.name}(${paramNames(fn.params)}) end`, "");
   }
-  return { path: "stubs/_extras.lua", content: lines.join("\n").replace(/\n+$/, "") + "\n" };
+  return { path: "stubs/_extras.lua", content: withSingleTrailingNewline(lines) };
 }
 
 export function emitUnresolved(options: EmitOptions): EmittedFile {
@@ -221,7 +233,7 @@ export function emitUnresolved(options: EmitOptions): EmittedFile {
   for (const item of options.unresolved) {
     lines.push(`---@alias ${item.name} any`);
   }
-  return { path: "stubs/_unresolved.lua", content: lines.join("\n").replace(/\n+$/, "") + "\n" };
+  return { path: "stubs/_unresolved.lua", content: withSingleTrailingNewline(lines) };
 }
 
 /** Build the api_lookup index for a module. */
