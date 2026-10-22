@@ -21,6 +21,7 @@ env:
   LUALS_VERSION: "3.19.2"
   LUALS_SHA256_LINUX: "93ad326b10f6c00911dd8c450fa098332dbd8f9f45d1052f5636a2d54479b947"
   LUALS_SHA256_WINDOWS: "4a3dc851b3b31e7b75a23f645d1ba4a2137579a55f5fa4edbb17a3e2a6254044"
+  LUALS_SHA256_MACOS_ARM64: "79149584320a23bd5fcd5bc31f47a1975acd8a4560a0e89036bb1016fa61687f"
 
 jobs:
   build-and-test:
@@ -32,6 +33,10 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest]
         node: [22, 24]
+        # One macOS leg (Node 24) proves the darwin client root, path handling and the arm64 LuaLS build.
+        include:
+          - os: macos-latest
+            node: 24
     steps:
       - uses: actions/checkout@v7
         with:
@@ -68,6 +73,17 @@ jobs:
           curl -sSL -o "$RUNNER_TEMP/luals.tar.gz" \
             "https://github.com/LuaLS/lua-language-server/releases/download/${LUALS_VERSION}/lua-language-server-${LUALS_VERSION}-linux-x64.tar.gz"
           echo "${LUALS_SHA256_LINUX}  $RUNNER_TEMP/luals.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/luals.tar.gz" -C "$RUNNER_TEMP/luals"
+          echo "LUA_LANGUAGE_SERVER=$RUNNER_TEMP/luals/bin/lua-language-server" >> "$GITHUB_ENV"
+
+      - name: Install lua-language-server (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/luals"
+          curl -sSL -o "$RUNNER_TEMP/luals.tar.gz" \
+            "https://github.com/LuaLS/lua-language-server/releases/download/${LUALS_VERSION}/lua-language-server-${LUALS_VERSION}-darwin-arm64.tar.gz"
+          echo "${LUALS_SHA256_MACOS_ARM64}  $RUNNER_TEMP/luals.tar.gz" | shasum -a 256 -c -
           tar -xzf "$RUNNER_TEMP/luals.tar.gz" -C "$RUNNER_TEMP/luals"
           echo "LUA_LANGUAGE_SERVER=$RUNNER_TEMP/luals/bin/lua-language-server" >> "$GITHUB_ENV"
 

@@ -22,33 +22,30 @@ export function cacheDir(env: NodeJS.ProcessEnv = process.env): string {
   return path.join(base, "rs3-devtools");
 }
 
-/** Default RuneScape-BETA client folders per platform, as listed in the official tutorial. */
-export function defaultClientRoots(env: NodeJS.ProcessEnv = process.env): string[] {
-  const home = os.homedir();
-  if (process.platform === "win32") {
+/** The login name for the Flatpak Wine prefix; os.userInfo() throws on hosts without a passwd entry. */
+function loginName(env: NodeJS.ProcessEnv): string {
+  try {
+    return os.userInfo().username;
+  } catch {
+    return env.USER ?? env.LOGNAME ?? env.USERNAME ?? "user";
+  }
+}
+
+/**
+ * Default RuneScape-BETA client folders per platform, as listed in the official
+ * tutorial. The platform is a parameter so every branch can be tested anywhere.
+ */
+export function defaultClientRoots(env: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform, home: string = os.homedir()): string[] {
+  if (platform === "win32") {
     const programData = env.ProgramData ?? "C:\\ProgramData";
     return [path.join(programData, "Jagex", "RuneScape-BETA")];
   }
-  if (process.platform === "darwin") {
+  if (platform === "darwin") {
     return [path.join(home, "Jagex", "RuneScape-BETA")];
   }
   return [
     path.join(home, ".local", "share", "bolt-launcher", "jagex", "RuneScape-BETA"),
-    path.join(
-      home,
-      ".var",
-      "app",
-      "com.jagex.Launcher",
-      "data",
-      "wine",
-      "drive_c",
-      "users",
-      os.userInfo().username,
-      "AppData",
-      "Local",
-      "Jagex",
-      "RuneScape-BETA",
-    ),
+    path.join(home, ".var", "app", "com.jagex.Launcher", "data", "wine", "drive_c", "users", loginName(env), "AppData", "Local", "Jagex", "RuneScape-BETA"),
   ];
 }
 

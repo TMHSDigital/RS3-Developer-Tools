@@ -11,6 +11,7 @@ on:
 permissions:
   contents: write
   issues: write
+  discussions: write
 
 concurrency:
   group: stubs-regenerate
@@ -107,11 +108,64 @@ jobs:
           npm test
           node scripts/luals-check.mjs examples/hello-counter
 
+      # The digest is the semantic diff of index.json (symbols added, removed,
+      # signature changed, with docs links). It becomes the commit body, the
+      # newest entry in api-changes.md and an Announcements discussion.
+      - name: Write the API change digest
+        if: steps.diff.outputs.changed == 'true'
+        id: digest
+        run: |
+          git show HEAD:packages/luals-stubs/index.json > "$RUNNER_TEMP/old-index.json"
+          today=$(date -u +%Y-%m-%d)
+          node scripts/stubs-diff.mjs "$RUNNER_TEMP/old-index.json" packages/luals-stubs/index.json --date "$today" > "$RUNNER_TEMP/digest.md" || true
+          if [ -s "$RUNNER_TEMP/digest.md" ]; then
+            echo "has_digest=true" >> "$GITHUB_OUTPUT"
+            echo "date=$today" >> "$GITHUB_OUTPUT"
+            # Prepend under the intro: keep the header paragraphs, insert the new section before the first "## ".
+            python3 - "$RUNNER_TEMP/digest.md" <<'PYEOF'
+          import sys
+          digest = open(sys.argv[1], encoding="utf-8").read().rstrip("\n") + "\n"
+          path = "api-changes.md"
+          text = open(path, encoding="utf-8").read()
+          marker = text.find("\n## ")
+          text = (text + "\n" + digest) if marker == -1 else (text[: marker + 1] + digest + "\n" + text[marker + 1 :])
+          open(path, "w", encoding="utf-8", newline="\n").write(text)
+          PYEOF
+            cat "$RUNNER_TEMP/digest.md"
+          else
+            echo "has_digest=false" >> "$GITHUB_OUTPUT"
+            echo "Stub files changed but no symbol was added, removed or re-signed."
+          fi
+
       - name: Commit to main
         if: steps.diff.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add packages/luals-stubs
-          git commit -m "chore(stubs): regenerate from docs"
+          git add packages/luals-stubs api-changes.md
+          if [ "${{ steps.digest.outputs.has_digest }}" = "true" ]; then
+            git commit -F - <<EOF
+          chore(stubs): regenerate from docs (${{ steps.digest.outputs.date }})
+
+          $(cat "$RUNNER_TEMP/digest.md")
+          EOF
+          else
+            git commit -m "chore(stubs): regenerate from docs"
+          fi
           git push origin main
+
+      - name: Post the digest as an Announcements discussion
+        if: steps.diff.outputs.changed == 'true' && steps.digest.outputs.has_digest == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          repo_id=$(gh api graphql -f query='query($o:String!,$n:String!){repository(owner:$o,name:$n){id discussionCategories(first:20){nodes{id name}}}}' -f o="${GITHUB_REPOSITORY_OWNER}" -f n="${GITHUB_REPOSITORY#*/}" --jq '.data.repository.id')
+          category_id=$(gh api graphql -f query='query($o:String!,$n:String!){repository(owner:$o,name:$n){discussionCategories(first:20){nodes{id name}}}}' -f o="${GITHUB_REPOSITORY_OWNER}" -f n="${GITHUB_REPOSITORY#*/}" --jq '.data.repository.discussionCategories.nodes[] | select(.name=="Announcements") | .id')
+          if [ -z "$category_id" ]; then
+            echo "No Announcements category; skipping the discussion post (api-changes.md and the commit body carry the digest)."
+            exit 0
+          fi
+          body=$(printf '%s\n\nFull log: https://github.com/%s/blob/main/api-changes.md' "$(cat "$RUNNER_TEMP/digest.md")" "$GITHUB_REPOSITORY")
+          gh api graphql -f query='mutation($r:ID!,$c:ID!,$t:String!,$b:String!){createDiscussion(input:{repositoryId:$r,categoryId:$c,title:$t,body:$b}){discussion{url}}}' \
+            -f r="$repo_id" -f c="$category_id" -f t="API changes ${{ steps.digest.outputs.date }}" -f b="$body" --jq '.data.createDiscussion.discussion.url'

@@ -31,17 +31,34 @@ flowchart LR
 
 ## Install
 
-Prerequisites on Windows 11 (PowerShell):
+The toolkit runs on Windows, macOS and Linux; it needs Node.js 22 or later, Git, and `lua-language-server` for the command line LuaLS check (the Lua extension in Cursor or VS Code ships its own copy for the editor).
+
+Windows 11 (PowerShell):
 
 ```powershell
-winget install OpenJS.NodeJS.LTS          # Node.js 22 or later
+winget install OpenJS.NodeJS.LTS
 winget install Git.Git
-winget install LuaLS.lua-language-server  # or use the sumneko.lua extension in Cursor / VS Code
+winget install LuaLS.lua-language-server
 ```
 
-Install the toolkit from this repository (npm publishing is planned; see [ROADMAP.md](ROADMAP.md)):
+macOS (Homebrew):
 
-```powershell
+```bash
+brew install node git lua-language-server
+```
+
+Linux (Debian or Ubuntu shown; any distribution works with `nvm` for Node):
+
+```bash
+sudo apt install git
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs
+# lua-language-server: unpack the linux-x64 tarball from https://github.com/LuaLS/lua-language-server/releases
+# and put bin/lua-language-server on PATH, or set LUA_LANGUAGE_SERVER to it
+```
+
+Install the toolkit from this repository (npm publishing is planned; see [ROADMAP.md](ROADMAP.md)). The commands are the same in every shell:
+
+```bash
 git clone https://github.com/TMHSDigital/RS3-Developer-Tools.git
 cd RS3-Developer-Tools
 npm install
@@ -51,7 +68,11 @@ npm link --workspace packages/cli         # exposes the rs3dev command
 
 If `npm install` fails with `EISDIR ... symlink`, the clone is on a filesystem without symlink support (exFAT). Run `npm install --workspaces=false --ignore-scripts` followed by `npm run build`; the build script copies the workspace packages into `node_modules` instead of linking them.
 
-## Quick start (PowerShell)
+The beta client folder is detected on every platform from its `*.jcache` files: `C:\ProgramData\Jagex\RuneScape-BETA` on Windows, `~/Jagex/RuneScape-BETA` on macOS, and on Linux the Bolt launcher (`~/.local/share/bolt-launcher/jagex/RuneScape-BETA`) or the Flatpak Jagex Launcher Wine prefix. Anything else: set `RS3_DEV_PLUGINS_DIR` to the `dev_plugins` folder or pass `--root`. `rs3dev doctor` prints which folder was found.
+
+## Quick start
+
+The commands below are identical in PowerShell, bash and zsh.
 
 ```powershell
 # 1. Scaffold a plugin. The folder name is the identifier the client console uses.
@@ -103,6 +124,14 @@ rs3dev validate . ; rs3dev preflight .
 ```powershell
 $env:RS3_STUBS_DIR = "C:\dev\RS3-Developer-Tools\packages\luals-stubs\stubs"
 ```
+
+```bash
+export RS3_STUBS_DIR=~/dev/RS3-Developer-Tools/packages/luals-stubs/stubs
+```
+
+### API change digest
+
+The weekly stub regeneration diffs `index.json` and writes what changed in the RuneScape Client API (symbols added, removed or re-signed, each with its docs link) to [api-changes.md](api-changes.md), the commit body and an Announcements post in [Discussions](https://github.com/TMHSDigital/RS3-Developer-Tools/discussions). Watch the repository to follow it.
 
 ## MCP server
 

@@ -20,7 +20,7 @@ import { adoptPlugin, writePluginLuarc } from "../adopt.js";
 import { pathExists } from "../fs.js";
 import { packagePlugin } from "../package.js";
 import { scaffoldPlugin } from "../scaffold.js";
-import { findDevPluginsRoot } from "../paths.js";
+import { defaultClientRoots, findDevPluginsRoot } from "../paths.js";
 import { normaliseDocsPath, DocsClient, DocsFetchError } from "../docs-client.js";
 import { docsPageToText, extractNavLinks } from "../docs-text.js";
 import { isInside } from "../fs.js";
@@ -294,6 +294,15 @@ describe("sync", () => {
     const beside = path.join(client, "plugins_dev");
     await fsp.mkdir(beside);
     expect((await findDevPluginsRoot({ override: beside })).root).toBe(beside);
+  });
+  it("knows the default client folders for every platform", () => {
+    const home = path.join("/", "home", "ada");
+    expect(defaultClientRoots({ ProgramData: "D:\\PD" }, "win32", home)).toEqual([path.join("D:\\PD", "Jagex", "RuneScape-BETA")]);
+    expect(defaultClientRoots({}, "darwin", home)).toEqual([path.join(home, "Jagex", "RuneScape-BETA")]);
+    const linux = defaultClientRoots({ USER: "ada" }, "linux", home);
+    expect(linux[0]).toBe(path.join(home, ".local", "share", "bolt-launcher", "jagex", "RuneScape-BETA"));
+    expect(linux[1]).toContain(path.join("com.jagex.Launcher", "data", "wine", "drive_c", "users"));
+    expect(linux[1]).toContain("RuneScape-BETA");
   });
   it("rejects an explicit root that does not exist or does not look like dev_plugins", async () => {
     const base = await tempDir("rs3-badroot-");
