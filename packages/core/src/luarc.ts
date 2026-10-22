@@ -99,7 +99,16 @@ export function libraryPathFor(pluginDir: string, stubsDir: string): string {
   return slashes(rel === "" ? "." : rel);
 }
 
-export function luarcTemplate(libraryPath: string): Record<string, unknown> {
+export interface LuarcOptions extends StubsResolveOptions {
+  /**
+   * Globals provided at runtime by something other than the Client API, such as
+   * the exported table of a dependency plugin. Listed under diagnostics.globals
+   * so undefined-global (an error in the template) does not fire on them.
+   */
+  globals?: string[];
+}
+
+export function luarcTemplate(libraryPath: string, globals: string[] = []): Record<string, unknown> {
   return {
     $schema: "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
     "runtime.version": "Lua 5.4",
@@ -107,7 +116,7 @@ export function luarcTemplate(libraryPath: string): Record<string, unknown> {
     "runtime.pathStrict": true,
     "workspace.library": [libraryPath],
     "workspace.checkThirdParty": false,
-    "diagnostics.globals": [],
+    "diagnostics.globals": [...globals],
     "diagnostics.severity": {
       "undefined-global": "Error",
       "undefined-field": "Error",
@@ -119,10 +128,10 @@ export function luarcTemplate(libraryPath: string): Record<string, unknown> {
 }
 
 /** Write .luarc.json into a plugin folder. Returns the file path. */
-export async function writeLuarc(pluginDir: string, options: StubsResolveOptions = {}): Promise<string> {
+export async function writeLuarc(pluginDir: string, options: LuarcOptions = {}): Promise<string> {
   const stubs = await resolveStubsDir(options);
   const file = path.join(pluginDir, ".luarc.json");
   const library = libraryPathFor(path.resolve(pluginDir), stubs);
-  await writeUtf8NoBom(file, JSON.stringify(luarcTemplate(library), null, 2) + "\n");
+  await writeUtf8NoBom(file, JSON.stringify(luarcTemplate(library, options.globals), null, 2) + "\n");
   return file;
 }

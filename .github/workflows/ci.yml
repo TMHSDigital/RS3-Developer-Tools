@@ -67,3 +67,10 @@ jobs:
 
       - name: LuaLS check of examples against the generated stubs
         run: node scripts/luals-check.mjs examples/hello-counter
+
+      - name: LuaLS check of a scaffolded plugin (plain and --prettyui)
+        run: |
+          node packages/cli/dist/cli.js init "${{ runner.temp }}/scaffold-plain" --permissions chatAccess --no-agent-files
+          node scripts/luals-check.mjs "${{ runner.temp }}/scaffold-plain"
+          node packages/cli/dist/cli.js init "${{ runner.temp }}/scaffold-prettyui" --prettyui --no-agent-files
+          node scripts/luals-check.mjs "${{ runner.temp }}/scaffold-prettyui"

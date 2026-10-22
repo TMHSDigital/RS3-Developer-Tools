@@ -20,6 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Preflight `placeholder-email` warning; `package` refuses placeholder addresses (`--allow-placeholder-email` for tests) and ships `plugin.json` without `$schema`
 - `.luarc.json` library path written relative to the plugin folder; `RS3_STUBS_DIR` override
 - `@tmhs/rs3-plugin-mcp` ships a dedicated `dist/bin.js` executable so the npm bin symlink starts the server on Linux and macOS; a spawn smoke test guards it
+- `rs3dev init --prettyui` whitelists the dependency global in `.luarc.json` (`diagnostics.globals`) and guards the first use, so the scaffold passes the LuaLS check it ships with; CI runs that check on plain and `--prettyui` scaffolds
+
+
 
 ### Changed
 

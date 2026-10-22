@@ -63,9 +63,12 @@ if (result.error) {
 
 const output = `${result.stdout ?? ""}${result.stderr ?? ""}`.replace(/\x1b\[[0-9;]*m/g, "");
 // LuaLS prints one line per diagnostic: "<file>:<line>:<col> [<severity>] <message> (<code>)".
+// Progress output ("Initializing ...", the >>>> bar) ends with a bare carriage
+// return and the first diagnostic follows it on the same line, so split on every
+// line-ending flavour or that diagnostic is silently dropped.
 const seen = new Set();
 const problems = [];
-for (const line of output.split(/\r?\n/)) {
+for (const line of output.split(/\r\n|\r|\n/)) {
   const m = /^(.+?):(\d+):(\d+) \[(\w+)\] (.*?)(?: \(([\w-]+)\))?\s*$/.exec(line.trim());
   if (!m) continue;
   const key = `${m[1]}:${m[2]}:${m[3]}:${m[5]}`;

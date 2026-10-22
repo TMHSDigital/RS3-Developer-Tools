@@ -39,7 +39,12 @@ export interface ScaffoldResult {
   manifest: PluginManifest;
 }
 
-/** Identifier used for the PrettyUI dependency. Must match the installed plugin's folder name. */
+/**
+ * Identifier used for the PrettyUI dependency. It must match the installed
+ * library plugin's folder name exactly; the scaffold comments tell the reader to
+ * confirm it with `plist` in the client console, because no stub declares it
+ * (PrettyUI is a third-party library plugin, not part of the Client API).
+ */
 export const PRETTY_UI_PLUGIN_NAME = "PrettyUI";
 
 const AGENT_FILES_DIR = fileURLToPath(new URL("../templates/agent-files/", import.meta.url));
@@ -96,9 +101,15 @@ export function renderMainLua(options: ScaffoldOptions, pluginName: string): str
   if (options.prettyUi) {
     push(
       `-- ${PRETTY_UI_PLUGIN_NAME} is listed in requiredDependencies, so the client loads it first and`,
-      `-- exposes its exported table as the global ${PRETTY_UI_PLUGIN_NAME}. Keep calls to it in one`,
-      "-- place so the rest of the plugin does not depend on its API shape.",
+      `-- exposes its exported table as the global ${PRETTY_UI_PLUGIN_NAME}. The identifier must match`,
+      "-- the library's folder name exactly; confirm it with plist in the client console.",
+      "-- No stub declares it, so .luarc.json lists it under diagnostics.globals.",
+      "-- Keep calls to it in one place so the rest of the plugin does not depend on",
+      "-- its API shape. Treat the table as read-only: it is shared with every importer.",
       `local prettyUi = ${PRETTY_UI_PLUGIN_NAME}`,
+      "if prettyUi == nil then",
+      `    error("${PRETTY_UI_PLUGIN_NAME} is not loaded; check the dependency name with plist")`,
+      "end",
       "",
     );
   }
@@ -205,7 +216,12 @@ export async function scaffoldPlugin(options: ScaffoldOptions): Promise<Scaffold
   await writeNew("plugin.json", JSON.stringify(manifest, null, 2) + "\n");
   await writeNew("main.lua", renderMainLua(options, pluginName));
   if (!(await pathExists(path.join(dir, ".luarc.json")))) {
-    await writeLuarc(dir, { stubsDir: options.stubsDir, resolveFrom: options.resolveFrom, env: options.env });
+    await writeLuarc(dir, {
+      stubsDir: options.stubsDir,
+      resolveFrom: options.resolveFrom,
+      env: options.env,
+      globals: options.prettyUi ? [PRETTY_UI_PLUGIN_NAME] : [],
+    });
     written.push(".luarc.json");
   }
   if (options.agentFiles ?? true) {

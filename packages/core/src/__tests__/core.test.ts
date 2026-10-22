@@ -250,7 +250,21 @@ describe("scaffold", () => {
     const pre = await preflightPlugin(dir);
     expect(pre.findings.filter((f) => f.level === "error")).toEqual([]);
     // The stubs folder sits beside the plugin, so the entry is relative on every platform.
-    expect(JSON.parse(await readUtf8(path.join(dir, ".luarc.json")))["workspace.library"]).toEqual(["../stubs"]);
+    const luarc = JSON.parse(await readUtf8(path.join(dir, ".luarc.json")));
+    expect(luarc["workspace.library"]).toEqual(["../stubs"]);
+    // PrettyUI is a dependency global no stub declares, so it must be whitelisted for
+    // undefined-global (an error) and the local that reads it must actually be used.
+    expect(luarc["diagnostics.globals"]).toEqual(["PrettyUI"]);
+    expect(main).toContain("local prettyUi = PrettyUI");
+    expect(main).toContain("if prettyUi == nil then");
+  });
+  it("leaves diagnostics.globals empty without --prettyui", async () => {
+    const base = await tempDir("rs3-init-plain-");
+    const dir = path.join(base, "plain");
+    await scaffoldPlugin({ dir, agentFiles: false, stubsDir: path.join(base, "stubs") });
+    const luarc = JSON.parse(await readUtf8(path.join(dir, ".luarc.json")));
+    expect(luarc["diagnostics.globals"]).toEqual([]);
+    expect(await readUtf8(path.join(dir, "main.lua"))).not.toContain("PrettyUI");
   });
   it("refuses non-empty folders and unknown permissions", async () => {
     const base = await tempDir("rs3-init2-");
