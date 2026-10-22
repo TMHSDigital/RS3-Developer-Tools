@@ -17,7 +17,7 @@ This is a Cursor IDE plugin plus an npm workspaces monorepo for RuneScape 3 plug
 - **`packages/schema/`** -- `plugin.schema.json` (draft 2020-12) and `settings.sample.json`
 - **`packages/core/`** -- validate, preflight, scaffold, sync, watch, package, docs client with ETag cache
 - **`packages/cli/`** -- `rs3dev` (commander)
-- **`packages/mcp/`** -- `@tmhs/rs3-plugin-mcp` stdio server with 8 tools
+- **`packages/mcp/`** -- `@tmhs/rs3-plugin-mcp` stdio server with 9 tools
 - **`examples/hello-counter/`** -- reference plugin; CI runs `lua-language-server --check` on it with the stubs
 - **`tests/`** -- repository tests: skills and rules frontmatter, `mcp-tools.json`, README counts, writing style
 - **`scripts/`** -- `build-all.mjs`, `link-workspaces.mjs`, `luals-check.mjs`

@@ -9,7 +9,7 @@
 
 **[Install](#install)** - [Quick start](#quick-start-powershell) - [MCP server](#mcp-server) - [Packages](#packages) - [Skills](#skills) - [Rules](#rules) - [Copyright and AI policy](#copyright-and-ai-policy) - [Roadmap](ROADMAP.md)
 
-> 4 skills - 9 rules - 8 MCP tools - 87 API stub modules
+> 4 skills - 9 rules - 9 MCP tools - 87 API stub modules
 
 Official RS3 plugins are Lua 5.4.8 scripts run by the RuneScape beta client against the [RuneScape Client API](https://developer.runescape.com/rs/). This toolkit gives you type-checked completions for that API in any LuaLS-based editor, validates `plugin.json`, catches sandbox and permission problems before Jagex moderation does, copies your plugin into the client's `dev_plugins` folder on save, and builds the zip you upload to mod.io. The same functions are exposed to AI agents through an MCP server and documented for them through Cursor rules and Claude Code skills.
 

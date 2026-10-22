@@ -1,63 +1,98 @@
 {
   "server": "rs3-plugin-mcp",
   "prefix": "",
-  "note": "Tool names follow the names fixed in the toolkit specification rather than the <prefix>_<verbNoun> convention; see AGENTS.md.",
+  "note": "Tool names follow the names fixed in the toolkit specification rather than the <prefix>_<verbNoun> convention; see AGENTS.md. annotations mirror packages/mcp/src/annotations.ts.",
   "tools": [
     {
       "name": "docs_search",
-      "description": "Search API symbols and documentation pages by name and return signatures with docs URLs.",
+      "description": "Search API symbols, page titles and, once docs_index has run, full page sections by words, returning signatures and docs URLs.",
       "category": "docs",
       "destructive": false,
-      "requiresConfirm": false
+      "requiresConfirm": false,
+      "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false }
     },
     {
       "name": "docs_get",
       "description": "Fetch a developer.runescape.com page live with a local ETag cache and return its text or one section.",
       "category": "docs",
       "destructive": false,
-      "requiresConfirm": false
+      "requiresConfirm": false,
+      "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": true }
+    },
+    {
+      "name": "docs_index",
+      "description": "Build the per-user full-text index of the documentation pages so docs_search can answer intent queries.",
+      "category": "docs",
+      "destructive": false,
+      "requiresConfirm": false,
+      "annotations": { "readOnlyHint": false, "destructiveHint": false, "idempotentHint": true, "openWorldHint": true }
     },
     {
       "name": "api_lookup",
       "description": "Return the LuaLS signature, stub file and docs URL for an API symbol.",
       "category": "docs",
       "destructive": false,
-      "requiresConfirm": false
+      "requiresConfirm": false,
+      "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false }
     },
     {
       "name": "manifest_validate",
       "description": "Validate a plugin folder's plugin.json against the schema and check the folder structure.",
       "category": "plugin",
       "destructive": false,
-      "requiresConfirm": false
+      "requiresConfirm": false,
+      "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false }
     },
     {
       "name": "guidelines_preflight",
-      "description": "Run static sandbox, permission and readability checks and link each finding to the docs.",
+      "description": "Run static sandbox, permission, lifecycle and readability checks and link each finding to the docs.",
       "category": "plugin",
       "destructive": false,
-      "requiresConfirm": false
+      "requiresConfirm": false,
+      "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false }
     },
     {
       "name": "plugin_scaffold",
       "description": "Create a new plugin folder inside the workspace without overwriting existing files.",
       "category": "plugin",
       "destructive": false,
-      "requiresConfirm": false
+      "requiresConfirm": false,
+      "annotations": { "readOnlyHint": false, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false }
     },
     {
       "name": "devplugins_sync",
-      "description": "Copy a plugin into the client's dev_plugins root, replacing the previous copy. Requires confirm=true.",
+      "description": "Copy a plugin into the client's dev_plugins root, replacing the previous copy. Requires confirm=true; dry_run lists the files.",
       "category": "client",
       "destructive": true,
-      "requiresConfirm": true
+      "requiresConfirm": true,
+      "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false }
     },
     {
       "name": "package_zip",
       "description": "Run preflight and build the mod.io zip inside the workspace dist folder.",
       "category": "plugin",
       "destructive": false,
-      "requiresConfirm": false
+      "requiresConfirm": false,
+      "annotations": { "readOnlyHint": false, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false }
     }
+  ],
+  "prompts": [
+    {
+      "name": "new_plugin",
+      "description": "Scaffold a plugin, gate its permissions and leave it validated and preflighted."
+    },
+    {
+      "name": "fix_preflight",
+      "description": "Run guidelines_preflight on a plugin and fix every finding using its docs link."
+    },
+    {
+      "name": "prepare_submission",
+      "description": "Walk the submission checklist and build the zip for the manual mod.io upload."
+    }
+  ],
+  "resources": [
+    { "uri": "rs3://stubs/index.json", "description": "The stubs symbol index served by api_lookup." },
+    { "uri": "rs3://stubs/unresolved.md", "description": "The generator's report of inferred and unresolved API surface." },
+    { "uri": "rs3://stubs/modules/{+id}", "description": "The LuaLS stub file for one documentation page, id being the page path without extension." }
   ]
 }

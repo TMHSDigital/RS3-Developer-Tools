@@ -15,6 +15,8 @@ export interface SyncOptions extends DevPluginsRootOptions {
   retries?: number;
   /** Base delay between retries in milliseconds. Default 250. */
   retryDelayMs?: number;
+  /** Resolve and check everything, list what would be copied and removed, but write nothing. */
+  dryRun?: boolean;
 }
 
 export interface SyncResult {
@@ -27,6 +29,8 @@ export interface SyncResult {
   removed: string[];
   /** Console command to reload the plugin in the client. */
   consoleCommand: string;
+  /** True when nothing was written; copied and removed then describe what a real sync would do. */
+  dryRun: boolean;
 }
 
 const LOCK_CODES = new Set(["EBUSY", "EPERM", "EACCES", "ETXTBSY"]);
@@ -105,8 +109,19 @@ export async function syncPlugin(pluginDir: string, options: SyncOptions = {}): 
       );
     }
   }
-  await fsp.mkdir(destination, { recursive: true });
+  const dryRun = options.dryRun ?? false;
   const files = (await listFilesRecursive(source)).filter((rel) => !isDevArtifact(rel));
+  const removed: string[] = [];
+  if (options.prune ?? true) {
+    const existing = (await isDirectory(destination)) ? await listFilesRecursive(destination) : [];
+    const keep = new Set(files);
+    for (const rel of existing) if (!keep.has(rel)) removed.push(rel);
+  }
+  if (dryRun) {
+    return { source, destination, root, rootSource, pluginName, copied: files, removed, consoleCommand: `prl ${pluginName}`, dryRun: true };
+  }
+
+  await fsp.mkdir(destination, { recursive: true });
   const copied: string[] = [];
   for (const rel of files) {
     const from = path.join(source, ...rel.split("/"));
@@ -115,16 +130,8 @@ export async function syncPlugin(pluginDir: string, options: SyncOptions = {}): 
     await withRetry(() => fsp.copyFile(from, to), retries, delay, to);
     copied.push(rel);
   }
-
-  const removed: string[] = [];
-  if (options.prune ?? true) {
-    const existing = await listFilesRecursive(destination);
-    const keep = new Set(files);
-    for (const rel of existing) {
-      if (keep.has(rel)) continue;
-      await withRetry(() => fsp.rm(path.join(destination, ...rel.split("/")), { force: true }), retries, delay, rel);
-      removed.push(rel);
-    }
+  for (const rel of removed) {
+    await withRetry(() => fsp.rm(path.join(destination, ...rel.split("/")), { force: true }), retries, delay, rel);
   }
 
   return {
@@ -136,5 +143,6 @@ export async function syncPlugin(pluginDir: string, options: SyncOptions = {}): 
     copied,
     removed,
     consoleCommand: `prl ${pluginName}`,
+    dryRun: false,
   };
 }

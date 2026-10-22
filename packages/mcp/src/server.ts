@@ -8,18 +8,23 @@
 
 import * as path from "node:path";
 import { promises as fsp } from "node:fs";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
   DocsClient,
   PERMISSIONS,
+  buildDocsIndex,
+  docsIndexPath,
   docsPageToText,
   findDevPluginsRoot,
   isInside,
+  loadDocsIndex,
   packagePlugin,
+  pathExists,
   preflightPlugin,
   readUtf8,
   scaffoldPlugin,
+  searchDocsIndex,
   stubsIndexPath,
   summarise,
   syncPlugin,
@@ -27,6 +32,8 @@ import {
   type Finding,
   type Permission,
 } from "@tmhs/rs3-devtools-core";
+import { TOOL_ANNOTATIONS } from "./annotations.js";
+import { SERVER_INSTRUCTIONS } from "./instructions.js";
 
 export const SERVER_NAME = "rs3-plugin-mcp";
 
@@ -39,6 +46,8 @@ export interface ServerOptions {
   /** Explicit dev_plugins root (tests); otherwise RS3_DEV_PLUGINS_DIR or detection. */
   devPluginsRoot?: string;
   version?: string;
+  /** Where the full-text docs index lives; defaults to the per-user cache. */
+  docsIndexPath?: string;
 }
 
 interface IndexSymbol {
@@ -71,14 +80,27 @@ function findingsPayload(label: string, findings: Finding[]) {
 export async function createServer(options: ServerOptions): Promise<McpServer> {
   const workspaceRoot = path.resolve(options.workspaceRoot);
   const docs = options.docsClient ?? new DocsClient({ maxAgeSeconds: 300 });
-  const server = new McpServer({ name: SERVER_NAME, version: options.version ?? "0.0.0" });
+  // instructions reach every client in the initialise handshake, so an agent
+  // without the Cursor rules or Claude skills still gets the policy.
+  const server = new McpServer({ name: SERVER_NAME, version: options.version ?? "0.0.0" }, { instructions: SERVER_INSTRUCTIONS });
+  // Every tool carries the annotations from annotations.ts so clients can tell
+  // a read from a write before calling.
+  const registerTool: McpServer["registerTool"] = (name: string, config: Record<string, unknown>, cb: unknown) =>
+    server.registerTool(name, { ...config, annotations: TOOL_ANNOTATIONS[name] } as never, cb as never);
+  const fullTextIndexFile = options.docsIndexPath ?? docsIndexPath();
 
   let indexCache: StubsIndex | undefined;
+  let indexFile: string | undefined;
   const loadIndex = async (): Promise<StubsIndex> => {
     if (indexCache) return indexCache;
-    const file = options.indexPath ?? (await stubsIndexPath());
-    indexCache = JSON.parse(await readUtf8(file)) as StubsIndex;
+    indexFile = options.indexPath ?? (await stubsIndexPath());
+    indexCache = JSON.parse(await readUtf8(indexFile)) as StubsIndex;
     return indexCache;
+  };
+  /** Folder that holds stubs/, index.json and unresolved.md. */
+  const stubsDir = async (): Promise<string> => {
+    await loadIndex();
+    return path.dirname(indexFile!);
   };
 
   const resolveDevRoot = async (override?: string): Promise<string> =>
@@ -108,18 +130,22 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     return `refusing to write to ${resolved}: outside the workspace (${workspaceRoot}) and the dev_plugins root`;
   };
 
-  server.registerTool(
+  registerTool(
     "docs_search",
     {
       title: "Search the RuneScape Client API docs",
-      description: "Search API symbols and documentation pages by name. Returns matching symbols with their signature and the exact docs URL.",
+      description: "Search API symbols and documentation pages by name, and page sections by words once docs_index has built the per-user full-text index. Returns matching symbols with their signature and the exact docs URL.",
       inputSchema: {
-        query: z.string().min(1).describe("Symbol or page name, for example PersistentDB, ui.Button, NPCEntityAdded"),
+        query: z.string().min(1).describe("Symbol or page name (PersistentDB, ui.Button, NPCEntityAdded) or plain words (combat level, chat message colour)"),
         limit: z.number().int().min(1).max(50).default(15),
       },
     },
     async ({ query, limit }) => {
       const index = await loadIndex();
+      const fullText = await loadDocsIndex(fullTextIndexFile);
+      const sections = fullText
+        ? searchDocsIndex(fullText, query, Math.min(limit, 10)).map((h) => ({ page: h.page, heading: h.heading, url: h.url, excerpt: h.excerpt, score: h.score }))
+        : undefined;
       const q = query.toLowerCase();
       const score = (name: string): number => {
         const n = name.toLowerCase();
@@ -139,11 +165,34 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
         .filter((m) => m.title.toLowerCase().includes(q) || m.id.toLowerCase().includes(q))
         .slice(0, 10)
         .map((m) => ({ page: m.id, title: m.title, url: m.url }));
-      return ok({ query, symbols, pages, hint: "Use docs_get with a url to read the page text." });
+      return ok({
+        query,
+        symbols,
+        pages,
+        sections,
+        hint: sections ? "Use docs_get with a url (and the section anchor) to read the page text." : "Run docs_index once to search page sections by words; then use docs_get with a url to read the text.",
+      });
     },
   );
 
-  server.registerTool(
+  registerTool(
+    "docs_index",
+    {
+      title: "Build the full-text docs index",
+      description: "Fetch every documentation page through the ETag cache, convert it to text and build a per-user full-text index (never committed anywhere) so docs_search can answer questions in plain words. Takes a minute the first time; later runs only refetch changed pages.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        const { index, file } = await buildDocsIndex(docs, { outFile: fullTextIndexFile });
+        return ok({ file, pages: index.pages, sections: index.documents.length, terms: Object.keys(index.terms).length, builtAt: index.builtAt });
+      } catch (error) {
+        return fail("DOCS_INDEX", (error as Error).message);
+      }
+    },
+  );
+
+  registerTool(
     "docs_get",
     {
       title: "Fetch a documentation page",
@@ -192,7 +241,7 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "api_lookup",
     {
       title: "Look up an API signature",
@@ -217,7 +266,7 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "manifest_validate",
     {
       title: "Validate plugin.json",
@@ -234,7 +283,7 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "guidelines_preflight",
     {
       title: "Preflight a plugin against the submission guidelines",
@@ -252,7 +301,7 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "plugin_scaffold",
     {
       title: "Scaffold a new plugin",
@@ -289,16 +338,16 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "devplugins_sync",
     {
       title: "Copy a plugin into dev_plugins",
-      description: "Copy the plugin folder into the client's dev_plugins root (overwriting the previous copy) and return the console reload command. Requires confirm=true; dry_run lists what would change.",
+      description: "Copy the plugin folder into the client's dev_plugins root (overwriting the previous copy) and return the console reload command. Requires confirm=true; dry_run returns the destination and the exact files a real sync would copy and remove, without writing.",
       inputSchema: {
         path: z.string().min(1).describe("Plugin folder, absolute or relative to the workspace"),
         root: z.string().optional().describe("dev_plugins folder; defaults to RS3_DEV_PLUGINS_DIR or client detection"),
         confirm: z.boolean().default(false).describe("Must be true to perform the copy"),
-        dry_run: z.boolean().default(false).describe("Report the destination and files without copying"),
+        dry_run: z.boolean().default(false).describe("Report the destination and the files that would be copied and removed, without copying"),
       },
     },
     async ({ path: target, root, confirm, dry_run }) => {
@@ -307,8 +356,7 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
       const source = path.resolve(workspaceRoot, target);
       if (dry_run) {
         try {
-          const devRoot = await resolveDevRoot(root);
-          return ok({ dryRun: true, source, destination: path.join(devRoot, path.basename(source)), consoleCommand: `prl ${path.basename(source)}` });
+          return ok(await syncPlugin(source, { override: root ?? options.devPluginsRoot, dryRun: true }));
         } catch (error) {
           return fail("DEV_ROOT", (error as Error).message);
         }
@@ -323,7 +371,7 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "package_zip",
     {
       title: "Package a plugin for mod.io",
@@ -352,6 +400,110 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
       } catch (error) {
         return fail("PACKAGE", (error as Error).message);
       }
+    },
+  );
+
+  // Prompts mirror the Claude Code skills so a client without them can still
+  // pick the workflow.
+  const prompt = (text: string) => ({ messages: [{ role: "user" as const, content: { type: "text" as const, text } }] });
+
+  server.registerPrompt(
+    "new_plugin",
+    {
+      title: "Start a new plugin",
+      description: "Scaffold a plugin folder, gate its permissions, and leave it validated and preflighted.",
+      argsSchema: {
+        name: z.string().describe("Folder name; lowercase words joined with hyphens, used by pon, poff and prl"),
+        permissions: z.string().optional().describe("Optional permissions, comma separated: httpAccess, chatAccess, trackingAccess"),
+      },
+    },
+    ({ name, permissions }) =>
+      prompt(
+        [
+          `Create a RuneScape 3 plugin named "${name}" in this workspace.`,
+          `1. Call plugin_scaffold with path "${name}"${permissions ? ` and permissions [${permissions.split(",").map((p) => `"${p.trim()}"`).join(", ")}]` : " and no permissions"}. Never overwrite an existing folder.`,
+          "2. Read the generated main.lua and keep its structure: reference names at the top, helpers, UI construction, event subscriptions, then PluginShutdown that unsubscribes every event and destroys every component.",
+          "3. Gate every optional permission with Plugin.HasPermission so the plugin still works when the user declines; request only URLs declared under urls in plugin.json through Plugin.urls.<name>.",
+          "4. Set contactEmailAddress in plugin.json to the address users should write to; package_zip refuses placeholders.",
+          "5. Call manifest_validate and guidelines_preflight and fix every finding using its docs link until both report zero errors.",
+          "6. Tell the developer to run devplugins_sync with confirm=true, then prf and pon in the client console (ALT+backtick), and prl after each change.",
+          "Use docs_search and api_lookup instead of guessing an API, link documentation instead of pasting it, and never read other developers' plugins.",
+        ].join("\n"),
+      ),
+  );
+
+  server.registerPrompt(
+    "fix_preflight",
+    {
+      title: "Fix preflight findings",
+      description: "Run guidelines_preflight on a plugin and fix every finding one by one using its documentation link.",
+      argsSchema: { path: z.string().describe("Plugin folder, absolute or relative to the workspace") },
+    },
+    ({ path: target }) =>
+      prompt(
+        [
+          `Run guidelines_preflight on "${target}".`,
+          "For each finding, in order errors then warnings then notes: open its docsUrl with docs_get (pass the anchor as section), read the rule, change the plugin so the rule holds, and say in one line what changed and why.",
+          "Errors are rejection reasons (sandbox globals including through _G, permissions without declaration, URLs outside the manifest passed to HTTPRequest, missing PluginShutdown, placeholder contact address). Warnings are moderator complaints (unreleased subscriptions, per-tick list scans, long lines, low comment ratio, encoded strings). Do not suppress a finding unless the developer has reviewed it; a reviewed exception goes in rs3dev.json under preflight.ignore or as a rs3dev-ignore comment on the line above.",
+          "Re-run guidelines_preflight until it reports zero errors, then run manifest_validate.",
+        ].join("\n"),
+      ),
+  );
+
+  server.registerPrompt(
+    "prepare_submission",
+    {
+      title: "Prepare the mod.io submission",
+      description: "Walk the submission checklist and build the zip for the manual mod.io upload.",
+      argsSchema: { path: z.string().describe("Plugin folder, absolute or relative to the workspace") },
+    },
+    ({ path: target }) =>
+      prompt(
+        [
+          `Prepare "${target}" for submission.`,
+          "1. manifest_validate and guidelines_preflight must both report zero errors; fix findings first (see the fix_preflight prompt).",
+          "2. Check plugin.json: a real contactEmailAddress, a version bumped since the last submission, only the permissions the plugin needs, only the urls it fetches.",
+          "3. Ask the developer to confirm a clean reload in the client: devplugins_sync with confirm=true, prl <name>, exercise every feature, and poff <name> leaves no window behind.",
+          "4. Call package_zip. Report the archive path and size and that plugin.json and main.lua sit at the archive root.",
+          "5. Remind the developer that upload is manual on mod.io with Jagex moderation, with the description per https://developer.runescape.com/rs/submission/example.html and the legal requirements on https://developer.runescape.com/rs/submission/index.html.",
+        ].join("\n"),
+      ),
+  );
+
+  // Resources: the stubs index, the unresolved report and each stub file, for
+  // clients that browse resources instead of calling tools.
+  server.registerResource(
+    "stubs-index",
+    "rs3://stubs/index.json",
+    { title: "Stubs symbol index", description: "index.json served by api_lookup and docs_search", mimeType: "application/json" },
+    async (uri) => ({ contents: [{ uri: uri.href, mimeType: "application/json", text: await readUtf8(path.join(await stubsDir(), "index.json")) }] }),
+  );
+  server.registerResource(
+    "stubs-unresolved",
+    "rs3://stubs/unresolved.md",
+    { title: "Unresolved and inferred API surface", description: "The generator's report of names it could not resolve from the docs", mimeType: "text/markdown" },
+    async (uri) => {
+      const file = path.join(await stubsDir(), "unresolved.md");
+      const text = (await pathExists(file)) ? await readUtf8(file) : "unresolved.md is not present beside this index.json\n";
+      return { contents: [{ uri: uri.href, mimeType: "text/markdown", text }] };
+    },
+  );
+  server.registerResource(
+    "stubs-module",
+    // {+id} (reserved expansion) so ids with slashes such as core/persistentdb match.
+    new ResourceTemplate("rs3://stubs/modules/{+id}", {
+      list: async () => {
+        const index = await loadIndex();
+        return { resources: index.modules.map((m) => ({ uri: `rs3://stubs/modules/${m.id}`, name: m.id, title: m.title, description: m.url, mimeType: "text/x-lua" })) };
+      },
+    }),
+    { title: "Stub module", description: "The LuaLS ---@meta stub for one documentation page; id is the page path without extension, for example core/persistentdb", mimeType: "text/x-lua" },
+    async (uri, { id }) => {
+      const index = await loadIndex();
+      const moduleId = Array.isArray(id) ? id.join("/") : String(id);
+      const mod = index.modules.find((m) => m.id === moduleId);
+      if (!mod) throw new Error(`no stub module "${moduleId}"; list rs3://stubs/modules/ for the ids`);
+      return { contents: [{ uri: uri.href, mimeType: "text/x-lua", text: await readUtf8(path.join(await stubsDir(), ...mod.file.split("/"))) }] };
     },
   );
 

@@ -7,6 +7,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { DocsClient } from "@tmhs/rs3-devtools-core";
 import { createServer } from "../server.js";
+import { PROMPT_NAMES, TOOL_ANNOTATIONS } from "../annotations.js";
 
 const fixtures = fileURLToPath(new URL("./fixtures/", import.meta.url));
 const coreFixtures = fileURLToPath(new URL("../../../core/src/__tests__/fixtures/plugins/", import.meta.url));
@@ -38,6 +39,7 @@ beforeEach(async () => {
     devPluginsRoot: devRoot,
     docsClient: new DocsClient({ offlineDir: path.join(fixtures, "docs"), baseUrl: "https://example.test/rs/" }),
     version: "0.0.0-test",
+    docsIndexPath: path.join(workspace, ".cache", "docs-index.json"),
   });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
@@ -52,18 +54,68 @@ afterEach(async () => {
 });
 
 describe("rs3-plugin-mcp", () => {
-  it("lists the eight tools", async () => {
+  it("lists the nine tools", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
       "api_lookup",
       "devplugins_sync",
       "docs_get",
+      "docs_index",
       "docs_search",
       "guidelines_preflight",
       "manifest_validate",
       "package_zip",
       "plugin_scaffold",
     ]);
+  });
+
+  it("sends instructions, annotations, prompts and resources", async () => {
+    expect(client.getInstructions()).toContain("loadstring");
+    const { tools } = await client.listTools();
+    for (const tool of tools) expect(tool.annotations, tool.name).toEqual(TOOL_ANNOTATIONS[tool.name]);
+    const { prompts } = await client.listPrompts();
+    expect(prompts.map((p) => p.name).sort()).toEqual([...PROMPT_NAMES].sort());
+    const newPlugin = await client.getPrompt({ name: "new_plugin", arguments: { name: "loot-tally", permissions: "chatAccess" } });
+    const text = newPlugin.messages[0]!.content as { type: string; text: string };
+    expect(text.text).toContain('plugin_scaffold with path "loot-tally"');
+    expect(text.text).toContain('"chatAccess"');
+    const fix = await client.getPrompt({ name: "fix_preflight", arguments: { path: "clean" } });
+    expect((fix.messages[0]!.content as { text: string }).text).toContain("guidelines_preflight");
+    const { resources } = await client.listResources();
+    expect(resources.map((r) => r.uri)).toEqual(expect.arrayContaining(["rs3://stubs/index.json", "rs3://stubs/unresolved.md"]));
+    const index = await client.readResource({ uri: "rs3://stubs/index.json" });
+    expect(JSON.parse(String(index.contents[0]!.text)).symbols.length).toBeGreaterThan(0);
+    const { resourceTemplates } = await client.listResourceTemplates();
+    expect(resourceTemplates.map((t) => t.uriTemplate)).toContain("rs3://stubs/modules/{+id}");
+    const mod = await client.readResource({ uri: "rs3://stubs/modules/core/sample" });
+    expect(String(mod.contents[0]!.text)).toContain("---@meta");
+  });
+
+  it("docs_index builds the full-text index and docs_search returns sections by words", async () => {
+    const before = await callTool("docs_search", { query: "synthetic admonition" });
+    expect(before.json!.sections).toBeUndefined();
+    const built = await callTool("docs_index", {});
+    expect(built.isError).toBe(false);
+    expect(built.json!.pages).toBe(2);
+    expect(Number(built.json!.sections)).toBeGreaterThan(3);
+    const after = await callTool("docs_search", { query: "synthetic admonition body" });
+    const sections = after.json!.sections as { page: string; heading: string; url: string; excerpt: string }[];
+    expect(sections.length).toBeGreaterThan(0);
+    expect(sections[0]!.page).toBe("core/shapes");
+    expect(sections[0]!.url).toContain("core/shapes.html#");
+    expect(sections[0]!.excerpt).toContain("admonition");
+  });
+
+  it("devplugins_sync dry_run lists the files a real sync would copy and remove", async () => {
+    await fsp.mkdir(path.join(devRoot, "clean"), { recursive: true });
+    await fsp.writeFile(path.join(devRoot, "clean", "plugin.json"), "{}");
+    await fsp.writeFile(path.join(devRoot, "clean", "stale.lua"), "-- old");
+    const dry = await callTool("devplugins_sync", { path: "clean", dry_run: true });
+    expect(dry.isError).toBe(false);
+    expect(dry.json!.dryRun).toBe(true);
+    expect(dry.json!.copied).toEqual(["lib/helpers.lua", "main.lua", "plugin.json"]);
+    expect(dry.json!.removed).toEqual(["stale.lua"]);
+    expect(await fsp.readFile(path.join(devRoot, "clean", "stale.lua"), "utf8")).toBe("-- old");
   });
 
   it("api_lookup returns signature and docs url", async () => {
