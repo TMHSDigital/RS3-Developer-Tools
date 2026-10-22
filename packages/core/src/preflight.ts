@@ -7,7 +7,7 @@ import type { PluginManifest } from "@tmhs/rs3-plugin-schema";
 import { DOCS, type Finding } from "./findings.js";
 import { listFilesRecursive, readUtf8 } from "./fs.js";
 import { isDevArtifact, isPlaceholderEmail, validatePluginDir } from "./manifest.js";
-import { globalReads, indirectGlobalReads, memberChains, scanLua } from "./lua-scan.js";
+import { enclosingCall, globalReads, indirectGlobalReads, memberChains, scanLua } from "./lua-scan.js";
 
 /** Standard libraries and functions the plugin sandbox does not provide. */
 export const FORBIDDEN_GLOBALS = ["os", "io", "debug", "load", "loadstring", "dofile"] as const;
@@ -70,18 +70,20 @@ export async function preflightPlugin(pluginDir: string, options: PreflightOptio
       }
     }
 
-    // Permissions: chat.
-    const chatUse = chains.filter((c) => /^Chat[.:]/.test(c.chain) || /^Event\.ChatMessage\b/.test(c.chain));
+    // Permissions: chat. Chains rooted at a local of this file (for example a
+    // plugin's own "local Chat = {}" module) never reach the client global.
+    const globalChains = chains.filter((c) => !c.rootDeclared);
+    const chatUse = globalChains.filter((c) => /^Chat[.:]/.test(c.chain) || /^Event\.ChatMessage\b/.test(c.chain));
     if (chatUse.length > 0 && !permissions.has("chatAccess")) {
       findings.push({ level: "error", code: "chat-permission", message: `"${chatUse[0]!.chain}" needs the chatAccess permission in plugin.json`, file: rel, line: chatUse[0]!.line, docsUrl: DOCS.chat });
     }
     // Permissions: http.
-    const httpUse = chains.filter((c) => /^HTTPRequest[.:]/.test(c.chain));
+    const httpUse = globalChains.filter((c) => /^HTTPRequest[.:]/.test(c.chain));
     if (httpUse.length > 0 && !permissions.has("httpAccess")) {
       findings.push({ level: "error", code: "http-permission", message: `"${httpUse[0]!.chain}" needs the httpAccess permission in plugin.json`, file: rel, line: httpUse[0]!.line, docsUrl: DOCS.http });
     }
     // Permissions: tracking id.
-    const trackingUse = chains.filter((c) => /^Player\.GetTrackingID\b/.test(c.chain));
+    const trackingUse = globalChains.filter((c) => /^Player\.GetTrackingID\b/.test(c.chain));
     if (trackingUse.length > 0 && !permissions.has("trackingAccess")) {
       findings.push({ level: "error", code: "tracking-permission", message: `"${trackingUse[0]!.chain}" needs the trackingAccess permission in plugin.json`, file: rel, line: trackingUse[0]!.line, docsUrl: DOCS.tracking });
     }
@@ -92,16 +94,28 @@ export async function preflightPlugin(pluginDir: string, options: PreflightOptio
       if (m) usesPermissionCheck[m[1] as keyof typeof usesPermissionCheck] = true;
     }
 
-    // URL literals outside the declared base URLs.
-    for (const s of scan.strings) {
-      const urlMatch = /https?:\/\/[^\s"'<>]+/i.exec(s.value);
-      if (!urlMatch) continue;
-      const host = hostOf(urlMatch[0]);
-      if (!host) continue;
+    // URL literals outside the declared base URLs. Only a literal handed to
+    // HTTPRequest is a request the client will refuse; a URL in help text or a
+    // log message is harmless, so it is reported as a warning to look at.
+    const codeTokens = scan.tokens.filter((t) => t.kind !== "comment");
+    for (let i = 0; i < codeTokens.length; i++) {
+      const s = codeTokens[i]!;
+      if (s.kind !== "string") continue;
+      // A literal may hold several URLs; report it once, for the first host that is not declared.
+      const urls = [...s.value.matchAll(/https?:\/\/[^\s"'<>]+/gi)].map((m) => m[0]).filter((u) => hostOf(u));
+      if (urls.length === 0) continue;
+      const callee = enclosingCall(codeTokens, i);
+      const isRequest = callee !== undefined && /^HTTPRequest[.:]/.test(callee);
       if (!permissions.has("httpAccess")) {
-        findings.push({ level: "warning", code: "url-without-http", message: `URL literal "${urlMatch[0]}" found but httpAccess is not requested; only Plugin.urls entries can be fetched`, file: rel, line: s.line, docsUrl: DOCS.http });
-      } else if (!allowedHosts.has(host)) {
-        findings.push({ level: "error", code: "url-outside-manifest", message: `URL literal "${urlMatch[0]}" points at a host that is not declared in the manifest urls`, file: rel, line: s.line, docsUrl: DOCS.http });
+        findings.push({ level: "warning", code: "url-without-http", message: `URL literal "${urls[0]}" found but httpAccess is not requested; only Plugin.urls entries can be fetched`, file: rel, line: s.line, docsUrl: DOCS.http });
+        continue;
+      }
+      const outside = urls.find((u) => !allowedHosts.has(hostOf(u)!));
+      if (!outside) continue;
+      if (isRequest) {
+        findings.push({ level: "error", code: "url-outside-manifest", message: `URL literal "${outside}" is passed to ${callee} but its host is not declared in the manifest urls; add it there and use Plugin.urls.<name>`, file: rel, line: s.line, docsUrl: DOCS.http });
+      } else {
+        findings.push({ level: "warning", code: "url-outside-manifest", message: `URL literal "${outside}" points at a host that is not declared in the manifest urls; fine for display text, but a request to it would be refused`, file: rel, line: s.line, docsUrl: DOCS.http });
       }
     }
 

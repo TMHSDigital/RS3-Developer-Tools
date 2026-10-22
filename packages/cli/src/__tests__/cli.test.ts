@@ -52,7 +52,8 @@ describe("rs3dev commands", () => {
 
   it("init, sync and package work end to end", async () => {
     const base = await tempDir("rs3-cli-");
-    const root = await tempDir("rs3-cli-root-");
+    const root = path.join(await tempDir("rs3-cli-root-"), "dev_plugins");
+    await fsp.mkdir(root);
     const init = capture();
     expect(await runInit("demo-plugin", { cwd: base, agentFiles: false, stubs: "C:/stubs", permissions: "chatAccess" }, init.options)).toBe(0);
     const pluginDir = path.join(base, "demo-plugin");

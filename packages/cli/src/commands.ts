@@ -92,9 +92,9 @@ export async function runPreflight(target: string, opts: { maxLineLength?: strin
   return reportFindings(result.findings, "preflight", options);
 }
 
-export async function runSync(target: string, opts: { root?: string; prune?: boolean }, options: OutputOptions): Promise<number> {
+export async function runSync(target: string, opts: { root?: string; prune?: boolean; createRoot?: boolean }, options: OutputOptions): Promise<number> {
   try {
-    const result = await syncPlugin(path.resolve(target), { override: opts.root, prune: opts.prune ?? true });
+    const result = await syncPlugin(path.resolve(target), { override: opts.root, prune: opts.prune ?? true, createRoot: opts.createRoot ?? false });
     if (options.json) {
       out(options, JSON.stringify(result, null, 2));
     } else {
@@ -111,10 +111,11 @@ export async function runSync(target: string, opts: { root?: string; prune?: boo
   }
 }
 
-export async function runWatch(target: string, opts: { root?: string; debounce?: string }, options: OutputOptions): Promise<number> {
+export async function runWatch(target: string, opts: { root?: string; debounce?: string; createRoot?: boolean }, options: OutputOptions): Promise<number> {
   const source = path.resolve(target);
   const watcher = watchPlugin(source, {
     override: opts.root,
+    createRoot: opts.createRoot ?? false,
     debounceMs: Number(opts.debounce ?? 300),
     onSync: (result) => out(options, `${new Date().toLocaleTimeString()} synced ${result.copied.length} file(s); run: ${result.consoleCommand}`),
     onError: (error) => err(options, `sync failed: ${error.message}`),

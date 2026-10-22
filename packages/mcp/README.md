@@ -19,4 +19,4 @@ The workspace defaults to `RS3_WORKSPACE` or the current directory. Read tools a
 | `devplugins_sync` | yes | `confirm=true` required; `dry_run=true` previews |
 | `package_zip` | yes | writes under `<workspace>/dist` unless `outFile` is given |
 
-Configuration examples for Claude Code and Cursor are in `examples/`.
+Configuration examples for Claude Code and Cursor are in `examples/`. They carry no `RS3_DEV_PLUGINS_DIR` so the same file works on every platform: the `dev_plugins` root is detected from the client's `*.jcache` files. Set the variable only when the client is installed somewhere unusual, and point it at the folder itself (Windows default `C:\ProgramData\Jagex\RuneScape-BETA\dev_plugins`; on macOS or Linux use the equivalent path inside your client install). A value that does not exist or is not named `dev_plugins` is rejected by `devplugins_sync` rather than created.

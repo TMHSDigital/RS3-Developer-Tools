@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Preflight `sandbox-global` no longer fires on table constructor keys (`{ debug = false }`), goto labels or parameters; it now also reports `_G.os`, `_G["io"]` and `rawget(_G, "debug")`. An empty folder reports `manifest-missing` and `main-missing` only
 - `DocsClient` aborts a fetch after `timeoutMs` (default 15 s), retries network errors, timeouts and 5xx once, and serves the cached copy when every attempt fails; `docs_get` and the stub crawl can no longer hang. Every workflow job has a `timeout-minutes`
 - `require` validation reads calls from tokens (comments and strings no longer count), reports dotted names as `require-dotted` with the slash form to use, and points out an unloaded `init.lua`; `.luarc.json` now declares only `?.lua`, matching the documented client rule
+- Preflight `url-outside-manifest` is an error only for a literal passed to `HTTPRequest`; a URL in help text or a log message is a warning. `chat-permission`, `http-permission` and `tracking-permission` skip chains rooted at a local of the file (`local Chat = {}`)
+- `sync` and `watch` reject a `--root` or `RS3_DEV_PLUGINS_DIR` that does not exist or is not a `dev_plugins` folder (named so, or beside the client's `*.jcache` files) instead of creating it; `--create-root` opts in. The root itself is never created, a non-empty destination without a `plugin.json` is refused before pruning, paths are resolved through `realpath`, and `watch` runs syncs strictly one after another. The example MCP configs no longer hard-code a Windows `RS3_DEV_PLUGINS_DIR`
 
 ### Changed
 

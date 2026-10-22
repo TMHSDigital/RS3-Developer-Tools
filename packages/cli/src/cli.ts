@@ -59,7 +59,8 @@ program
 program
   .command("sync [path]")
   .description("copy the plugin into the client's dev_plugins folder and print the reload command")
-  .option("--root <dir>", "dev_plugins folder (overrides detection and RS3_DEV_PLUGINS_DIR)")
+  .option("--root <dir>", "dev_plugins folder (overrides detection and RS3_DEV_PLUGINS_DIR); must exist and look like dev_plugins")
+  .option("--create-root", "accept and create a --root or RS3_DEV_PLUGINS_DIR that does not exist or is not named dev_plugins")
   .option("--no-prune", "keep files in the destination that the source no longer has")
   .action(async (target: string | undefined, opts) => {
     process.exitCode = await runSync(target ?? ".", opts, output());
@@ -68,7 +69,8 @@ program
 program
   .command("watch [path]")
   .description("sync on every save, debounced; press Ctrl+C to stop")
-  .option("--root <dir>", "dev_plugins folder (overrides detection and RS3_DEV_PLUGINS_DIR)")
+  .option("--root <dir>", "dev_plugins folder (overrides detection and RS3_DEV_PLUGINS_DIR); must exist and look like dev_plugins")
+  .option("--create-root", "accept and create a --root or RS3_DEV_PLUGINS_DIR that does not exist or is not named dev_plugins")
   .option("--debounce <ms>", "quiet period after the last change", "300")
   .action(async (target: string | undefined, opts) => {
     process.exitCode = await runWatch(target ?? ".", opts, output());

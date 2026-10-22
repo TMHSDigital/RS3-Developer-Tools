@@ -29,7 +29,8 @@ async function callTool(name: string, args: Record<string, unknown>) {
 
 beforeEach(async () => {
   workspace = await fsp.mkdtemp(path.join(os.tmpdir(), "rs3-mcp-ws-"));
-  devRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "rs3-mcp-dev-"));
+  devRoot = path.join(await fsp.mkdtemp(path.join(os.tmpdir(), "rs3-mcp-dev-")), "dev_plugins");
+  await fsp.mkdir(devRoot);
   await fsp.cp(path.join(coreFixtures, "clean"), path.join(workspace, "clean"), { recursive: true });
   const server = await createServer({
     workspaceRoot: workspace,
@@ -47,7 +48,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await client.close();
   await fsp.rm(workspace, { recursive: true, force: true });
-  await fsp.rm(devRoot, { recursive: true, force: true });
+  await fsp.rm(path.dirname(devRoot), { recursive: true, force: true });
 });
 
 describe("rs3-plugin-mcp", () => {

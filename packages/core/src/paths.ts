@@ -69,6 +69,41 @@ export interface DevPluginsRootOptions {
   env?: NodeJS.ProcessEnv;
   /** Extra client roots to scan, used by tests. */
   candidateClientRoots?: string[];
+  /**
+   * Accept an explicit root that does not exist or does not look like a
+   * dev_plugins folder, and create it. Off by default so a typo in --root or
+   * RS3_DEV_PLUGINS_DIR fails instead of silently creating a tree elsewhere.
+   */
+  createRoot?: boolean;
+}
+
+/**
+ * An explicit root (flag or environment variable) must already exist and look
+ * like the client's dev_plugins folder: either named dev_plugins or sitting
+ * beside the client's *.jcache files. sync prunes inside <root>/<plugin>, so
+ * a wrong root must fail fast rather than be created and pruned.
+ */
+async function checkExplicitRoot(value: string, source: "override" | "env", createRoot: boolean): Promise<DevPluginsRootResult> {
+  const root = path.resolve(value);
+  const label = source === "override" ? "--root" : "RS3_DEV_PLUGINS_DIR";
+  if (createRoot) {
+    await fsp.mkdir(root, { recursive: true });
+    return { root, source };
+  }
+  if (!(await isDirectory(root))) {
+    throw new Error(
+      `${label} ${value} does not exist (resolved to ${root}). Point it at the client's dev_plugins folder, ` +
+        "for example C:\\ProgramData\\Jagex\\RuneScape-BETA\\dev_plugins, or pass --create-root to create it.",
+    );
+  }
+  const namedDevPlugins = path.basename(root).toLowerCase() === "dev_plugins";
+  if (!namedDevPlugins && !(await looksLikeClientRoot(path.dirname(root)))) {
+    throw new Error(
+      `${label} ${root} does not look like a dev_plugins folder: it is not named dev_plugins and no *.jcache files sit beside it. ` +
+        "Point it at <RuneScape-BETA>/dev_plugins, or pass --create-root if your client layout differs.",
+    );
+  }
+  return { root, source };
 }
 
 export interface DevPluginsRootResult {
@@ -87,10 +122,10 @@ export async function findDevPluginsRoot(
 ): Promise<DevPluginsRootResult> {
   const env = options.env ?? process.env;
   if (options.override) {
-    return { root: path.resolve(options.override), source: "override" };
+    return checkExplicitRoot(options.override, "override", options.createRoot ?? false);
   }
   if (env.RS3_DEV_PLUGINS_DIR) {
-    return { root: path.resolve(env.RS3_DEV_PLUGINS_DIR), source: "env" };
+    return checkExplicitRoot(env.RS3_DEV_PLUGINS_DIR, "env", options.createRoot ?? false);
   }
   const candidates = options.candidateClientRoots ?? defaultClientRoots(env);
   for (const clientRoot of candidates) {

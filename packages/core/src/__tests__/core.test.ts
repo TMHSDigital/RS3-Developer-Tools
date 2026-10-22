@@ -8,8 +8,9 @@ import { readUtf8 } from "../fs.js";
 import { validateManifestObject, validatePluginDir, isDevArtifact, isPlaceholderEmail } from "../manifest.js";
 import { libraryPathFor, resolveStubsDir } from "../luarc.js";
 import { preflightPlugin } from "../preflight.js";
-import { scanLua, globalReads, indirectGlobalReads, memberChains, requireCalls } from "../lua-scan.js";
+import { enclosingCall, scanLua, globalReads, indirectGlobalReads, memberChains, requireCalls } from "../lua-scan.js";
 import { syncPlugin } from "../sync.js";
+import { watchPlugin } from "../watch.js";
 import { packagePlugin } from "../package.js";
 import { scaffoldPlugin } from "../scaffold.js";
 import { findDevPluginsRoot } from "../paths.js";
@@ -107,9 +108,16 @@ describe("lua scanner", () => {
       { target: "e", line: 4 },
     ]);
   });
-  it("collects member chains", () => {
-    const chains = memberChains(scanLua("Event.ChatMessage.Subscribe('a', f)\nlocal r = HTTPRequest.new(u)\nobj:Method()")).map((c) => c.chain);
-    expect(chains).toEqual(["Event.ChatMessage.Subscribe", "HTTPRequest.new", "obj:Method"]);
+  it("collects member chains and marks the ones rooted at a local", () => {
+    const chains = memberChains(scanLua("local obj = {}\nEvent.ChatMessage.Subscribe('a', f)\nlocal r = HTTPRequest.new(u)\nobj:Method()"));
+    expect(chains.map((c) => c.chain)).toEqual(["Event.ChatMessage.Subscribe", "HTTPRequest.new", "obj:Method"]);
+    expect(chains.map((c) => c.rootDeclared)).toEqual([false, false, true]);
+  });
+  it("finds the call that encloses a token", () => {
+    const scan = scanLua('local r = HTTPRequest.new("https://a.test/", path)\nlog("https://b.test/")\nlocal t = { url = "https://c.test/" }\nx = f(g("https://d.test/"))');
+    const tokens = scan.tokens.filter((t) => t.kind !== "comment");
+    const urls = tokens.map((t, i) => ({ t, i })).filter(({ t }) => t.kind === "string");
+    expect(urls.map(({ i }) => enclosingCall(tokens, i))).toEqual(["HTTPRequest.new", "log", undefined, "g"]);
   });
 });
 
@@ -149,11 +157,27 @@ describe("preflight", () => {
     expect(codes(result.findings)).toContain("chat-permission");
     expect(codes(result.findings)).toContain("tracking-permission");
   });
-  it("flags URL literals outside the manifest urls", async () => {
+  it("flags URL literals passed to HTTPRequest outside the manifest urls", async () => {
     const result = await preflightPlugin(plugin("http-outside-urls"));
     const outside = result.findings.filter((f) => f.code === "url-outside-manifest");
     expect(outside).toHaveLength(1);
+    expect(outside[0]!.level).toBe("error");
     expect(outside[0]!.message).toContain("example.org");
+    expect(outside[0]!.message).toContain("HTTPRequest.new");
+    expect(codes(result.findings)).not.toContain("http-permission");
+  });
+  it("only warns about URL literals that are never requested", async () => {
+    const result = await preflightPlugin(plugin("url-display-only"));
+    expect(result.findings.filter((f) => f.level === "error")).toEqual([]);
+    const outside = result.findings.filter((f) => f.code === "url-outside-manifest");
+    expect(outside).toHaveLength(1);
+    expect(outside[0]!.level).toBe("warning");
+    expect(outside[0]!.message).toContain("display text");
+  });
+  it("ignores permission chains rooted at a local of the file", async () => {
+    const result = await preflightPlugin(plugin("local-chat-module"));
+    expect(result.findings.filter((f) => f.level === "error")).toEqual([]);
+    expect(codes(result.findings)).not.toContain("chat-permission");
     expect(codes(result.findings)).not.toContain("http-permission");
   });
   it("warns about minified or obfuscated-looking code", async () => {
@@ -172,10 +196,13 @@ describe("preflight", () => {
 
 describe("sync", () => {
   it("copies into dev_plugins, excludes dev artefacts, prunes stale files and prints the reload command", async () => {
-    const root = await tempDir("rs3-devplugins-");
+    const root = path.join(await tempDir("rs3-devplugins-"), "dev_plugins");
+    await fsp.mkdir(root);
+    // A previous copy of the plugin with a file the source no longer has.
     const stale = path.join(root, "clean", "old.lua");
     await fsp.mkdir(path.dirname(stale), { recursive: true });
     await fsp.writeFile(stale, "-- stale");
+    await fsp.copyFile(path.join(plugin("clean"), "plugin.json"), path.join(root, "clean", "plugin.json"));
     const result = await syncPlugin(plugin("clean"), { override: root });
     expect(result.consoleCommand).toBe("prl clean");
     expect(result.copied).toEqual(["lib/helpers.lua", "main.lua", "plugin.json"]);
@@ -183,7 +210,8 @@ describe("sync", () => {
     expect(await readUtf8(path.join(root, "clean", "main.lua"))).toContain("Clean fixture");
   });
   it("honours RS3_DEV_PLUGINS_DIR and detects a client root by *.jcache files", async () => {
-    const env = await tempDir("rs3-env-");
+    const env = path.join(await tempDir("rs3-env-"), "dev_plugins");
+    await fsp.mkdir(env);
     expect((await findDevPluginsRoot({ env: { RS3_DEV_PLUGINS_DIR: env } })).source).toBe("env");
     const client = await tempDir("rs3-client-");
     await fsp.writeFile(path.join(client, "main.jcache"), "");
@@ -191,6 +219,86 @@ describe("sync", () => {
     expect(detected.source).toBe("detected");
     expect(detected.root).toBe(path.join(client, "dev_plugins"));
     await expect(findDevPluginsRoot({ env: {}, candidateClientRoots: [env] })).rejects.toThrow(/jcache/);
+    // A folder beside the jcache files passes even when it is not named dev_plugins.
+    const beside = path.join(client, "plugins_dev");
+    await fsp.mkdir(beside);
+    expect((await findDevPluginsRoot({ override: beside })).root).toBe(beside);
+  });
+  it("rejects an explicit root that does not exist or does not look like dev_plugins", async () => {
+    const base = await tempDir("rs3-badroot-");
+    const typo = path.join(base, "dev_plugnis");
+    await expect(findDevPluginsRoot({ override: typo })).rejects.toThrow(/does not exist \(resolved to .*dev_plugnis\)/);
+    // A Windows path copied into a Unix config resolves under the cwd and does not exist either.
+    await expect(findDevPluginsRoot({ env: { RS3_DEV_PLUGINS_DIR: "C:\\ProgramData\\Jagex\\RuneScape-BETA\\dev_plugins" }, override: undefined })).rejects.toThrow(
+      /RS3_DEV_PLUGINS_DIR .* does not exist|does not look like a dev_plugins folder/,
+    );
+    const documents = path.join(base, "Documents");
+    await fsp.mkdir(documents);
+    await expect(findDevPluginsRoot({ override: documents })).rejects.toThrow(/does not look like a dev_plugins folder/);
+    await expect(syncPlugin(plugin("clean"), { override: documents })).rejects.toThrow(/does not look like a dev_plugins folder/);
+    // --create-root is the escape hatch and creates the folder.
+    const created = await findDevPluginsRoot({ override: typo, createRoot: true });
+    expect(created.root).toBe(typo);
+    expect(await fsp.stat(typo).then((s) => s.isDirectory())).toBe(true);
+  });
+  it("refuses to prune a non-empty destination that is not a plugin copy", async () => {
+    const root = path.join(await tempDir("rs3-prune-"), "dev_plugins");
+    await fsp.mkdir(path.join(root, "clean", "notes"), { recursive: true });
+    await fsp.writeFile(path.join(root, "clean", "notes", "thesis.txt"), "keep me");
+    await expect(syncPlugin(plugin("clean"), { override: root })).rejects.toThrow(/holds no plugin\.json/);
+    expect(await readUtf8(path.join(root, "clean", "notes", "thesis.txt"))).toBe("keep me");
+    // An empty destination is fine, and so is one that already holds a plugin.json.
+    await fsp.rm(path.join(root, "clean"), { recursive: true, force: true });
+    await fsp.mkdir(path.join(root, "clean"));
+    expect((await syncPlugin(plugin("clean"), { override: root })).copied).toContain("main.lua");
+    await fsp.writeFile(path.join(root, "clean", "old.lua"), "-- stale");
+    expect((await syncPlugin(plugin("clean"), { override: root })).removed).toEqual(["old.lua"]);
+  });
+  it("watch runs syncs strictly one after another, starting with the initial copy", async () => {
+    const base = await tempDir("rs3-watch-");
+    const src = path.join(base, "watched");
+    await fsp.cp(plugin("clean"), src, { recursive: true });
+    const root = path.join(base, "dev_plugins");
+    await fsp.mkdir(root);
+    let active = 0;
+    let overlap = 0;
+    let syncs = 0;
+    const watcher = watchPlugin(src, {
+      override: root,
+      debounceMs: 20,
+      onSync: () => {
+        syncs++;
+      },
+      onError: (error) => {
+        throw error;
+      },
+    });
+    // Instrument overlap by wrapping the destination writes: two syncs at once would
+    // both be "active" when the second one starts.
+    const original = fsp.copyFile;
+    (fsp as { copyFile: typeof fsp.copyFile }).copyFile = async (...args: Parameters<typeof fsp.copyFile>) => {
+      active++;
+      if (active > 1) overlap++;
+      try {
+        await new Promise((r) => setTimeout(r, 5));
+        return await original(...args);
+      } finally {
+        active--;
+      }
+    };
+    try {
+      // Save during the initial copy, then a burst of saves.
+      await fsp.writeFile(path.join(src, "extra1.lua"), "-- 1");
+      await watcher.ready;
+      for (let i = 2; i <= 5; i++) await fsp.writeFile(path.join(src, `extra${i}.lua`), `-- ${i}`);
+      await new Promise((r) => setTimeout(r, 400));
+    } finally {
+      await watcher.close();
+      (fsp as { copyFile: typeof fsp.copyFile }).copyFile = original;
+    }
+    expect(overlap).toBe(0);
+    expect(syncs).toBeGreaterThanOrEqual(2);
+    expect(await readUtf8(path.join(root, "watched", "extra5.lua"))).toBe("-- 5");
   });
 });
 

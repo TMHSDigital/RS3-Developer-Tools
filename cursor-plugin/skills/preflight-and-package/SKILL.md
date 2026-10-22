@@ -57,7 +57,7 @@ rs3dev package my-plugin
 
 Request: "preflight says url-outside-manifest for https://prices.example.net"
 
-Result: either add `"prices": "https://prices.example.net/"` to `urls` and build the request with `HTTPRequest.new(Plugin.urls.prices, path)`, or remove the literal. Then re-run preflight.
+Result: the finding is an error only when the literal is passed to `HTTPRequest`; a URL that is only shown or logged is a warning. Either add `"prices": "https://prices.example.net/"` to `urls` and build the request with `HTTPRequest.new(Plugin.urls.prices, path)`, or remove the literal. Then re-run preflight.
 
 ## Reference
 

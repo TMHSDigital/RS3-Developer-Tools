@@ -1,0 +1,9 @@
+{
+  "name": "Local Chat Module",
+  "version": "0.1.0",
+  "contactEmailAddress": "chat-module@fixture.invalid",
+  "requiredDependencies": [],
+  "optionalDependencies": [],
+  "requiredPermissions": [],
+  "optionalPermissions": []
+}

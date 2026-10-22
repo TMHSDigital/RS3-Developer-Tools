@@ -23,13 +23,21 @@ export function watchPlugin(pluginDir: string, options: WatchOptions = {}): Watc
   const source = path.resolve(pluginDir);
   const debounceMs = options.debounceMs ?? 300;
   let timer: NodeJS.Timeout | undefined;
-  let running: Promise<void> = Promise.resolve();
 
   const runSync = async (): Promise<SyncResult> => {
     const result = await syncPlugin(source, options);
     options.onSync?.(result);
     return result;
   };
+
+  // Every sync is chained onto the previous one, starting with the initial
+  // copy, so a save during the first copy never runs two syncs over the same
+  // destination at once.
+  const ready = runSync();
+  let running: Promise<void> = ready.then(
+    () => undefined,
+    () => undefined,
+  );
 
   const schedule = () => {
     if (timer) clearTimeout(timer);
@@ -51,7 +59,6 @@ export function watchPlugin(pluginDir: string, options: WatchOptions = {}): Watc
     schedule();
   });
 
-  const ready = runSync();
   return {
     ready,
     async close() {

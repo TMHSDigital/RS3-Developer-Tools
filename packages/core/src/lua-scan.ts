@@ -167,6 +167,45 @@ export function scanLua(source: string): LuaScan {
  * use of sandbox-forbidden libraries.
  */
 export function globalReads(scan: LuaScan): { name: string; line: number }[] {
+  const declared = declaredNames(scan);
+  const tokens = scan.tokens.filter((t) => t.kind !== "comment");
+  const reads: { name: string; line: number }[] = [];
+  // Innermost open bracket, so "{ debug = false }" is recognised as a table
+  // constructor key and "f(a, b)" is not.
+  const brackets: string[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i]!;
+    if (t.kind === "op") {
+      if (t.value === "{" || t.value === "(" || t.value === "[") brackets.push(t.value);
+      else if (t.value === "}" || t.value === ")" || t.value === "]") brackets.pop();
+      continue;
+    }
+    if (t.kind !== "name") continue;
+    const prev = tokens[i - 1];
+    const next = tokens[i + 1];
+    if (prev && prev.kind === "op") {
+      // Field access: obj.debug, obj:load().
+      if (prev.value === "." || prev.value === ":") continue;
+      // goto labels: "goto debug" and "::debug::" name a jump target, not a value.
+      if (prev.value === "goto" || (prev.value === "::" && next?.kind === "op" && next.value === "::")) continue;
+      // Table constructor key: "{ debug = false }" or "{ a = 1, io = 2 }". The
+      // name is a string key, not a read of the global.
+      const inConstructor = brackets[brackets.length - 1] === "{";
+      const afterSeparator = prev.value === "{" || prev.value === "," || prev.value === ";";
+      if (inConstructor && afterSeparator && next?.kind === "op" && next.value === "=") continue;
+    }
+    if (declared.has(t.value)) continue;
+    reads.push({ name: t.value, line: t.line });
+  }
+  return reads;
+}
+
+/**
+ * Names declared in the file with "local", as a function parameter or as a
+ * "for" variable. File-wide and unscoped: enough to tell a plugin's own
+ * "local Chat = {}" module from the Chat global.
+ */
+export function declaredNames(scan: LuaScan): Set<string> {
   const declared = new Set<string>();
   const tokens = scan.tokens.filter((t) => t.kind !== "comment");
   for (let i = 0; i < tokens.length; i++) {
@@ -201,35 +240,41 @@ export function globalReads(scan: LuaScan): { name: string; line: number }[] {
       }
     }
   }
-  const reads: { name: string; line: number }[] = [];
-  // Innermost open bracket, so "{ debug = false }" is recognised as a table
-  // constructor key and "f(a, b)" is not.
-  const brackets: string[] = [];
-  for (let i = 0; i < tokens.length; i++) {
+  return declared;
+}
+
+/**
+ * The callee of the innermost call that encloses the token at index, as a
+ * dotted chain ("HTTPRequest.new", "obj:Method"), or undefined when the token
+ * is not inside a call's argument list. Used to tell a URL passed to
+ * HTTPRequest.new from one that only appears in help text.
+ */
+export function enclosingCall(tokens: LuaToken[], index: number): string | undefined {
+  let depth = 0;
+  for (let i = index - 1; i >= 0; i--) {
     const t = tokens[i]!;
-    if (t.kind === "op") {
-      if (t.value === "{" || t.value === "(" || t.value === "[") brackets.push(t.value);
-      else if (t.value === "}" || t.value === ")" || t.value === "]") brackets.pop();
-      continue;
+    if (t.kind !== "op") continue;
+    if (t.value === ")" || t.value === "}" || t.value === "]") depth++;
+    else if (t.value === "{" || t.value === "[") {
+      if (depth > 0) depth--;
+    } else if (t.value === "(") {
+      if (depth > 0) {
+        depth--;
+        continue;
+      }
+      // Walk the callee chain backwards: name (. name | : name)*
+      let j = i - 1;
+      if (tokens[j]?.kind !== "name") return undefined;
+      const parts: string[] = [tokens[j]!.value];
+      j--;
+      while (tokens[j]?.kind === "op" && (tokens[j]!.value === "." || tokens[j]!.value === ":") && tokens[j - 1]?.kind === "name") {
+        parts.unshift(tokens[j - 1]!.value + tokens[j]!.value);
+        j -= 2;
+      }
+      return parts.join("");
     }
-    if (t.kind !== "name") continue;
-    const prev = tokens[i - 1];
-    const next = tokens[i + 1];
-    if (prev && prev.kind === "op") {
-      // Field access: obj.debug, obj:load().
-      if (prev.value === "." || prev.value === ":") continue;
-      // goto labels: "goto debug" and "::debug::" name a jump target, not a value.
-      if (prev.value === "goto" || (prev.value === "::" && next?.kind === "op" && next.value === "::")) continue;
-      // Table constructor key: "{ debug = false }" or "{ a = 1, io = 2 }". The
-      // name is a string key, not a read of the global.
-      const inConstructor = brackets[brackets.length - 1] === "{";
-      const afterSeparator = prev.value === "{" || prev.value === "," || prev.value === ";";
-      if (inConstructor && afterSeparator && next?.kind === "op" && next.value === "=") continue;
-    }
-    if (declared.has(t.value)) continue;
-    reads.push({ name: t.value, line: t.line });
   }
-  return reads;
+  return undefined;
 }
 
 /**
@@ -280,10 +325,16 @@ export function requireCalls(scan: LuaScan): { target: string; line: number }[] 
   return calls;
 }
 
-/** Dotted access chains such as "Event.ChatMessage.Subscribe" or "Chat.AddMessage". */
-export function memberChains(scan: LuaScan): { chain: string; line: number }[] {
+/**
+ * Dotted access chains such as "Event.ChatMessage.Subscribe" or "Chat.AddMessage".
+ * rootDeclared is true when the first name is a local of this file (for
+ * example a plugin's own "local Chat = {}" module), so permission checks can
+ * skip chains that never touch the client global.
+ */
+export function memberChains(scan: LuaScan): { chain: string; line: number; rootDeclared: boolean }[] {
+  const declared = declaredNames(scan);
   const tokens = scan.tokens.filter((t) => t.kind !== "comment");
-  const chains: { chain: string; line: number }[] = [];
+  const chains: { chain: string; line: number; rootDeclared: boolean }[] = [];
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i]!;
     if (t.kind !== "name") continue;
@@ -295,7 +346,7 @@ export function memberChains(scan: LuaScan): { chain: string; line: number }[] {
       chain += tokens[j]!.value + tokens[j + 1]!.value;
       j += 2;
     }
-    if (chain.includes(".") || chain.includes(":")) chains.push({ chain, line: t.line });
+    if (chain.includes(".") || chain.includes(":")) chains.push({ chain, line: t.line, rootDeclared: declared.has(t.value) });
   }
   return chains;
 }

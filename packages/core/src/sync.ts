@@ -5,7 +5,7 @@
 import * as path from "node:path";
 import { promises as fsp } from "node:fs";
 import { findDevPluginsRoot, type DevPluginsRootOptions } from "./paths.js";
-import { isInside, listFilesRecursive, pathExists } from "./fs.js";
+import { isDirectory, isInside, listFilesRecursive, pathExists } from "./fs.js";
 import { isDevArtifact } from "./manifest.js";
 
 export interface SyncOptions extends DevPluginsRootOptions {
@@ -53,13 +53,25 @@ async function withRetry<T>(action: () => Promise<T>, retries: number, delayMs: 
   }
 }
 
+/** realpath when the path exists (so a symlinked folder cannot alias another), else the resolved path. */
+async function realOrResolved(target: string): Promise<string> {
+  const resolved = path.resolve(target);
+  try {
+    return await fsp.realpath(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
 /** Copy a plugin folder into dev_plugins and return the console command to reload it. */
 export async function syncPlugin(pluginDir: string, options: SyncOptions = {}): Promise<SyncResult> {
-  const source = path.resolve(pluginDir);
+  const source = await realOrResolved(pluginDir);
   if (!(await pathExists(path.join(source, "plugin.json")))) {
     throw new Error(`${source} does not contain a plugin.json; run rs3dev validate first`);
   }
-  const { root, source: rootSource } = await findDevPluginsRoot(options);
+  const found = await findDevPluginsRoot(options);
+  const root = await realOrResolved(found.root);
+  const rootSource = found.source;
   const pluginName = path.basename(source);
   const destination = path.join(root, pluginName);
   if (!isInside(root, destination) || path.resolve(destination) === path.resolve(root)) {
@@ -71,6 +83,28 @@ export async function syncPlugin(pluginDir: string, options: SyncOptions = {}): 
   const retries = options.retries ?? 6;
   const delay = options.retryDelayMs ?? 250;
 
+  // The root itself is never created here: an explicit root was checked by
+  // findDevPluginsRoot (or created on request), and a detected root sits
+  // beside the client's own files. Only <root>/<plugin> is created.
+  if (!(await isDirectory(root))) {
+    if (rootSource === "detected" || options.createRoot) {
+      await fsp.mkdir(root, { recursive: true });
+    } else {
+      throw new Error(`dev_plugins root ${root} does not exist; pass --create-root to create it`);
+    }
+  }
+  // A non-empty destination must already hold a plugin copy. Pruning deletes
+  // everything the source lacks, so syncing "projects" into ~/Documents must
+  // never be able to empty an unrelated folder of the same name.
+  if (await isDirectory(destination)) {
+    const entries = await fsp.readdir(destination);
+    if (entries.length > 0 && !(await pathExists(path.join(destination, "plugin.json")))) {
+      throw new Error(
+        `refusing to sync into ${destination}: the folder is not empty and holds no plugin.json, so it is not a copy of this plugin. ` +
+          "Remove it or point --root at the client's dev_plugins folder.",
+      );
+    }
+  }
   await fsp.mkdir(destination, { recursive: true });
   const files = (await listFilesRecursive(source)).filter((rel) => !isDevArtifact(rel));
   const copied: string[] = [];

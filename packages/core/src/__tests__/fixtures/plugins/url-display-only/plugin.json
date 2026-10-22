@@ -1,0 +1,10 @@
+{
+  "name": "URL Display Only",
+  "version": "0.1.0",
+  "contactEmailAddress": "display@fixture.invalid",
+  "requiredDependencies": [],
+  "optionalDependencies": [],
+  "requiredPermissions": ["httpAccess"],
+  "optionalPermissions": [],
+  "urls": { "wiki": "https://runescape.wiki/" }
+}
