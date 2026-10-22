@@ -60,6 +60,9 @@ jobs:
       - name: Lint and format check (Biome)
         run: npm run lint
 
+      - name: Check what each package would publish (npm pack --dry-run)
+        run: node scripts/pack-check.mjs
+
       - name: Unit tests (one vitest run over the repository tests and every package) with coverage
         run: npm run test:coverage
 

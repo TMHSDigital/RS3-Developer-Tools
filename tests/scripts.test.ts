@@ -45,6 +45,45 @@ describe("scripts/luals-check.mjs parsing", () => {
   });
 });
 
+describe("scripts/build-luals-addon.mjs", () => {
+  it("assembles config, info and the library from the stubs package", async () => {
+    const { buildLualsAddon } = await import("../scripts/build-luals-addon.mjs");
+    const out = await tempDir("rs3-addon-");
+    const result = await buildLualsAddon({ out });
+    expect(result.files).toBeGreaterThan(5);
+    const config = JSON.parse(await fsp.readFile(path.join(out, "config.json"), "utf8"));
+    expect(config.settings["Lua.runtime.version"]).toBe("Lua 5.4");
+    const info = JSON.parse(await fsp.readFile(path.join(out, "info.json"), "utf8"));
+    expect(info.name).toBe("RuneScape Client API");
+    expect(info.size).toBe(result.size);
+    expect(info.hasPlugin).toBe(false);
+    expect((await fsp.readFile(path.join(out, "library", "_globals.lua"), "utf8")).startsWith("---@meta")).toBe(true);
+    expect(await fsp.readFile(path.join(out, "README.md"), "utf8")).toContain("copyright Jagex");
+  });
+});
+
+describe("scripts/pack-check.mjs", () => {
+  it("accepts the real workspaces and reports a tarball that lacks a required file", async () => {
+    const { checkPacks, EXPECTED } = await import("../scripts/pack-check.mjs");
+    const real = await checkPacks(repoRoot);
+    expect(real.problems, real.problems.join("\n")).toEqual([]);
+    expect(real.summary.length).toBe(Object.keys(EXPECTED).length);
+    // A fake monorepo whose only package ships nothing it should.
+    const root = await tempDir("rs3-pack-");
+    await fsp.writeFile(path.join(root, "package.json"), JSON.stringify({ name: "fake", private: true, workspaces: ["packages/cli"] }));
+    await fsp.mkdir(path.join(root, "packages", "cli", "src"), { recursive: true });
+    await fsp.writeFile(
+      path.join(root, "packages", "cli", "package.json"),
+      JSON.stringify({ name: "@tmhs/rs3-devtools-cli", version: "9.9.9", files: ["src"] }),
+    );
+    await fsp.writeFile(path.join(root, "packages", "cli", "src", "x.test.ts"), "");
+    const fake = await checkPacks(root);
+    expect(fake.problems).toEqual(
+      expect.arrayContaining(["@tmhs/rs3-devtools-cli: tarball lacks dist/cli.js", "@tmhs/rs3-devtools-cli: tarball ships src/x.test.ts"]),
+    );
+  }, 120000);
+});
+
 describe("scripts/link-workspaces.mjs --copy", () => {
   it("copies each workspace package's publishable files into node_modules of the given root", async () => {
     const root = await tempDir("rs3-link-");

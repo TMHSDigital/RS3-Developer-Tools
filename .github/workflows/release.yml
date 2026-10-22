@@ -23,6 +23,8 @@ on:
 permissions:
   contents: write
   actions: read
+  # id-token lets npm publish with provenance through trusted publishing; no NPM_TOKEN secret is needed.
+  id-token: write
 
 concurrency:
   group: release
@@ -58,6 +60,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          registry-url: https://registry.npmjs.org
 
       - name: Install, build and test the commit being released
         run: |
@@ -243,11 +246,14 @@ jobs:
             (cd "$dir" && npm pack --pack-destination "$GITHUB_WORKSPACE/release-assets" >/dev/null)
           done
           (cd packages/luals-stubs && zip -qr "$GITHUB_WORKSPACE/release-assets/rs3-luals-stubs-$NEW_VERSION.zip" stubs index.json unresolved.md luarc.template.json package.json README.md)
+          # The LuaLS addon layout (config.json, info.json, library/) for the addon manager and non-npm editors.
+          node scripts/build-luals-addon.mjs --out "$RUNNER_TEMP/luals-addon"
+          (cd "$RUNNER_TEMP/luals-addon" && zip -qr "$GITHUB_WORKSPACE/release-assets/rs3-client-api-luals-addon-$NEW_VERSION.zip" .)
           (cd release-assets && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
           {
             echo "## Artefacts"
             echo
-            echo "npm tarballs for every workspace package and \`rs3-luals-stubs-$NEW_VERSION.zip\` (LuaLS \`---@meta\` stubs, \`index.json\`, \`luarc.template.json\`). SHA-256:"
+            echo "npm tarballs for every workspace package, \`rs3-luals-stubs-$NEW_VERSION.zip\` (LuaLS \`---@meta\` stubs, \`index.json\`, \`luarc.template.json\`) and \`rs3-client-api-luals-addon-$NEW_VERSION.zip\` (the same stubs in LuaLS addon layout: \`library/\`, \`config.json\`, \`info.json\`). SHA-256:"
             echo
             echo '```'
             cat release-assets/SHA256SUMS.txt
@@ -265,3 +271,18 @@ jobs:
             --generate-notes \
             --notes-file release-notes.md \
             release-assets/*
+
+      # npm publishing is switched on with the repository variable NPM_PUBLISH=true
+      # once the @tmhs organisation exists and each package has this workflow
+      # registered as a trusted publisher on npmjs.com (Settings, Publishing
+      # access). Provenance then comes from the OIDC token; no secret is stored.
+      # Order follows the dependency graph so each package's dependencies exist first.
+      - name: Publish to npm with provenance
+        if: steps.check.outputs.skip == 'false' && vars.NPM_PUBLISH == 'true'
+        env:
+          NPM_CONFIG_PROVENANCE: "true"
+        run: |
+          node scripts/pack-check.mjs
+          for workspace in packages/schema packages/core packages/stubs-generator packages/luals-stubs packages/cli packages/mcp; do
+            npm publish --workspace "$workspace" --access public --provenance
+          done

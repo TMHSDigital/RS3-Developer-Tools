@@ -137,6 +137,10 @@ $env:RS3_STUBS_DIR = "C:\dev\RS3-Developer-Tools\packages\luals-stubs\stubs"
 export RS3_STUBS_DIR=~/dev/RS3-Developer-Tools/packages/luals-stubs/stubs
 ```
 
+### Editor completions without the CLI
+
+The stubs are plain `---@meta` files and need neither Node nor this toolkit. Every GitHub Release carries two zips: `rs3-luals-stubs-<version>.zip` (the `stubs/` folder, `index.json`, `luarc.template.json`) and `rs3-client-api-luals-addon-<version>.zip` (the same stubs in LuaLS addon layout with `config.json` and `info.json`, built by `scripts/build-luals-addon.mjs`). Unpack either and point `workspace.library` in your `.luarc.json` at the stubs folder with `runtime.version` set to `Lua 5.4`; Neovim, Zed and other LuaLS editors work the same way. A "RuneScape Client API" entry in the LuaLS addon manager is planned from the addon zip (see issue 24).
+
 ### API change digest
 
 The weekly stub regeneration diffs `index.json` and writes what changed in the RuneScape Client API (symbols added, removed or re-signed, each with its docs link) to [api-changes.md](api-changes.md), the commit body and an Announcements post in [Discussions](https://github.com/TMHSDigital/RS3-Developer-Tools/discussions). Watch the repository to follow it.
