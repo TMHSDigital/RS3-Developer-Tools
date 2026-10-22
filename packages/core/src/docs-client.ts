@@ -53,6 +53,8 @@ export interface DocsPage {
   html: string;
   source: "network" | "cache" | "offline";
   etag?: string;
+  /** Last-Modified header as the server sent it, when it sent one. */
+  lastModified?: string;
 }
 
 interface CacheMeta {
@@ -190,11 +192,11 @@ export class DocsClient {
     if (cached && this.maxAgeSeconds > 0) {
       const ageMs = Date.now() - Date.parse(cached.meta.fetchedAt);
       if (ageMs >= 0 && ageMs < this.maxAgeSeconds * 1000) {
-        return { relPath, url, html: cached.html, source: "cache", etag: cached.meta.etag };
+        return { relPath, url, html: cached.html, source: "cache", etag: cached.meta.etag, lastModified: cached.meta.lastModified };
       }
     }
     if (this.cacheOnly) {
-      if (cached) return { relPath, url, html: cached.html, source: "cache", etag: cached.meta.etag };
+      if (cached) return { relPath, url, html: cached.html, source: "cache", etag: cached.meta.etag, lastModified: cached.meta.lastModified };
       throw new Error(`Page not in cache and cache-only mode is on: ${url}`);
     }
 
@@ -206,7 +208,7 @@ export class DocsClient {
     const attempt = await this.fetchWithRetry(url, headers);
     if (!attempt.response) {
       // A stale cached copy beats no page at all; the caller sees source: "cache".
-      if (cached) return { relPath, url, html: cached.html, source: "cache", etag: cached.meta.etag };
+      if (cached) return { relPath, url, html: cached.html, source: "cache", etag: cached.meta.etag, lastModified: cached.meta.lastModified };
       const reason = attempt.error?.message ?? "no response";
       throw new DocsFetchError(url, `Failed to fetch ${url} after ${attempt.attempts} attempt(s): ${reason}`, attempt.attempts);
     }
@@ -214,10 +216,10 @@ export class DocsClient {
 
     if (response.status === 304 && cached) {
       await this.writeCache(url, cached.html, { ...cached.meta, fetchedAt: new Date().toISOString() });
-      return { relPath, url, html: cached.html, source: "cache", etag: cached.meta.etag };
+      return { relPath, url, html: cached.html, source: "cache", etag: cached.meta.etag, lastModified: cached.meta.lastModified };
     }
     if (!response.ok) {
-      if (cached) return { relPath, url, html: cached.html, source: "cache", etag: cached.meta.etag };
+      if (cached) return { relPath, url, html: cached.html, source: "cache", etag: cached.meta.etag, lastModified: cached.meta.lastModified };
       throw new DocsFetchError(url, `Failed to fetch ${url} after ${attempt.attempts} attempt(s): HTTP ${response.status}`, attempt.attempts);
     }
     const html = await response.text();
@@ -228,7 +230,7 @@ export class DocsClient {
       fetchedAt: new Date().toISOString(),
     };
     await this.writeCache(url, html, meta);
-    return { relPath, url, html, source: "network", etag: meta.etag };
+    return { relPath, url, html, source: "network", etag: meta.etag, lastModified: meta.lastModified };
   }
 
   /** Remove every cached page. */

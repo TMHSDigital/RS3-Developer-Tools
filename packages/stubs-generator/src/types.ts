@@ -111,6 +111,8 @@ export interface ModuleDef {
   events: EventDef[];
   hooks: HookDef[];
   notes: Note[];
+  /** ETag the docs server sent for this page, recorded in index.json as provenance. */
+  etag?: string;
 }
 
 export interface GlobalTables {

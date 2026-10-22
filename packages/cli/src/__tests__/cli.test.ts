@@ -4,7 +4,7 @@ import * as os from "node:os";
 import { promises as fsp } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { parseUrlFlags, runCache, runDoctor, runInit, runPackage, runPreflight, runSync, runValidate } from "../commands.js";
+import { parseUrlFlags, runCache, runDoctor, runInit, runPackage, runPreflight, runStubs, runSync, runValidate } from "../commands.js";
 
 // Reuse the core fixtures so the CLI and the library agree on their verdicts.
 const coreFixtures = fileURLToPath(new URL("../../../core/src/__tests__/fixtures/plugins/", import.meta.url));
@@ -170,6 +170,21 @@ describe("rs3dev commands", () => {
       else process.env.LUA_LANGUAGE_SERVER = previous.luals;
       if (previous.root !== undefined) process.env.RS3_DEV_PLUGINS_DIR = previous.root;
     }
+  });
+
+  it("stubs status reports the installed stubs against the live docs index", async () => {
+    const notModified = (async () => new Response(null, { status: 304 })) as typeof fetch;
+    const c = capture();
+    expect(await runStubs("status", { fetchImpl: notModified }, { ...c.options, json: true })).toBe(0);
+    const report = JSON.parse(c.lines.join("\n"));
+    expect(report.command).toBe("stubs");
+    expect(report.modules).toBeGreaterThan(50);
+    expect(["current", "unknown"]).toContain(report.status);
+    const changed = (async () => new Response("<html></html>", { status: 200, headers: { etag: '"different"' } })) as typeof fetch;
+    const text = capture();
+    const code = await runStubs("status", { fetchImpl: changed }, text.options);
+    expect([0, 2]).toContain(code); // 2 when the committed index carries an ETag, 0 (unknown) when it does not
+    expect(await runStubs("nope", {}, capture().options)).toBe(1);
   });
 
   it("the built binary prints help", async () => {

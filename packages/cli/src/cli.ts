@@ -10,6 +10,7 @@ import {
   runSync,
   runDoctor,
   runCache,
+  runStubs,
   runValidate,
   runWatch,
   type OutputOptions,
@@ -93,6 +94,14 @@ program
   .option("--stubs <dir>", "stubs folder to check instead of RS3_STUBS_DIR or the installed package")
   .action(async (target: string | undefined, opts) => {
     process.exitCode = await runDoctor(target, opts, output());
+  });
+
+program
+  .command("stubs <action>")
+  .description("'status' checks whether the installed stubs still match the documentation (one conditional request)")
+  .option("--stubs <dir>", "stubs folder whose index.json to check instead of RS3_STUBS_DIR or the installed package")
+  .action(async (action: string, opts) => {
+    process.exitCode = await runStubs(action, opts, output());
   });
 
 program

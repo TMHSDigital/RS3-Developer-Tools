@@ -1,527 +1,620 @@
 {
   "baseUrl": "https://developer.runescape.com/rs/",
+  "source": {
+    "indexEtag": "W/\"fc1cb496213873bf5b13ce9822ef6e50\"",
+    "indexLastModified": "Tue, 20 Oct 2026 10:13:45 GMT",
+    "pageCount": 105,
+    "generatorVersion": "0.1.0"
+  },
   "modules": [
     {
       "id": "audio/index",
       "title": "Audio",
       "url": "https://developer.runescape.com/rs/audio/index.html",
-      "file": "stubs/audio/index.lua"
+      "file": "stubs/audio/index.lua",
+      "etag": "W/\"b1f330b563adb1a8a6276608f18109d2\""
     },
     {
       "id": "core/clientoptions",
       "title": "Client Options",
       "url": "https://developer.runescape.com/rs/core/clientoptions.html",
-      "file": "stubs/core/clientoptions.lua"
+      "file": "stubs/core/clientoptions.lua",
+      "etag": "W/\"7be07158dd9c1b63e57cf59d10103ef5\""
     },
     {
       "id": "core/events",
       "title": "Events",
       "url": "https://developer.runescape.com/rs/core/events.html",
-      "file": "stubs/core/events.lua"
+      "file": "stubs/core/events.lua",
+      "etag": "W/\"50779019b483ad7fc1e2eb3c5ff7efc0\""
     },
     {
       "id": "core/http",
       "title": "HTTP",
       "url": "https://developer.runescape.com/rs/core/http.html",
-      "file": "stubs/core/http.lua"
+      "file": "stubs/core/http.lua",
+      "etag": "W/\"dba22b40fab0690998d4b561365d6d95\""
     },
     {
       "id": "core/index",
       "title": "Core",
       "url": "https://developer.runescape.com/rs/core/index.html",
-      "file": "stubs/core/index.lua"
+      "file": "stubs/core/index.lua",
+      "etag": "W/\"2dddd842859d0301e22b4e5306083bdd\""
     },
     {
       "id": "core/keyboard",
       "title": "Keyboard",
       "url": "https://developer.runescape.com/rs/core/keyboard.html",
-      "file": "stubs/core/keyboard.lua"
+      "file": "stubs/core/keyboard.lua",
+      "etag": "W/\"c86c4d92993685648dc3377219d22a78\""
     },
     {
       "id": "core/mouse",
       "title": "Mouse",
       "url": "https://developer.runescape.com/rs/core/mouse.html",
-      "file": "stubs/core/mouse.lua"
+      "file": "stubs/core/mouse.lua",
+      "etag": "W/\"3b4b033aa129a6726532449b365610b3\""
     },
     {
       "id": "core/persistentdb",
       "title": "Persistent DB",
       "url": "https://developer.runescape.com/rs/core/persistentdb.html",
-      "file": "stubs/core/persistentdb.lua"
+      "file": "stubs/core/persistentdb.lua",
+      "etag": "W/\"cc1ea9c56f2cbb8f96c433ccdd9ba27e\""
     },
     {
       "id": "core/plugin",
       "title": "Plugin",
       "url": "https://developer.runescape.com/rs/core/plugin.html",
-      "file": "stubs/core/plugin.lua"
+      "file": "stubs/core/plugin.lua",
+      "etag": "W/\"934db37b0cb94e10828bc21c7c0ea76d\""
     },
     {
       "id": "core/string",
       "title": "String Utils",
       "url": "https://developer.runescape.com/rs/core/string.html",
-      "file": "stubs/core/string.lua"
+      "file": "stubs/core/string.lua",
+      "etag": "W/\"019571a54976f3efd0fcdd720faaeaa6\""
     },
     {
       "id": "game/camera",
       "title": "Camera",
       "url": "https://developer.runescape.com/rs/game/camera.html",
-      "file": "stubs/game/camera.lua"
+      "file": "stubs/game/camera.lua",
+      "etag": "W/\"874a18717953d14efd647b568548cda8\""
     },
     {
       "id": "game/chat",
       "title": "Chat",
       "url": "https://developer.runescape.com/rs/game/chat.html",
-      "file": "stubs/game/chat.lua"
+      "file": "stubs/game/chat.lua",
+      "etag": "W/\"086fb5c90e014f7f33aa59ee9013b3b0\""
     },
     {
       "id": "game/config/achievementtype",
       "title": "AchievementType",
       "url": "https://developer.runescape.com/rs/game/config/achievementtype.html",
-      "file": "stubs/game/config/achievementtype.lua"
+      "file": "stubs/game/config/achievementtype.lua",
+      "etag": "W/\"28f51408dfd5d3394858a0a0bc67b1c4\""
     },
     {
       "id": "game/config/baseanimsettype",
       "title": "BaseAnimSetType",
       "url": "https://developer.runescape.com/rs/game/config/baseanimsettype.html",
-      "file": "stubs/game/config/baseanimsettype.lua"
+      "file": "stubs/game/config/baseanimsettype.lua",
+      "etag": "W/\"2abc4dee5985478f996a5935c76a9d10\""
     },
     {
       "id": "game/config/cursortype",
       "title": "CursorType",
       "url": "https://developer.runescape.com/rs/game/config/cursortype.html",
-      "file": "stubs/game/config/cursortype.lua"
+      "file": "stubs/game/config/cursortype.lua",
+      "etag": "W/\"a1b76174c973da97945a21a4f76e91e2\""
     },
     {
       "id": "game/config/dbrowtype",
       "title": "DBRowType",
       "url": "https://developer.runescape.com/rs/game/config/dbrowtype.html",
-      "file": "stubs/game/config/dbrowtype.lua"
+      "file": "stubs/game/config/dbrowtype.lua",
+      "etag": "W/\"bc311381539d661efbe0197f22ba3895\""
     },
     {
       "id": "game/config/dbtabletype",
       "title": "DBTableType",
       "url": "https://developer.runescape.com/rs/game/config/dbtabletype.html",
-      "file": "stubs/game/config/dbtabletype.lua"
+      "file": "stubs/game/config/dbtabletype.lua",
+      "etag": "W/\"fdf446d9015d1e1f7c59e56dc188cefb\""
     },
     {
       "id": "game/config/enumtype",
       "title": "EnumType",
       "url": "https://developer.runescape.com/rs/game/config/enumtype.html",
-      "file": "stubs/game/config/enumtype.lua"
+      "file": "stubs/game/config/enumtype.lua",
+      "etag": "W/\"c3aef4173248fa197f17cab095ceebc4\""
     },
     {
       "id": "game/config/fonttype",
       "title": "FontType",
       "url": "https://developer.runescape.com/rs/game/config/fonttype.html",
-      "file": "stubs/game/config/fonttype.lua"
+      "file": "stubs/game/config/fonttype.lua",
+      "etag": "W/\"7c7e8787be44b9604d36e6c7dbf75bf1\""
     },
     {
       "id": "game/config/headbartype",
       "title": "HeadbarType",
       "url": "https://developer.runescape.com/rs/game/config/headbartype.html",
-      "file": "stubs/game/config/headbartype.lua"
+      "file": "stubs/game/config/headbartype.lua",
+      "etag": "W/\"dcdf29a7112450a2c98fde02019354c3\""
     },
     {
       "id": "game/config/hitmarktype",
       "title": "HitmarkType",
       "url": "https://developer.runescape.com/rs/game/config/hitmarktype.html",
-      "file": "stubs/game/config/hitmarktype.lua"
+      "file": "stubs/game/config/hitmarktype.lua",
+      "etag": "W/\"4b95f9419e122656cd72c127fa8370b6\""
     },
     {
       "id": "game/config/invtype",
       "title": "InvType",
       "url": "https://developer.runescape.com/rs/game/config/invtype.html",
-      "file": "stubs/game/config/invtype.lua"
+      "file": "stubs/game/config/invtype.lua",
+      "etag": "W/\"1478643fed1347180bb2b59f4a3839ad\""
     },
     {
       "id": "game/config/loctype",
       "title": "LocType",
       "url": "https://developer.runescape.com/rs/game/config/loctype.html",
-      "file": "stubs/game/config/loctype.lua"
+      "file": "stubs/game/config/loctype.lua",
+      "etag": "W/\"d7933270cd9187f60efcd8d5c6cd83ac\""
     },
     {
       "id": "game/config/mapelementtype",
       "title": "MapElementType",
       "url": "https://developer.runescape.com/rs/game/config/mapelementtype.html",
-      "file": "stubs/game/config/mapelementtype.lua"
+      "file": "stubs/game/config/mapelementtype.lua",
+      "etag": "W/\"c1acbdb17e372e8918693482d9f95f57\""
     },
     {
       "id": "game/config/npctype",
       "title": "NPCType",
       "url": "https://developer.runescape.com/rs/game/config/npctype.html",
-      "file": "stubs/game/config/npctype.lua"
+      "file": "stubs/game/config/npctype.lua",
+      "etag": "W/\"2899b845652f455330e2b5ff6dab3c16\""
     },
     {
       "id": "game/config/objtype",
       "title": "ObjType",
       "url": "https://developer.runescape.com/rs/game/config/objtype.html",
-      "file": "stubs/game/config/objtype.lua"
+      "file": "stubs/game/config/objtype.lua",
+      "etag": "W/\"aa21824ffe82d9f3ccde1c1509f15f33\""
     },
     {
       "id": "game/config/paramtype",
       "title": "ParamType",
       "url": "https://developer.runescape.com/rs/game/config/paramtype.html",
-      "file": "stubs/game/config/paramtype.lua"
+      "file": "stubs/game/config/paramtype.lua",
+      "etag": "W/\"7b065ee3b8f4dfd1b20353055eeb8b87\""
     },
     {
       "id": "game/config/questtype",
       "title": "QuestType",
       "url": "https://developer.runescape.com/rs/game/config/questtype.html",
-      "file": "stubs/game/config/questtype.lua"
+      "file": "stubs/game/config/questtype.lua",
+      "etag": "W/\"daca638b576c946237c143c49b7eae3b\""
     },
     {
       "id": "game/config/seqtype",
       "title": "SeqType",
       "url": "https://developer.runescape.com/rs/game/config/seqtype.html",
-      "file": "stubs/game/config/seqtype.lua"
+      "file": "stubs/game/config/seqtype.lua",
+      "etag": "W/\"cdabbfe8e255865ec62fd6a4ae918c16\""
     },
     {
       "id": "game/config/spotanimtype",
       "title": "SpotAnimType",
       "url": "https://developer.runescape.com/rs/game/config/spotanimtype.html",
-      "file": "stubs/game/config/spotanimtype.lua"
+      "file": "stubs/game/config/spotanimtype.lua",
+      "etag": "W/\"3ba54d748fc7a84a04e9e476c2fa2e4d\""
     },
     {
       "id": "game/config/structtype",
       "title": "StructType",
       "url": "https://developer.runescape.com/rs/game/config/structtype.html",
-      "file": "stubs/game/config/structtype.lua"
+      "file": "stubs/game/config/structtype.lua",
+      "etag": "W/\"7326cd59e6fab919ce5a811b83e2a034\""
     },
     {
       "id": "game/config/vartype",
       "title": "VarType",
       "url": "https://developer.runescape.com/rs/game/config/vartype.html",
-      "file": "stubs/game/config/vartype.lua"
+      "file": "stubs/game/config/vartype.lua",
+      "etag": "W/\"15a5226fd143c011b5d5f4b466bcbadd\""
     },
     {
       "id": "game/coordfine",
       "title": "CoordFine",
       "url": "https://developer.runescape.com/rs/game/coordfine.html",
-      "file": "stubs/game/coordfine.lua"
+      "file": "stubs/game/coordfine.lua",
+      "etag": "W/\"3b73bba2948a6c1964c444b7885dc060\""
     },
     {
       "id": "game/coordgrid",
       "title": "CoordGrid",
       "url": "https://developer.runescape.com/rs/game/coordgrid.html",
-      "file": "stubs/game/coordgrid.lua"
+      "file": "stubs/game/coordgrid.lua",
+      "etag": "W/\"c2983bc81a1940ff4e7de539f22934e5\""
     },
     {
       "id": "game/entity/locentity",
       "title": "LocEntity",
       "url": "https://developer.runescape.com/rs/game/entity/locentity.html",
-      "file": "stubs/game/entity/locentity.lua"
+      "file": "stubs/game/entity/locentity.lua",
+      "etag": "W/\"40193e58eb9c6e134a42df7ddd729153\""
     },
     {
       "id": "game/entity/npcentity",
       "title": "NPCEntity",
       "url": "https://developer.runescape.com/rs/game/entity/npcentity.html",
-      "file": "stubs/game/entity/npcentity.lua"
+      "file": "stubs/game/entity/npcentity.lua",
+      "etag": "W/\"cc65e2f540c5bd238f7661476c3399c1\""
     },
     {
       "id": "game/entity/objstackentity",
       "title": "ObjStackEntity",
       "url": "https://developer.runescape.com/rs/game/entity/objstackentity.html",
-      "file": "stubs/game/entity/objstackentity.lua"
+      "file": "stubs/game/entity/objstackentity.lua",
+      "etag": "W/\"bcf7b90935a1985e883c1a7ecb82068d\""
     },
     {
       "id": "game/entity/playerentity",
       "title": "PlayerEntity",
       "url": "https://developer.runescape.com/rs/game/entity/playerentity.html",
-      "file": "stubs/game/entity/playerentity.lua"
+      "file": "stubs/game/entity/playerentity.lua",
+      "etag": "W/\"82f2dcffeda54848bf90ea5a2f2f9f5f\""
     },
     {
       "id": "game/grandexchange",
       "title": "GrandExchange",
       "url": "https://developer.runescape.com/rs/game/grandexchange.html",
-      "file": "stubs/game/grandexchange.lua"
+      "file": "stubs/game/grandexchange.lua",
+      "etag": "W/\"90b526e5c6351d90f3dabc6f1d1ad55f\""
     },
     {
       "id": "game/index",
       "title": "Game",
       "url": "https://developer.runescape.com/rs/game/index.html",
-      "file": "stubs/game/index.lua"
+      "file": "stubs/game/index.lua",
+      "etag": "W/\"974dd0cd8104b90acacb59e89a8797e3\""
     },
     {
       "id": "game/inventory",
       "title": "Inventory",
       "url": "https://developer.runescape.com/rs/game/inventory.html",
-      "file": "stubs/game/inventory.lua"
+      "file": "stubs/game/inventory.lua",
+      "etag": "W/\"702400e8670d1b11409ace1e9f1c13b0\""
     },
     {
       "id": "game/list/loclist",
       "title": "LocList",
       "url": "https://developer.runescape.com/rs/game/list/loclist.html",
-      "file": "stubs/game/list/loclist.lua"
+      "file": "stubs/game/list/loclist.lua",
+      "etag": "W/\"6ab8cea12e409076d316a8715e4cb785\""
     },
     {
       "id": "game/list/npclist",
       "title": "NPCList",
       "url": "https://developer.runescape.com/rs/game/list/npclist.html",
-      "file": "stubs/game/list/npclist.lua"
+      "file": "stubs/game/list/npclist.lua",
+      "etag": "W/\"cb435bb8cc6511054abf0f96af9c1aa2\""
     },
     {
       "id": "game/list/objstacklist",
       "title": "ObjStackList",
       "url": "https://developer.runescape.com/rs/game/list/objstacklist.html",
-      "file": "stubs/game/list/objstacklist.lua"
+      "file": "stubs/game/list/objstacklist.lua",
+      "etag": "W/\"bcc6afe6c457d454b545e29ebb96de49\""
     },
     {
       "id": "game/list/playerlist",
       "title": "PlayerList",
       "url": "https://developer.runescape.com/rs/game/list/playerlist.html",
-      "file": "stubs/game/list/playerlist.lua"
+      "file": "stubs/game/list/playerlist.lua",
+      "etag": "W/\"e41e0c689dbb67cf74ff6c79ccd6c1c2\""
     },
     {
       "id": "game/list/shapelist",
       "title": "ShapeList",
       "url": "https://developer.runescape.com/rs/game/list/shapelist.html",
-      "file": "stubs/game/list/shapelist.lua"
+      "file": "stubs/game/list/shapelist.lua",
+      "etag": "W/\"720a54ea0ef6cd7eb8aea1158d1dba1e\""
     },
     {
       "id": "game/minimenu",
       "title": "MiniMenu",
       "url": "https://developer.runescape.com/rs/game/minimenu.html",
-      "file": "stubs/game/minimenu.lua"
+      "file": "stubs/game/minimenu.lua",
+      "etag": "W/\"c929699802ab8bd7ae8fb6bd8c1bb485\""
     },
     {
       "id": "game/player",
       "title": "Player",
       "url": "https://developer.runescape.com/rs/game/player.html",
-      "file": "stubs/game/player.lua"
+      "file": "stubs/game/player.lua",
+      "etag": "W/\"d7bbafbd67490083750e5982799d9c9a\""
     },
     {
       "id": "game/screenconvert",
       "title": "ScreenConvert",
       "url": "https://developer.runescape.com/rs/game/screenconvert.html",
-      "file": "stubs/game/screenconvert.lua"
+      "file": "stubs/game/screenconvert.lua",
+      "etag": "W/\"1b36ab184d8614200327d91830460bdb\""
     },
     {
       "id": "game/shapes",
       "title": "Shapes",
       "url": "https://developer.runescape.com/rs/game/shapes.html",
-      "file": "stubs/game/shapes.lua"
+      "file": "stubs/game/shapes.lua",
+      "etag": "W/\"04604de4993497d83be257eac37a3f94\""
     },
     {
       "id": "game/world",
       "title": "World",
       "url": "https://developer.runescape.com/rs/game/world.html",
-      "file": "stubs/game/world.lua"
+      "file": "stubs/game/world.lua",
+      "etag": "W/\"d23855f510abf191666a45b5fc759966\""
     },
     {
       "id": "math/aabb",
       "title": "AABB",
       "url": "https://developer.runescape.com/rs/math/aabb.html",
-      "file": "stubs/math/aabb.lua"
+      "file": "stubs/math/aabb.lua",
+      "etag": "W/\"8c361e65b719da69408ea2fff480a0d2\""
     },
     {
       "id": "math/index",
       "title": "Math",
       "url": "https://developer.runescape.com/rs/math/index.html",
-      "file": "stubs/math/index.lua"
+      "file": "stubs/math/index.lua",
+      "etag": "W/\"a55d2d6c3908c5c797fdb7f6232e178c\""
     },
     {
       "id": "math/matrix",
       "title": "Matrix",
       "url": "https://developer.runescape.com/rs/math/matrix.html",
-      "file": "stubs/math/matrix.lua"
+      "file": "stubs/math/matrix.lua",
+      "etag": "W/\"d7fad5cc507dd309a791c9d06eb29d97\""
     },
     {
       "id": "math/quaternion",
       "title": "Quaternion",
       "url": "https://developer.runescape.com/rs/math/quaternion.html",
-      "file": "stubs/math/quaternion.lua"
+      "file": "stubs/math/quaternion.lua",
+      "etag": "W/\"01c2c4be3f1a0eb1bd22f0e6a1c5523b\""
     },
     {
       "id": "math/rect",
       "title": "Rect",
       "url": "https://developer.runescape.com/rs/math/rect.html",
-      "file": "stubs/math/rect.lua"
+      "file": "stubs/math/rect.lua",
+      "etag": "W/\"ea78e429e344305140152fee51f2a697\""
     },
     {
       "id": "math/vector",
       "title": "Vector",
       "url": "https://developer.runescape.com/rs/math/vector.html",
-      "file": "stubs/math/vector.lua"
+      "file": "stubs/math/vector.lua",
+      "etag": "W/\"eb60dc72708d988fb3ab3e98f815e034\""
     },
     {
       "id": "ui/common_types",
       "title": "Common Types",
       "url": "https://developer.runescape.com/rs/ui/common_types.html",
-      "file": "stubs/ui/common_types.lua"
+      "file": "stubs/ui/common_types.lua",
+      "etag": "W/\"82e0981305e06214a9660e81b7c18d56\""
     },
     {
       "id": "ui/component",
       "title": "Component",
       "url": "https://developer.runescape.com/rs/ui/component.html",
-      "file": "stubs/ui/component.lua"
+      "file": "stubs/ui/component.lua",
+      "etag": "W/\"ced27c93f0032f20d960bf208385fb7d\""
     },
     {
       "id": "ui/component_collection",
       "title": "Component Collection",
       "url": "https://developer.runescape.com/rs/ui/component_collection.html",
-      "file": "stubs/ui/component_collection.lua"
+      "file": "stubs/ui/component_collection.lua",
+      "etag": "W/\"5235346b799b81887e861e1bd218d7d8\""
     },
     {
       "id": "ui/component_configs",
       "title": "Component Configs",
       "url": "https://developer.runescape.com/rs/ui/component_configs.html",
-      "file": "stubs/ui/component_configs.lua"
+      "file": "stubs/ui/component_configs.lua",
+      "etag": "W/\"576a7666568bb9277a49d816ed0ce31b\""
     },
     {
       "id": "ui/decorative_components/canvas",
       "title": "Canvas",
       "url": "https://developer.runescape.com/rs/ui/decorative_components/canvas.html",
-      "file": "stubs/ui/decorative_components/canvas.lua"
+      "file": "stubs/ui/decorative_components/canvas.lua",
+      "etag": "W/\"f2bb86b6e19649c25b459ec435c9dff6\""
     },
     {
       "id": "ui/decorative_components/line",
       "title": "Line",
       "url": "https://developer.runescape.com/rs/ui/decorative_components/line.html",
-      "file": "stubs/ui/decorative_components/line.lua"
+      "file": "stubs/ui/decorative_components/line.lua",
+      "etag": "W/\"4252f940469a8ce6b5c3e0dc6a685900\""
     },
     {
       "id": "ui/decorative_components/model",
       "title": "Model",
       "url": "https://developer.runescape.com/rs/ui/decorative_components/model.html",
-      "file": "stubs/ui/decorative_components/model.lua"
+      "file": "stubs/ui/decorative_components/model.lua",
+      "etag": "W/\"4e1154742497683ac36a5a5d268413f9\""
     },
     {
       "id": "ui/decorative_components/modelgroup",
       "title": "Model Group",
       "url": "https://developer.runescape.com/rs/ui/decorative_components/modelgroup.html",
-      "file": "stubs/ui/decorative_components/modelgroup.lua"
+      "file": "stubs/ui/decorative_components/modelgroup.lua",
+      "etag": "W/\"f23bdb7bf1d21a106c8f367bae24934f\""
     },
     {
       "id": "ui/decorative_components/radial_progress_overlay",
       "title": "Radial Progress Overlay",
       "url": "https://developer.runescape.com/rs/ui/decorative_components/radial_progress_overlay.html",
-      "file": "stubs/ui/decorative_components/radial_progress_overlay.lua"
+      "file": "stubs/ui/decorative_components/radial_progress_overlay.lua",
+      "etag": "W/\"9248ac85e7dda1d275fa4e354e9c597d\""
     },
     {
       "id": "ui/decorative_components/rectangle",
       "title": "Rectangle",
       "url": "https://developer.runescape.com/rs/ui/decorative_components/rectangle.html",
-      "file": "stubs/ui/decorative_components/rectangle.lua"
+      "file": "stubs/ui/decorative_components/rectangle.lua",
+      "etag": "W/\"b0084703119eedcd9430c8e646851b46\""
     },
     {
       "id": "ui/decorative_components/sprite",
       "title": "Sprite",
       "url": "https://developer.runescape.com/rs/ui/decorative_components/sprite.html",
-      "file": "stubs/ui/decorative_components/sprite.lua"
+      "file": "stubs/ui/decorative_components/sprite.lua",
+      "etag": "W/\"8639e339d2c34d801900c5f645042cb8\""
     },
     {
       "id": "ui/decorative_components/text",
       "title": "Text",
       "url": "https://developer.runescape.com/rs/ui/decorative_components/text.html",
-      "file": "stubs/ui/decorative_components/text.lua"
+      "file": "stubs/ui/decorative_components/text.lua",
+      "etag": "W/\"6cfdf6fb2533b53201e5438e672f90bf\""
     },
     {
       "id": "ui/index",
       "title": "User Interfaces",
       "url": "https://developer.runescape.com/rs/ui/index.html",
-      "file": "stubs/ui/index.lua"
+      "file": "stubs/ui/index.lua",
+      "etag": "W/\"f282977497d12c14f972d5125435d610\""
     },
     {
       "id": "ui/interactive_components/button",
       "title": "Button",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/button.html",
-      "file": "stubs/ui/interactive_components/button.lua"
+      "file": "stubs/ui/interactive_components/button.lua",
+      "etag": "W/\"cb70ddffda472047adb7995d9f4c0a03\""
     },
     {
       "id": "ui/interactive_components/carousel",
       "title": "Carousel",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/carousel.html",
-      "file": "stubs/ui/interactive_components/carousel.lua"
+      "file": "stubs/ui/interactive_components/carousel.lua",
+      "etag": "W/\"e56b58b2eb197eb5ae3d39c2be3f9e75\""
     },
     {
       "id": "ui/interactive_components/check",
       "title": "Check",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/check.html",
-      "file": "stubs/ui/interactive_components/check.lua"
+      "file": "stubs/ui/interactive_components/check.lua",
+      "etag": "W/\"81b8c26327f91128e0830607b4cb1686\""
     },
     {
       "id": "ui/interactive_components/combo_field",
       "title": "Combo Field",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/combo_field.html",
-      "file": "stubs/ui/interactive_components/combo_field.lua"
+      "file": "stubs/ui/interactive_components/combo_field.lua",
+      "etag": "W/\"d043a2043110fe1fd963bc2c85e0501f\""
     },
     {
       "id": "ui/interactive_components/input_field",
       "title": "Input Field",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/input_field.html",
-      "file": "stubs/ui/interactive_components/input_field.lua"
+      "file": "stubs/ui/interactive_components/input_field.lua",
+      "etag": "W/\"02cc78240b1ec2889be1835a27ea9a49\""
     },
     {
       "id": "ui/interactive_components/list",
       "title": "List",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/list.html",
-      "file": "stubs/ui/interactive_components/list.lua"
+      "file": "stubs/ui/interactive_components/list.lua",
+      "etag": "W/\"6e4ef95a36e83fa9100f3c55ba5b0ca8\""
     },
     {
       "id": "ui/interactive_components/radio_group",
       "title": "Radio Group",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/radio_group.html",
-      "file": "stubs/ui/interactive_components/radio_group.lua"
+      "file": "stubs/ui/interactive_components/radio_group.lua",
+      "etag": "W/\"4c10b7e51ad2c1533866e84ed4a06e9d\""
     },
     {
       "id": "ui/interactive_components/slider",
       "title": "Slider",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/slider.html",
-      "file": "stubs/ui/interactive_components/slider.lua"
+      "file": "stubs/ui/interactive_components/slider.lua",
+      "etag": "W/\"0c783c1d915aae689a8a61b9846305d1\""
     },
     {
       "id": "ui/interface",
       "title": "Interface",
       "url": "https://developer.runescape.com/rs/ui/interface.html",
-      "file": "stubs/ui/interface.lua"
+      "file": "stubs/ui/interface.lua",
+      "etag": "W/\"f440e06a21cbbf8569df7e6076b40220\""
     },
     {
       "id": "ui/layout_components/cutscene_layer",
       "title": "Cutscene Layer",
       "url": "https://developer.runescape.com/rs/ui/layout_components/cutscene_layer.html",
-      "file": "stubs/ui/layout_components/cutscene_layer.lua"
+      "file": "stubs/ui/layout_components/cutscene_layer.lua",
+      "etag": "W/\"063c8353ca2be54d589b56d5076e0e53\""
     },
     {
       "id": "ui/layout_components/grid",
       "title": "Grid",
       "url": "https://developer.runescape.com/rs/ui/layout_components/grid.html",
-      "file": "stubs/ui/layout_components/grid.lua"
+      "file": "stubs/ui/layout_components/grid.lua",
+      "etag": "W/\"ee7296963e4a2326d522084106b34f6d\""
     },
     {
       "id": "ui/layout_components/group_box",
       "title": "Group Box",
       "url": "https://developer.runescape.com/rs/ui/layout_components/group_box.html",
-      "file": "stubs/ui/layout_components/group_box.lua"
+      "file": "stubs/ui/layout_components/group_box.lua",
+      "etag": "W/\"7d8fd713c786d75be0fc63b9e183e044\""
     },
     {
       "id": "ui/layout_components/layer",
       "title": "Layer",
       "url": "https://developer.runescape.com/rs/ui/layout_components/layer.html",
-      "file": "stubs/ui/layout_components/layer.lua"
+      "file": "stubs/ui/layout_components/layer.lua",
+      "etag": "W/\"7f6f548baebdd081fb141bef129310ef\""
     },
     {
       "id": "ui/layout_components/paged_carousel",
       "title": "Paged Carousel",
       "url": "https://developer.runescape.com/rs/ui/layout_components/paged_carousel.html",
-      "file": "stubs/ui/layout_components/paged_carousel.lua"
+      "file": "stubs/ui/layout_components/paged_carousel.lua",
+      "etag": "W/\"6612e71314f5e1ad864c819e2976a163\""
     },
     {
       "id": "ui/layout_components/paged_layer",
       "title": "Paged Layer",
       "url": "https://developer.runescape.com/rs/ui/layout_components/paged_layer.html",
-      "file": "stubs/ui/layout_components/paged_layer.lua"
+      "file": "stubs/ui/layout_components/paged_layer.lua",
+      "etag": "W/\"ebffbed9d1198664289e66f3f2ab20fe\""
     },
     {
       "id": "ui/layout_components/panel",
       "title": "Panel",
       "url": "https://developer.runescape.com/rs/ui/layout_components/panel.html",
-      "file": "stubs/ui/layout_components/panel.lua"
+      "file": "stubs/ui/layout_components/panel.lua",
+      "etag": "W/\"895281e9ee7873c9a0be84a6867abac0\""
     },
     {
       "id": "ui/stylesheets",
       "title": "Style Sheets",
       "url": "https://developer.runescape.com/rs/ui/stylesheets.html",
-      "file": "stubs/ui/stylesheets.lua"
+      "file": "stubs/ui/stylesheets.lua",
+      "etag": "W/\"4c2fd4b759d74ae2617ec5d31a5b9992\""
     }
   ],
   "symbols": [

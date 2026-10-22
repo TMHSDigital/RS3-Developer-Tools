@@ -60,7 +60,9 @@ interface IndexSymbol {
 }
 interface StubsIndex {
   baseUrl: string;
-  modules: { id: string; title: string; url: string; file: string }[];
+  /** Provenance written by the generator; absent in indexes from before it was recorded. */
+  source?: { indexEtag?: string; indexLastModified?: string; pageCount?: number; generatorVersion?: string };
+  modules: { id: string; title: string; url: string; file: string; etag?: string }[];
   symbols: IndexSymbol[];
 }
 
@@ -167,6 +169,7 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
         .map((m) => ({ page: m.id, title: m.title, url: m.url }));
       return ok({
         query,
+        stubsVersion: index.source?.generatorVersion ?? null,
         symbols,
         pages,
         sections,
@@ -262,7 +265,7 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
           ? exactMatches
           : index.symbols.filter((s) => norm(s.name).endsWith("." + q) || norm(s.name).includes(q)).slice(0, 25);
       if (matches.length === 0) return fail("NOT_FOUND", `no symbol matches "${name}"; try docs_search`);
-      return ok({ query: name, matches: matches.map((s) => ({ name: s.name, kind: s.kind, signature: s.signature, stubFile: s.file, url: s.url })) });
+      return ok({ query: name, stubsVersion: index.source?.generatorVersion ?? null, matches: matches.map((s) => ({ name: s.name, kind: s.kind, signature: s.signature, stubFile: s.file, url: s.url })) });
     },
   );
 

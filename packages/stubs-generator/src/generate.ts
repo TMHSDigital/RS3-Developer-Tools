@@ -4,6 +4,10 @@
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+
+/** Version of this generator, recorded in index.json so users can tell which build produced their stubs. */
+const GENERATOR_VERSION: string = (createRequire(import.meta.url)("../package.json") as { version?: string }).version ?? "0.0.0";
 import { DocsClient, extractNavLinks } from "@tmhs/rs3-devtools-core";
 import { parsePage } from "./parse.js";
 import { buildPageModel, type PageScan } from "./model.js";
@@ -90,6 +94,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       ownerPlaceholders: overrides.ownerPlaceholders.map((p) => ({ owner: p.owner, class: p.class, table: p.table })),
     });
     scans.push(scan);
+    module.etag = page.etag;
     if (isApiPage(relPath)) modules.push(module);
   }
   modules.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
@@ -392,11 +397,19 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     seenRows.add(key);
     return true;
   });
+  // Provenance comes from the server (ETag, Last-Modified), never from the
+  // clock, so an unchanged site regenerates to an identical index.
   files["index.json"] =
     JSON.stringify(
       {
         baseUrl: client.baseUrl,
-        modules: modules.map((m) => ({ id: m.id, title: m.title, url: m.url, file: moduleFilePath(m.id) })),
+        source: {
+          indexEtag: index.etag,
+          indexLastModified: index.lastModified,
+          pageCount: pages.length,
+          generatorVersion: GENERATOR_VERSION,
+        },
+        modules: modules.map((m) => ({ id: m.id, title: m.title, url: m.url, file: moduleFilePath(m.id), etag: m.etag })),
         symbols: indexEntriesUnique,
       },
       null,

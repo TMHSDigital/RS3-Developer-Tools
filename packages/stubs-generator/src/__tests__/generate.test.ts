@@ -182,6 +182,12 @@ describe("generate (synthetic fixtures)", () => {
     expect(get?.kind).toBe("method");
     expect(get?.url).toBe("https://example.test/rs/core/sample.html#get");
     expect(get?.signature).toBe("function Sample:Get(key: string): integer?");
+    // Provenance: counts and the generator version are always present; ETags only when the server sent them.
+    const index = JSON.parse(result.files["index.json"]!) as { source: { pageCount: number; generatorVersion: string; indexEtag?: string }; modules: { id: string; etag?: string }[] };
+    expect(index.source.pageCount).toBe(3);
+    expect(index.source.generatorVersion).toMatch(/^\d+\.\d+\.\d+/);
+    expect(index.source.indexEtag).toBeUndefined();
+    expect(index.modules.every((m) => m.etag === undefined)).toBe(true);
   });
 
   it("is deterministic", async () => {

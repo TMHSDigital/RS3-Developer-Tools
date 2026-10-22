@@ -6,7 +6,7 @@ stdio MCP server for RuneScape 3 plugin development.
 rs3-plugin-mcp --workspace C:\dev\my-plugins
 ```
 
-The workspace defaults to `RS3_WORKSPACE` or the current directory. Read tools accept paths inside the workspace or the client's `dev_plugins` root; write tools refuse anything else. Documentation is fetched live from developer.runescape.com with an ETag cache under `%LOCALAPPDATA%\rs3-devtools\cache`; nothing from the docs or from other developers' plugins is indexed.
+The workspace defaults to `RS3_WORKSPACE` or the current directory. Read tools accept paths inside the workspace or the client's `dev_plugins` root; write tools refuse anything else. Documentation is fetched live from developer.runescape.com with an ETag cache under `%LOCALAPPDATA%\rs3-devtools\cache`; the only index of it is the per-user one `docs_index` builds in that same cache, and other developers' plugins are never read.
 
 The server sends `instructions` in the initialise handshake (the non-negotiable rules and the AI policy from `cursor-plugin/AGENTS.md`), so a client without the Cursor rules or Claude Code skills still gets them. Every tool carries MCP annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`; see `src/annotations.ts`). Three prompts mirror the skills: `new_plugin` (name, permissions), `fix_preflight` (path) and `prepare_submission` (path). Three resources expose the stubs: `rs3://stubs/index.json`, `rs3://stubs/unresolved.md` and `rs3://stubs/modules/{+id}` (one stub file per documentation page, for example `rs3://stubs/modules/core/persistentdb`).
 

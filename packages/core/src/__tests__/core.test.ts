@@ -13,6 +13,7 @@ import { syncPlugin } from "../sync.js";
 import { watchPlugin } from "../watch.js";
 import { formatDoctorReport, runDoctor } from "../doctor.js";
 import { formatFindingsGithub, toSarif } from "../findings.js";
+import { checkStubsStatus } from "../stubs-status.js";
 import { packagePlugin } from "../package.js";
 import { scaffoldPlugin } from "../scaffold.js";
 import { findDevPluginsRoot } from "../paths.js";
@@ -365,6 +366,38 @@ describe("sync", () => {
     expect(overlap).toBe(0);
     expect(syncs).toBeGreaterThanOrEqual(2);
     expect(await readUtf8(path.join(root, "watched", "extra5.lua"))).toBe("-- 5");
+  });
+});
+
+describe("stubs status", () => {
+  it("reports current on 304, changed on a new ETag, unknown without provenance and offline on errors", async () => {
+    const dir = await tempDir("rs3-stubs-status-");
+    const indexPath = path.join(dir, "index.json");
+    const write = (source?: Record<string, unknown>) =>
+      fsp.writeFile(indexPath, JSON.stringify({ baseUrl: "https://example.test/rs/", source, modules: [{}, {}], symbols: [] }));
+    await write({ indexEtag: '"v1"', generatorVersion: "1.2.3", pageCount: 2 });
+    const calls: string[] = [];
+    const respond = (status: number, etag?: string) =>
+      (async (_url: string | URL | Request, init?: RequestInit) => {
+        calls.push(String(new Headers(init?.headers).get("if-none-match")));
+        return new Response(status === 304 ? null : "<html></html>", { status, headers: etag ? { etag } : {} });
+      }) as typeof fetch;
+    const current = await checkStubsStatus({ indexPath, fetchImpl: respond(304) });
+    expect(current.status).toBe("current");
+    expect(current.stubsVersion).toBe("1.2.3");
+    expect(current.modules).toBe(2);
+    expect(calls[0]).toBe('"v1"');
+    const changed = await checkStubsStatus({ indexPath, fetchImpl: respond(200, '"v2"') });
+    expect(changed.status).toBe("changed");
+    expect(changed.currentEtag).toBe('"v2"');
+    expect(changed.message).toContain("stubs:generate");
+    const same = await checkStubsStatus({ indexPath, fetchImpl: respond(200, '"v1"') });
+    expect(same.status).toBe("current");
+    const offline = await checkStubsStatus({ indexPath, fetchImpl: (async () => { throw new Error("ENOTFOUND"); }) as typeof fetch });
+    expect(offline.status).toBe("offline");
+    await write(undefined);
+    const unknown = await checkStubsStatus({ indexPath, fetchImpl: respond(304) });
+    expect(unknown.status).toBe("unknown");
   });
 });
 

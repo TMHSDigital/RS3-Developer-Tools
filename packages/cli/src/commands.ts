@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import {
   DocsClient,
   cacheDir,
+  checkStubsStatus,
   formatDoctorReport,
   formatFindings,
   formatFindingsGithub,
@@ -235,6 +236,26 @@ export async function runDoctor(target: string | undefined, opts: { stubs?: stri
     for (const line of formatDoctorReport(report)) out(options, line);
   }
   return report.ok ? 0 : 1;
+}
+
+export async function runStubs(action: string, opts: { stubs?: string; fetchImpl?: typeof fetch }, options: OutputOptions): Promise<number> {
+  if (action !== "status") {
+    err(options, `unknown stubs action "${action}"; use "status"`);
+    return 1;
+  }
+  try {
+    const status = await checkStubsStatus({ stubsDir: opts.stubs, resolveFrom: import.meta.url, fetchImpl: opts.fetchImpl });
+    if (options.json) {
+      out(options, JSON.stringify({ command: "stubs", ...status }, null, 2));
+    } else {
+      out(options, `stubs: ${status.modules} modules${status.stubsVersion ? `, generator ${status.stubsVersion}` : ""} (${status.indexFile})`);
+      out(options, `${status.status}: ${status.message}`);
+    }
+    return status.status === "changed" ? 2 : status.status === "offline" ? 1 : 0;
+  } catch (error) {
+    err(options, (error as Error).message);
+    return 1;
+  }
 }
 
 export async function runCache(action: string, options: OutputOptions): Promise<number> {
