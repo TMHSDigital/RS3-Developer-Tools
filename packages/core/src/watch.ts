@@ -4,6 +4,7 @@
 import * as path from "node:path";
 import chokidar from "chokidar";
 import { syncPlugin, type SyncOptions, type SyncResult } from "./sync.js";
+import { isDevArtifact } from "./manifest.js";
 
 export interface WatchOptions extends SyncOptions {
   /** Quiet period after the last change before syncing. Default 300 ms. */
@@ -46,12 +47,15 @@ export function watchPlugin(pluginDir: string, options: WatchOptions = {}): Watc
     }, debounceMs);
   };
 
+  // Ignore exactly what sync and package exclude (dotfiles, node_modules,
+  // dist, tests, zips), so a packaged archive or an editor swap file never
+  // triggers a re-sync.
   const watcher = chokidar.watch(source, {
     ignoreInitial: true,
     ignored: (file: string) => {
       const rel = path.relative(source, file);
       if (rel === "") return false;
-      return rel.split(path.sep).some((part) => part.startsWith(".") || part === "node_modules");
+      return isDevArtifact(rel.split(path.sep).join("/"));
     },
   });
   watcher.on("all", (_event: string, file: string) => {

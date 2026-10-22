@@ -33,6 +33,7 @@ program
   .option("--required-permissions <list>", "permissions the plugin cannot work without, comma separated")
   .option("--prettyui", "add PrettyUI as a required dependency")
   .option("--email <address>", "contactEmailAddress for plugin.json")
+  .option("--url <name=https://host/>", "base URL to declare under urls in plugin.json (repeatable)", (value: string, previous: string[]) => [...previous, value], [] as string[])
   .option("--no-agent-files", "do not copy AGENTS.md, Cursor rules and Claude Code skills")
   .option("--stubs <dir>", "stubs folder to reference from .luarc.json (default: RS3_STUBS_DIR or the installed @tmhs/rs3-luals-stubs)")
   .option("--force", "add files to an existing non-empty folder (never overwrites)")
@@ -44,14 +45,16 @@ program
 program
   .command("validate [path]")
   .description("check plugin.json against the schema and the plugin folder structure")
-  .action(async (target: string | undefined) => {
-    process.exitCode = await runValidate(target ?? ".", output());
+  .option("--strict", "exit 1 on warnings as well as errors (for CI)")
+  .action(async (target: string | undefined, opts) => {
+    process.exitCode = await runValidate(target ?? ".", opts, output());
   });
 
 program
   .command("preflight [path]")
   .description("static checks for sandbox, permission and readability problems; exits 1 on errors")
   .option("--max-line-length <n>", "line length that counts as minified", "200")
+  .option("--strict", "exit 1 on warnings as well as errors (for CI)")
   .action(async (target: string | undefined, opts) => {
     process.exitCode = await runPreflight(target ?? ".", opts, output());
   });
@@ -71,6 +74,7 @@ program
   .description("sync on every save, debounced; press Ctrl+C to stop")
   .option("--root <dir>", "dev_plugins folder (overrides detection and RS3_DEV_PLUGINS_DIR); must exist and look like dev_plugins")
   .option("--create-root", "accept and create a --root or RS3_DEV_PLUGINS_DIR that does not exist or is not named dev_plugins")
+  .option("--no-prune", "keep files in the destination that the source no longer has")
   .option("--debounce <ms>", "quiet period after the last change", "300")
   .action(async (target: string | undefined, opts) => {
     process.exitCode = await runWatch(target ?? ".", opts, output());
@@ -79,7 +83,7 @@ program
 program
   .command("package [path]")
   .description("build the zip for manual upload to mod.io")
-  .option("-o, --out <file>", "output archive path")
+  .option("-o, --out <file>", "output archive path (default: dist/<plugin>-<version>.zip under the current directory)")
   .option("--overwrite", "replace an existing archive")
   .option("--allow-placeholder-email", "package even if contactEmailAddress is a placeholder (tests only)", false)
   .action(async (target: string | undefined, opts) => {

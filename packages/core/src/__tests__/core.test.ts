@@ -396,6 +396,8 @@ describe("scaffold", () => {
     expect(result.files).toEqual([".luarc.json", "main.lua", "plugin.json"]);
     const manifest = JSON.parse(await readUtf8(path.join(dir, "plugin.json")));
     expect(manifest.optionalPermissions).toEqual(["httpAccess"]);
+    // httpAccess without --url: an empty urls map, never a surprise host.
+    expect(manifest.urls).toEqual({});
     expect(manifest.requiredDependencies).toEqual(["PrettyUI"]);
     const main = await readUtf8(path.join(dir, "main.lua"));
     expect(main).toContain("Plugin.HasPermission(PluginPermissions.httpAccess)");

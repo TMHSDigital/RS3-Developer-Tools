@@ -140,4 +140,6 @@ export interface GenerateResult {
   files: Record<string, string>;
   index: IndexEntry[];
   notes: Note[];
+  /** Pages the crawl visited (API and tutorial pages), for the crawl guard. */
+  pageCount: number;
 }

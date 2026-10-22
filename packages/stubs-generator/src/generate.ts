@@ -342,7 +342,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     ) + "\n";
   files["unresolved.md"] = renderNotes(allNotes, client.baseUrl);
 
-  return { modules, files, index: indexEntriesAll, notes: allNotes };
+  return { modules, files, index: indexEntriesAll, notes: allNotes, pageCount: pages.length };
 }
 
 function noteKey(n: Note): string {

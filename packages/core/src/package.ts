@@ -74,8 +74,11 @@ export async function packagePlugin(pluginDir: string, options: PackageOptions =
   const zipped = zipSync(entries, { level: 6, mtime: fixedDate });
 
   const safeVersion = manifest.version.replace(/[^0-9A-Za-z.+-]/g, "_");
+  // Default to dist/ under the current directory. When that is the plugin
+  // folder itself (the quick start does cd my-plugin), dist/ is a dev artefact
+  // that sync, watch and package all ignore, so the zip never re-syncs itself.
   const outFile = path.resolve(
-    options.outFile ?? path.join(options.outDir ?? process.cwd(), `${path.basename(source)}-${safeVersion}.zip`),
+    options.outFile ?? path.join(options.outDir ?? path.join(process.cwd(), "dist"), `${path.basename(source)}-${safeVersion}.zip`),
   );
   if ((await pathExists(outFile)) && !options.overwrite) {
     throw new Error(`${outFile} already exists; pass --overwrite to replace it`);

@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { fileURLToPath } from "node:url";
 import { DocsClient } from "@tmhs/rs3-devtools-core";
+import * as path from "node:path";
+import * as os from "node:os";
+import { promises as fsp } from "node:fs";
 import { generate, loadOverrides } from "../generate.js";
 import { convertType, parseParam } from "../lua-types.js";
+import { checkCrawlGuard, readBaseline } from "../guard.js";
 
 const fixtures = fileURLToPath(new URL("./fixtures/", import.meta.url));
+const fixturesNoNav = fileURLToPath(new URL("./fixtures-no-nav/", import.meta.url));
 
 function client() {
   return new DocsClient({ offlineDir: fixtures, baseUrl: "https://example.test/rs/" });
@@ -15,6 +20,42 @@ async function run() {
   const overrides = { ...loadOverrides(), classParents: [], eventCallbackReturnsBoolean: [], extraFields: [], ownerPlaceholders: [], returnTypes: [], globalFunctions: [], aliases: [] };
   return generate({ client: client(), overrides });
 }
+
+describe("crawl guard", () => {
+  it("fires on an index page without navigation and on a shrunken crawl", async () => {
+    const empty = await generate({
+      client: new DocsClient({ offlineDir: fixturesNoNav, baseUrl: "https://example.test/rs/" }),
+      overrides: { ...loadOverrides(), classParents: [], eventCallbackReturnsBoolean: [], extraFields: [], ownerPlaceholders: [], returnTypes: [], globalFunctions: [], aliases: [] },
+    });
+    expect(empty.pageCount).toBe(0);
+    expect(empty.modules).toEqual([]);
+    const summary = { pageCount: empty.pageCount, modules: 0, symbols: 0, notes: 0 };
+    const problems = checkCrawlGuard(summary, { modules: 87, symbols: 2503, notes: 123 });
+    expect(problems.some((p) => /visited 0 page/.test(p))).toBe(true);
+    expect(problems.some((p) => /modules dropped from 87 to 0/.test(p))).toBe(true);
+    expect(problems.some((p) => /symbols dropped from 2503 to 0/.test(p))).toBe(true);
+    // A normal weekly run: a few symbols more or fewer is fine.
+    expect(checkCrawlGuard({ pageCount: 95, modules: 86, symbols: 2480, notes: 125 }, { modules: 87, symbols: 2503, notes: 123 })).toEqual([]);
+    // Notes exploding means the parser stopped understanding pages.
+    expect(checkCrawlGuard({ pageCount: 95, modules: 87, symbols: 2503, notes: 400 }, { modules: 87, symbols: 2503, notes: 123 })).toHaveLength(1);
+    // The override skips every check.
+    expect(checkCrawlGuard(summary, { modules: 87, symbols: 2503, notes: 123 }, { allowShrink: true })).toEqual([]);
+    // Without a baseline only the page minimum applies.
+    expect(checkCrawlGuard({ pageCount: 3, modules: 2, symbols: 10, notes: 0 }, undefined, { minPages: 3 })).toEqual([]);
+  });
+
+  it("reads the baseline counts from a written output folder", async () => {
+    const dir = await fsp.mkdtemp(path.join(os.tmpdir(), "rs3-baseline-"));
+    try {
+      expect(await readBaseline(dir)).toBeUndefined();
+      await fsp.writeFile(path.join(dir, "index.json"), JSON.stringify({ modules: [{}, {}], symbols: [{}, {}, {}] }));
+      await fsp.writeFile(path.join(dir, "unresolved.md"), "# Report\n\n- one\n- two\n\nprose\n");
+      expect(await readBaseline(dir)).toEqual({ modules: 2, symbols: 3, notes: 2 });
+    } finally {
+      await fsp.rm(dir, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("generate (synthetic fixtures)", () => {
   it("emits one meta file per API page and skips tutorial pages", async () => {

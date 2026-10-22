@@ -94,6 +94,29 @@ describe("rs3-plugin-mcp", () => {
     expect(missing.isError).toBe(true);
   });
 
+  it("docs_get slices repeated headings by anchor and refuses an ambiguous heading", async () => {
+    const ambiguous = await callTool("docs_get", { url: "core/shapes.html", section: "Properties" });
+    expect(ambiguous.isError).toBe(true);
+    expect(ambiguous.text).toContain("DOCS_SECTION");
+    expect(ambiguous.text).toContain("properties_1");
+    const second = await callTool("docs_get", { url: "core/shapes.html", section: "#properties_1" });
+    expect(second.isError).toBe(false);
+    const text = String(second.json!.text);
+    expect(text.startsWith("### Properties")).toBe(true);
+    expect(text).toContain("- outer one");
+    expect(text).toContain("  - inner `x`");
+    expect(text).not.toContain("alpha identifier");
+    expect(text).not.toContain("Gamma");
+    const beta = await callTool("docs_get", { url: "core/shapes.html", section: "beta" });
+    const betaText = String(beta.json!.text);
+    expect(betaText).toContain("**Info**");
+    expect(betaText).toContain("Synthetic admonition body.");
+    expect(betaText).toContain("| Get | `Get(key : String)` |");
+    expect(betaText).not.toContain("Last section");
+    const alpha = await callTool("docs_get", { url: "core/shapes.html", section: "alpha" });
+    expect(String(alpha.json!.text)).toContain("- `id`\n  Synthetic alpha identifier.");
+  });
+
   it("manifest_validate and guidelines_preflight read workspace plugins only", async () => {
     const ok = await callTool("manifest_validate", { path: "clean" });
     expect((ok.json!.summary as { errors: number }).errors).toBe(0);

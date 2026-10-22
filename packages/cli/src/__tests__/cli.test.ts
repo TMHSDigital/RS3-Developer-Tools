@@ -4,7 +4,7 @@ import * as os from "node:os";
 import { promises as fsp } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { runInit, runPackage, runPreflight, runSync, runValidate } from "../commands.js";
+import { parseUrlFlags, runInit, runPackage, runPreflight, runSync, runValidate } from "../commands.js";
 
 // Reuse the core fixtures so the CLI and the library agree on their verdicts.
 const coreFixtures = fileURLToPath(new URL("../../../core/src/__tests__/fixtures/plugins/", import.meta.url));
@@ -29,10 +29,10 @@ function capture() {
 describe("rs3dev commands", () => {
   it("validate exits 0 for a clean plugin and 1 for a broken one", async () => {
     const ok = capture();
-    expect(await runValidate(path.join(coreFixtures, "clean"), ok.options)).toBe(0);
+    expect(await runValidate(path.join(coreFixtures, "clean"), {}, ok.options)).toBe(0);
     expect(ok.lines.at(-1)).toContain("0 error(s)");
     const bad = capture();
-    expect(await runValidate(path.join(coreFixtures, "missing-main"), bad.options)).toBe(1);
+    expect(await runValidate(path.join(coreFixtures, "missing-main"), {}, bad.options)).toBe(1);
     expect(bad.lines.join("\n")).toContain("main-missing");
   });
 
@@ -86,6 +86,34 @@ describe("rs3dev commands", () => {
     const c = capture();
     expect(await runPackage(path.join(coreFixtures, "sandbox"), {}, c.options)).toBe(1);
     expect(c.errors.join("\n")).toContain("sandbox-global");
+  });
+
+  it("--strict turns warnings into a failing exit code", async () => {
+    // The clean fixture has a placeholder contact address: a warning, not an error.
+    const lenient = capture();
+    expect(await runPreflight(path.join(coreFixtures, "clean"), {}, lenient.options)).toBe(0);
+    const strict = capture();
+    expect(await runPreflight(path.join(coreFixtures, "clean"), { strict: true }, strict.options)).toBe(1);
+    expect(strict.lines.at(-1)).toContain("strict");
+    expect(await runValidate(path.join(coreFixtures, "clean"), { strict: true }, capture().options)).toBe(0);
+  });
+
+  it("init declares urls only from --url flags", async () => {
+    const base = await tempDir("rs3-cli-urls-");
+    expect(await runInit("http-plain", { cwd: base, agentFiles: false, stubs: "C:/stubs", permissions: "httpAccess" }, capture().options)).toBe(0);
+    const plain = JSON.parse(await fsp.readFile(path.join(base, "http-plain", "plugin.json"), "utf8"));
+    expect(plain.urls).toEqual({});
+    expect(await fsp.readFile(path.join(base, "http-plain", "main.lua"), "utf8")).toContain("None declared yet");
+    expect(
+      await runInit("http-urls", { cwd: base, agentFiles: false, stubs: "C:/stubs", permissions: "httpAccess", url: ["wiki=https://runescape.wiki/", "api=https://api.example.test/v1/"] }, capture().options),
+    ).toBe(0);
+    const withUrls = JSON.parse(await fsp.readFile(path.join(base, "http-urls", "plugin.json"), "utf8"));
+    expect(withUrls.urls).toEqual({ api: "https://api.example.test/v1/", wiki: "https://runescape.wiki/" });
+    expect(await fsp.readFile(path.join(base, "http-urls", "main.lua"), "utf8")).toContain("Plugin.urls.api, Plugin.urls.wiki");
+    expect(() => parseUrlFlags(["ftp://nope"])).toThrow(/name=https/);
+    expect(() => parseUrlFlags(["api=ftp://nope"])).toThrow(/not an http or https URL/);
+    const bad = capture();
+    expect(await runInit("http-bad", { cwd: base, agentFiles: false, stubs: "C:/stubs", url: ["x"] }, bad.options)).toBe(1);
   });
 
   it("the built binary prints help", async () => {

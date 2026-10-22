@@ -36,20 +36,39 @@ function splitList(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
-function reportFindings(findings: Finding[], label: string, options: OutputOptions): number {
+function reportFindings(findings: Finding[], label: string, options: OutputOptions, strict = false): number {
   const summary = summarise(findings);
   if (options.json) {
-    out(options, JSON.stringify({ command: label, summary, findings }, null, 2));
+    out(options, JSON.stringify({ command: label, summary, findings, strict }, null, 2));
   } else {
     for (const line of formatFindings(findings)) out(options, line);
-    out(options, `${label}: ${summary.errors} error(s), ${summary.warnings} warning(s), ${summary.infos} note(s)`);
+    out(options, `${label}: ${summary.errors} error(s), ${summary.warnings} warning(s), ${summary.infos} note(s)${strict && summary.warnings > 0 ? " (strict: warnings fail)" : ""}`);
   }
-  return summary.errors > 0 ? 1 : 0;
+  if (summary.errors > 0) return 1;
+  return strict && summary.warnings > 0 ? 1 : 0;
+}
+
+/** Parse repeated --url name=https://host/ flags into the manifest urls map. */
+export function parseUrlFlags(values: string[] | undefined): Record<string, string> {
+  const urls: Record<string, string> = {};
+  for (const value of values ?? []) {
+    const eq = value.indexOf("=");
+    const name = eq === -1 ? "" : value.slice(0, eq).trim();
+    const url = eq === -1 ? value.trim() : value.slice(eq + 1).trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+      throw new Error(`--url expects name=https://host/ (got "${value}"); the name is used as Plugin.urls.<name> in Lua`);
+    }
+    if (!/^https?:\/\/\S+$/i.test(url)) {
+      throw new Error(`--url ${name}: "${url}" is not an http or https URL`);
+    }
+    urls[name] = url;
+  }
+  return urls;
 }
 
 export async function runInit(
   name: string,
-  opts: { permissions?: string; requiredPermissions?: string; prettyui?: boolean; email?: string; agentFiles?: boolean; stubs?: string; force?: boolean; cwd?: string },
+  opts: { permissions?: string; requiredPermissions?: string; prettyui?: boolean; email?: string; url?: string[]; agentFiles?: boolean; stubs?: string; force?: boolean; cwd?: string },
   options: OutputOptions,
 ): Promise<number> {
   try {
@@ -59,6 +78,7 @@ export async function runInit(
       requiredPermissions: splitList(opts.requiredPermissions) as Permission[],
       prettyUi: Boolean(opts.prettyui),
       contactEmail: opts.email,
+      urls: parseUrlFlags(opts.url),
       agentFiles: opts.agentFiles ?? true,
       stubsDir: opts.stubs,
       resolveFrom: import.meta.url,
@@ -82,14 +102,14 @@ export async function runInit(
   }
 }
 
-export async function runValidate(target: string, options: OutputOptions): Promise<number> {
+export async function runValidate(target: string, opts: { strict?: boolean }, options: OutputOptions): Promise<number> {
   const { findings } = await validatePluginDir(path.resolve(target));
-  return reportFindings(findings, "validate", options);
+  return reportFindings(findings, "validate", options, Boolean(opts.strict));
 }
 
-export async function runPreflight(target: string, opts: { maxLineLength?: string }, options: OutputOptions): Promise<number> {
+export async function runPreflight(target: string, opts: { maxLineLength?: string; strict?: boolean }, options: OutputOptions): Promise<number> {
   const result = await preflightPlugin(path.resolve(target), { maxLineLength: Number(opts.maxLineLength ?? 200) });
-  return reportFindings(result.findings, "preflight", options);
+  return reportFindings(result.findings, "preflight", options, Boolean(opts.strict));
 }
 
 export async function runSync(target: string, opts: { root?: string; prune?: boolean; createRoot?: boolean }, options: OutputOptions): Promise<number> {
@@ -111,11 +131,12 @@ export async function runSync(target: string, opts: { root?: string; prune?: boo
   }
 }
 
-export async function runWatch(target: string, opts: { root?: string; debounce?: string; createRoot?: boolean }, options: OutputOptions): Promise<number> {
+export async function runWatch(target: string, opts: { root?: string; debounce?: string; createRoot?: boolean; prune?: boolean }, options: OutputOptions): Promise<number> {
   const source = path.resolve(target);
   const watcher = watchPlugin(source, {
     override: opts.root,
     createRoot: opts.createRoot ?? false,
+    prune: opts.prune ?? true,
     debounceMs: Number(opts.debounce ?? 300),
     onSync: (result) => out(options, `${new Date().toLocaleTimeString()} synced ${result.copied.length} file(s); run: ${result.consoleCommand}`),
     onError: (error) => err(options, `sync failed: ${error.message}`),

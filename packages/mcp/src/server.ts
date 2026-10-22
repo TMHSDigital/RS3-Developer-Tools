@@ -164,15 +164,27 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
       const text = docsPageToText(page.html);
       let body = text.text;
       if (section) {
-        const wanted = section.replace(/^#/, "").toLowerCase();
-        const idx = text.sections.findIndex((s) => s.anchor.toLowerCase() === wanted || s.heading.toLowerCase() === wanted);
-        if (idx === -1) return fail("DOCS_SECTION", `no section "${section}" on ${page.url}; available: ${text.sections.map((s) => s.anchor).join(", ")}`);
-        const start = text.sections[idx]!;
+        // Anchors are unique per page, so they win; a heading may repeat
+        // (several "Properties" sub-sections), in which case the agent gets the
+        // anchors to choose from instead of an arbitrary slice.
+        const explicitAnchor = section.trim().startsWith("#");
+        const wanted = section.replace(/^#/, "").trim().toLowerCase();
+        const indexed = text.sections.map((s, i) => ({ s, i }));
+        const byAnchor = indexed.filter(({ s }) => s.anchor.toLowerCase() === wanted);
+        const byHeading = indexed.filter(({ s }) => s.heading.toLowerCase() === wanted);
+        // A bare word that names several headings is ambiguous even when it also
+        // happens to equal the first one's anchor (mkdocs slugs headings); "#anchor"
+        // is the explicit form.
+        const matches = explicitAnchor ? byAnchor : byHeading.length > 1 ? byHeading : byAnchor.length > 0 ? byAnchor : byHeading;
+        if (matches.length === 0) {
+          return fail("DOCS_SECTION", `no section "${section}" on ${page.url}; available anchors: ${text.sections.map((s) => s.anchor || `(line ${s.line + 1})`).join(", ")}`);
+        }
+        if (matches.length > 1) {
+          return fail("DOCS_SECTION", `"${section}" matches ${matches.length} headings on ${page.url}; pass one of the anchors instead: ${matches.map(({ s }) => s.anchor || `(line ${s.line + 1})`).join(", ")}`);
+        }
+        const { s: start, i: idx } = matches[0]!;
         const next = text.sections.slice(idx + 1).find((s) => s.level <= start.level);
-        const lines = body.split("\n");
-        const startLine = lines.findIndex((l) => l === `${"#".repeat(start.level)} ${start.heading}`);
-        const endLine = next ? lines.findIndex((l, i) => i > startLine && l === `${"#".repeat(next.level)} ${next.heading}`) : -1;
-        body = lines.slice(startLine, endLine === -1 ? undefined : endLine).join("\n");
+        body = body.split("\n").slice(start.line, next ? next.line : undefined).join("\n").trim() + "\n";
       }
       const truncated = body.length > maxChars;
       if (truncated) body = body.slice(0, maxChars) + `\n\n[truncated; ${body.length} characters total. Pass a section or a larger maxChars.]`;

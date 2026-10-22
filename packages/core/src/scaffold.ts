@@ -21,6 +21,8 @@ export interface ScaffoldOptions {
   /** Depend on the PrettyUI library plugin. */
   prettyUi?: boolean;
   contactEmail?: string;
+  /** Base URLs to declare under urls in plugin.json, keyed by the Plugin.urls name. */
+  urls?: Record<string, string>;
   /** Copy AGENTS.md, Cursor rules and Claude Code skills into the plugin folder. Default true. */
   agentFiles?: boolean;
   /** Stubs folder for .luarc.json; resolved automatically when omitted (RS3_STUBS_DIR, then the installed package). */
@@ -67,8 +69,14 @@ export function renderManifest(options: ScaffoldOptions, pluginName: string): Pl
     requiredPermissions: required,
     optionalPermissions: optional,
   };
-  if (optional.includes("httpAccess") || required.includes("httpAccess")) {
-    manifest.urls = { wiki: "https://runescape.wiki/" };
+  // urls holds the base URLs the plugin may fetch. Only the ones the author
+  // asked for are written; an unrequested entry would ship a declared host the
+  // plugin never uses and hide the real one behind a preflight finding.
+  const urls = Object.entries(options.urls ?? {});
+  if (urls.length > 0) {
+    manifest.urls = Object.fromEntries(urls.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+  } else if (optional.includes("httpAccess") || required.includes("httpAccess")) {
+    manifest.urls = {};
   }
   return manifest;
 }
@@ -129,6 +137,18 @@ export function renderMainLua(options: ScaffoldOptions, pluginName: string): str
     push(
       `-- Required permissions (${[...required].join(", ")}) are granted before the plugin is enabled,`,
       "-- so no runtime check is needed for them.",
+      "",
+    );
+  }
+  if (optional.has("httpAccess") || required.has("httpAccess")) {
+    const names = Object.keys(options.urls ?? {}).sort();
+    push(
+      "-- Every host the plugin fetches must be declared under urls in plugin.json and",
+      "-- requested through Plugin.urls.<name>; a literal URL passed to HTTPRequest is",
+      "-- refused by the client and reported by preflight.",
+      ...(names.length > 0
+        ? [`-- Declared: ${names.map((n) => `Plugin.urls.${n}`).join(", ")}`]
+        : ['-- None declared yet: add "urls": { "api": "https://host/" } to plugin.json first.']),
       "",
     );
   }
