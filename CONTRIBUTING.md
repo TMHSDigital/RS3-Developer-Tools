@@ -44,7 +44,19 @@ No emojis and no em dashes in commits, code, or docs.
 
 ## Releases and dependencies
 
-Releases are cut manually by a maintainer with `gh workflow run release.yml`. The workflow determines the bump from the conventional commits since the last tag, updates `.cursor-plugin/plugin.json`, the root and workspace `package.json` files and the README badge, commits to `main`, tags, and creates the GitHub Release. Dependency updates are applied manually on `main`; the repository has no Dependabot configuration.
+Releases are cut manually by a maintainer with `gh workflow run release.yml`. The workflow refuses a commit without a green `ci.yml` run (override with `require_ci=false` only after checking by hand), builds and tests that commit, determines the bump from the conventional commits since the last tag, updates `.cursor-plugin/plugin.json`, the root and workspace `package.json` files, the README badge and the `CHANGELOG.md` `Unreleased` heading, commits to `main` (CI runs on that commit), tags, and creates the GitHub Release with the npm tarballs and `rs3-luals-stubs-<version>.zip` attached and their SHA-256 in the notes.
+
+Bump rule while the major version is 0: a breaking change (`feat!`, `fix!`, `BREAKING CHANGE`) bumps the minor, and every feature or fix bumps the patch. From 1.0.0 on, breaking changes bump the major and features the minor.
+
+Dependency updates are applied manually on `main`; the repository has no Dependabot configuration.
+
+### Docs drift checklist before a release
+
+- `CHANGELOG.md` has every user-facing change under `## [Unreleased]` (the workflow dates it).
+- `README.md`, `packages/cli/README.md` and `packages/mcp/README.md` describe the current flags, tools and defaults (`rs3dev <command> --help` is the source of truth).
+- `AGENTS.md` and `.github/workflows/README.md` describe the workflows and entry points as they are.
+- `SECURITY.md` names the scanning that actually runs.
+- `npm run build && npm test` and `node scripts/luals-check.mjs examples/hello-counter` pass locally.
 
 ## Inbound license grant and DCO
 
@@ -56,10 +68,6 @@ By submitting a contribution to this repository, you certify that you have the r
 
 ### DCO sign-off
 
-Every commit in a pull request must carry a `Signed-off-by:` trailer matching the commit author. Sign at commit time with the `-s` flag:
-
-```bash
-git commit -s -m "feat: add new skill"
-```
+Submitting a contribution is your certification under the DCO and your acceptance of the grant above; no `Signed-off-by:` trailer is required and none is checked by automation. You are welcome to add one with `git commit -s` if your employer or your own policy asks for it.
 
 For the full inbound and outbound model, see [`standards/licensing.md`](https://github.com/TMHSDigital/Developer-Tools-Directory/blob/main/standards/licensing.md) in the Developer-Tools-Directory meta-repo.

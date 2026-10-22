@@ -4,7 +4,7 @@
 
 This file tells AI coding agents how the RS3 Developer Tools repo works and how to contribute correctly. For guidance inside a plugin workspace created by `rs3dev init`, see `cursor-plugin/AGENTS.md`.
 
-**Documentation site:** https://tmhsdigital.github.io/RS3-Developer-Tools/ (auto-deployed on push to main)
+**Documentation site:** https://tmhsdigital.github.io/RS3-Developer-Tools/ (built by `pages.yml`; the address goes live once GitHub Pages is enabled for the repository with the Actions source)
 
 ## Repository overview
 
@@ -42,12 +42,14 @@ See [`.github/workflows/README.md`](.github/workflows/README.md) for the full ta
 - `stubs-regenerate.yml` (weekly, manual): regenerates stubs, runs tests and the LuaLS check, commits `chore(stubs): regenerate from docs` directly to `main` as github-actions[bot].
 - `validate.yml` (push, PR): manifest fields, skill and rule frontmatter, README counts, credential scan, em dash and emoji check.
 - `release.yml` (manual, `gh workflow run release.yml`): bumps `.cursor-plugin/plugin.json`, root and workspace `package.json` versions, tags, creates the GitHub Release.
-- `drift-check.yml`, `pages.yml`, `codeql.yml`: ecosystem standard workflows. There is no Dependabot, stale or label-sync automation; dependency updates are applied manually on `main`.
+- `drift-check.yml`, `pages.yml`, `codeql.yml`: ecosystem standard workflows. There is no Dependabot or label-sync automation and no scheduled stale run (`stale.yml` is manual-only and exists for the drift check); dependency updates are applied manually on `main`.
 
 ## Version management
 
 - The **source of truth** for the current version is `.cursor-plugin/plugin.json`. Every `package.json` carries the same version and the schemas test enforces it.
-- The release workflow bumps them and the README badge when a maintainer runs it. Never change versions by hand.
+- The release workflow bumps them, the README badge and the `CHANGELOG.md` `Unreleased` heading when a maintainer runs it. Never change versions by hand.
+- Bump rule while the major is 0: a breaking change (`feat!`, `fix!`, `BREAKING CHANGE`) bumps the minor; any feature or fix bumps the patch. From 1.0.0 on, breaking changes bump the major and features the minor.
+- `release.yml` refuses a commit without a green `ci.yml` run, builds and tests it, commits the bump without `[skip ci]` so the tagged commit has CI evidence, and attaches the npm tarballs and `rs3-luals-stubs-<version>.zip` with SHA-256 sums to the release.
 
 ## Code conventions
 

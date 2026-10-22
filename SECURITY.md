@@ -17,7 +17,7 @@ Threat surface: path handling in the sync, scaffold and package tools (writes mu
 ## Out of scope
 
 - Vulnerabilities in the RuneScape client, the RuneScape Client API, mod.io, GitHub, Cursor, or the MCP specification.
-- Vulnerabilities in upstream npm dependencies (report to those projects); Dependabot and `codeql.yml` track them.
+- Vulnerabilities in upstream npm dependencies (report to those projects). `codeql.yml` scans this repository's TypeScript; dependency advisories are reviewed with `npm audit` when dependencies are updated by hand on `main` (there is no Dependabot configuration).
 - Plugins written by users of this toolkit.
 
 ## Supported versions

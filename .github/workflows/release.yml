@@ -1,12 +1,28 @@
 name: Release
 
 # Releases are cut manually: gh workflow run release.yml
-# The job reads the conventional commits since the last tag to pick the bump.
+#
+# The job refuses to release a commit without a green ci.yml run, then builds
+# and tests that commit itself, reads the conventional commits since the last
+# tag to pick the bump, bumps every version file and the CHANGELOG, commits
+# (CI runs on that commit; nothing is skipped), tags, and publishes a GitHub
+# Release with the npm tarballs and the stubs zip attached and their SHA-256
+# in the notes.
+#
+# Bump rule (also in AGENTS.md): while the major version is 0, a breaking
+# change bumps the minor and a feature bumps the patch; from 1.0.0 on the
+# usual major/minor/patch mapping applies.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      require_ci:
+        description: "Require a successful ci.yml run for the commit being released"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: release
@@ -14,14 +30,40 @@ concurrency:
 
 jobs:
   version-and-release:
-    name: Bump version, tag, and release
+    name: Verify, bump version, tag, and release
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Require a green CI run for this commit
+        if: inputs.require_ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(git rev-parse HEAD)
+          conclusions=$(gh run list --workflow ci.yml --commit "$sha" --json conclusion --jq '[.[].conclusion] | join(",")')
+          echo "ci.yml runs for $sha: ${conclusions:-none}"
+          case ",$conclusions," in
+            *,success,*) echo "CI succeeded for $sha" ;;
+            *) echo "::error::no successful ci.yml run for $sha. Wait for CI, or re-run with require_ci=false after checking by hand."; exit 1 ;;
+          esac
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install, build and test the commit being released
+        run: |
+          npm ci
+          npm run build
+          npm test
+          node packages/cli/dist/cli.js validate examples/hello-counter
+          node packages/cli/dist/cli.js preflight examples/hello-counter
 
       - name: Get current version
         id: current
@@ -42,7 +84,7 @@ jobs:
           echo "Commits since last release:"
           echo "$commits"
           bump="patch"
-          if echo "$commits" | grep -qiE "^(feat|feature)(\(.+\))?!:|BREAKING CHANGE"; then
+          if echo "$commits" | grep -qiE "^(feat|feature|fix|refactor|perf)(\(.+\))?!:|BREAKING CHANGE"; then
             bump="major"
           elif echo "$commits" | grep -qiE "^(feat|feature)(\(.+\))?:"; then
             bump="minor"
@@ -60,6 +102,13 @@ jobs:
           last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -z "$last_tag" ]; then
             new_version="$current"
+          elif [ "$major" -eq 0 ]; then
+            # Pre-1.0: breaking changes bump the minor, features and fixes the patch.
+            case "$bump" in
+              major) minor=$((minor + 1)); patch=0 ;;
+              *) patch=$((patch + 1)) ;;
+            esac
+            new_version="$major.$minor.$patch"
           else
             case "$bump" in
               major) major=$((major + 1)); minor=0; patch=0 ;;
@@ -121,6 +170,30 @@ jobs:
           # Keep package-lock.json consistent with the bumped versions.
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 
+      - name: Date the CHANGELOG entry
+        if: steps.check.outputs.skip == 'false'
+        env:
+          NEW_VERSION: ${{ steps.new.outputs.version }}
+        run: |
+          python3 - <<'PYEOF'
+          import datetime, os, re
+          version = os.environ['NEW_VERSION']
+          today = datetime.date.today().isoformat()
+          path = 'CHANGELOG.md'
+          with open(path, encoding='utf-8') as f:
+              text = f.read()
+          # The Unreleased section becomes this release and a fresh, empty
+          # Unreleased section is left above it for the next cycle.
+          if re.search(r'^## \[Unreleased\]\s*$', text, re.M):
+              text = re.sub(r'^## \[Unreleased\]\s*$', f'## [Unreleased]\n\n## [{version}] - {today}', text, count=1, flags=re.M)
+          elif f'## [{version}]' not in text:
+              text = text.replace('## [', f'## [Unreleased]\n\n## [{version}] - {today}\n\n### Changed\n\n- Version bump only\n\n## [', 1)
+          text = re.sub(rf'^## \[{re.escape(version)}\] - Unreleased\s*$', f'## [{version}] - {today}', text, flags=re.M)
+          with open(path, 'w', encoding='utf-8', newline='\n') as f:
+              f.write(text)
+          PYEOF
+          git --no-pager diff --stat -- CHANGELOG.md
+
       - name: Sync release docs
         if: steps.check.outputs.skip == 'false'
         uses: TMHSDigital/Developer-Tools-Directory/.github/actions/release-doc-sync@v1
@@ -138,7 +211,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: bump version to ${{ steps.new.outputs.version }} [skip ci]"
+            # No [skip ci]: the tagged commit gets its own CI run.
+            git commit -m "chore: bump version to ${{ steps.new.outputs.version }}"
             git push origin main
           fi
 
@@ -154,6 +228,31 @@ jobs:
           git push origin "v$major" --force
           git push origin "v$major.$minor" --force
 
+      - name: Build release artefacts
+        if: steps.check.outputs.skip == 'false'
+        env:
+          NEW_VERSION: ${{ steps.new.outputs.version }}
+        run: |
+          # Rebuild so dist/ carries the bumped version, then pack every workspace
+          # package and zip the stubs for editors that do not use npm.
+          npm run build
+          mkdir -p release-assets
+          for dir in packages/*/; do
+            (cd "$dir" && npm pack --pack-destination "$GITHUB_WORKSPACE/release-assets" >/dev/null)
+          done
+          (cd packages/luals-stubs && zip -qr "$GITHUB_WORKSPACE/release-assets/rs3-luals-stubs-$NEW_VERSION.zip" stubs index.json unresolved.md luarc.template.json package.json README.md)
+          (cd release-assets && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          {
+            echo "## Artefacts"
+            echo
+            echo "npm tarballs for every workspace package and \`rs3-luals-stubs-$NEW_VERSION.zip\` (LuaLS \`---@meta\` stubs, \`index.json\`, \`luarc.template.json\`). SHA-256:"
+            echo
+            echo '```'
+            cat release-assets/SHA256SUMS.txt
+            echo '```'
+            echo
+          } > release-notes.md
+
       - name: Create GitHub Release
         if: steps.check.outputs.skip == 'false'
         env:
@@ -161,4 +260,6 @@ jobs:
         run: |
           gh release create "v${{ steps.new.outputs.version }}" \
             --title "v${{ steps.new.outputs.version }}" \
-            --generate-notes
+            --generate-notes \
+            --notes-file release-notes.md \
+            release-assets/*
