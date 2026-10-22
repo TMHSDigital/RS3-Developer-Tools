@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - CI on windows-latest and ubuntu-latest, scheduled stub regeneration committing to `main`
 - Preflight `placeholder-email` warning; `package` refuses placeholder addresses (`--allow-placeholder-email` for tests) and ships `plugin.json` without `$schema`
 - `.luarc.json` library path written relative to the plugin folder; `RS3_STUBS_DIR` override
+- `@tmhs/rs3-plugin-mcp` ships a dedicated `dist/bin.js` executable so the npm bin symlink starts the server on Linux and macOS; a spawn smoke test guards it
 
 ### Changed
 

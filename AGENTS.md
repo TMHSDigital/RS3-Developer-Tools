@@ -95,7 +95,7 @@ See [`.github/workflows/README.md`](.github/workflows/README.md) for the full ta
 
 ## MCP server
 
-Entry point `packages/mcp/src/index.ts` (stdio). Tools are defined in `packages/mcp/src/server.ts` and call `@tmhs/rs3-devtools-core`. The workspace root comes from `--workspace`, `RS3_WORKSPACE`, or the current directory. Tool names follow the toolkit specification (`docs_search`, `api_lookup`, ...) rather than the ecosystem `<prefix>_<verbNoun>` convention; `mcp-tools.json` records this.
+Executable entry point `packages/mcp/src/bin.ts` (stdio, always starts the server); `packages/mcp/src/index.ts` only re-exports `createServer` for tests and embedders. Tools are defined in `packages/mcp/src/server.ts` and call `@tmhs/rs3-devtools-core`. The workspace root comes from `--workspace`, `RS3_WORKSPACE`, or the current directory. Tool names follow the toolkit specification (`docs_search`, `api_lookup`, ...) rather than the ecosystem `<prefix>_<verbNoun>` convention; `mcp-tools.json` records this.
 
 ## Key technical facts
 

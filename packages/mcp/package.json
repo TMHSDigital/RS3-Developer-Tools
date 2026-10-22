@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "rs3-plugin-mcp": "dist/index.js"
+    "rs3-plugin-mcp": "dist/bin.js"
   },
   "files": [
     "dist",
