@@ -32,8 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
+      # Fails on high or critical findings; a registry outage is a warning (Dependabot alerts cover it).
       - name: Audit every dependency (fails on high or critical)
-        run: npm audit --audit-level=high
+        run: node scripts/audit-check.mjs --level high
 
       - name: List outdated packages (informational)
         if: always()

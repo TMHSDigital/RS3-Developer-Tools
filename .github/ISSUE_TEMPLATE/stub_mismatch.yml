@@ -1,0 +1,84 @@
+name: Stub mismatch
+description: A generated stub says one thing and the client or the documentation says another
+labels: [stubs, bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The stubs are generated from the signatures on developer.runescape.com. A mismatch is either a documentation error (the page is wrong), a generator error (the page is right and the stub is wrong), or an undocumented client behaviour. This form collects what is needed to tell which.
+
+        Link to the documentation page; do not paste its text.
+
+  - type: input
+    id: symbol
+    attributes:
+      label: Symbol
+      description: Dotted or colon form as the stub names it.
+      placeholder: PersistentDB:Get
+    validations:
+      required: true
+
+  - type: input
+    id: stub-file
+    attributes:
+      label: Stub file
+      description: Path under `packages/luals-stubs/stubs/`, or the `file` value from `index.json`.
+      placeholder: stubs/core/persistentdb.lua
+    validations:
+      required: true
+
+  - type: input
+    id: docs-url
+    attributes:
+      label: Documentation URL
+      description: The page and anchor on developer.runescape.com that documents the symbol.
+      placeholder: https://developer.runescape.com/rs/core/persistentdb.html#get
+    validations:
+      required: true
+
+  - type: textarea
+    id: stub-signature
+    attributes:
+      label: Signature in the stub
+      description: Copy the `---@param`, `---@return` and `function` lines from the stub file.
+      render: lua
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-signature
+    attributes:
+      label: Signature that would be correct
+      description: What the client actually accepts or returns, in the same LuaLS form. Say how you established it (a `plist`/console experiment, an error message, behaviour in a plugin).
+      render: lua
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source-of-error
+    attributes:
+      label: Where is the error, as far as you can tell?
+      options:
+        - The documentation page states the wrong signature
+        - The page is right and the generator produced the wrong stub
+        - The client behaves differently from both (undocumented)
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Stubs and client versions
+      description: The `@tmhs/rs3-luals-stubs` version (or the commit) and the client build.
+      placeholder: stubs 0.1.0 (index.json from 2026-10-21), client build from 2026-10-20
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: The report links to the documentation instead of quoting it, and contains no code from other developers' plugins.
+          required: true

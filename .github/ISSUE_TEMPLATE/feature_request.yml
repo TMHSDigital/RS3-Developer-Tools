@@ -1,0 +1,57 @@
+name: Feature request
+description: A new check, command, MCP tool, rule, skill or stub improvement
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the open issues and the [roadmap](https://github.com/TMHSDigital/RS3-Developer-Tools/blob/main/ROADMAP.md) first; many ideas are already tracked.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Preflight or validate check
+        - rs3dev CLI command or flag
+        - MCP server tool, prompt or resource
+        - LuaLS stubs or generator
+        - Cursor rule or Claude Code skill
+        - Documentation or examples
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What goes wrong or takes too long today, with a concrete example from a plugin you are building.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What the toolkit should do. For a preflight check, say which finding level it should have and which documentation page states the rule.
+    validations:
+      required: true
+
+  - type: input
+    id: docs
+    attributes:
+      label: Documentation reference
+      description: The developer.runescape.com page that backs the behaviour, if any.
+      placeholder: https://developer.runescape.com/rs/submission/guidelines.html
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Constraints
+      description: The toolkit never ships documentation prose or other developers' plugin code.
+      options:
+        - label: The proposal can be built from signatures, links and this repository's own code.
+          required: true

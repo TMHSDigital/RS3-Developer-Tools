@@ -1,0 +1,78 @@
+name: Bug report
+description: A command, the MCP server, the stubs or a workflow does something wrong
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. For security issues do not file a public issue; open a Security Advisory instead: https://github.com/TMHSDigital/RS3-Developer-Tools/security/advisories/new
+
+        If a stub signature disagrees with the client or the docs, use the "Stub mismatch" form instead.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - rs3dev CLI (init, validate, preflight, sync, watch, package, doctor)
+        - MCP server (rs3-plugin-mcp)
+        - LuaLS stubs or .luarc.json
+        - plugin.json schema
+        - Cursor rules or Claude Code skills
+        - Stub generator
+        - CI workflows
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: command
+    attributes:
+      label: Command run
+      description: The exact command, or the MCP tool and its arguments.
+      placeholder: rs3dev preflight my-plugin
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: Paste the output. For the CLI, `rs3dev --json <command>` gives the most useful form. Remove anything private.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: rs3dev doctor output
+      description: Run `rs3dev doctor` (add the plugin path if one is involved) and paste the result. It lists the Node version, the dev_plugins root, the stubs, LuaLS and the cache.
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: versions
+    attributes:
+      label: Toolkit and client versions
+      description: Toolkit version (`rs3dev --version` or the package version), operating system, and the RuneScape beta client build if the problem involves the client.
+      placeholder: rs3dev 0.1.0, Windows 11, client build from 2026-10-20
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: The report contains no documentation prose copied from developer.runescape.com and no code from other developers' plugins.
+          required: true

@@ -45,8 +45,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Fails on high or critical findings; a registry outage is a warning, not a failure.
       - name: Audit production dependencies (dev tooling is audited weekly by audit.yml)
-        run: npm audit --omit=dev --audit-level=high
+        run: node scripts/audit-check.mjs --omit=dev --level high
 
       - name: Build packages
         run: npm run build
