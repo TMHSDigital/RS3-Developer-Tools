@@ -33,6 +33,6 @@
   "dependencies": {
     "@tmhs/rs3-devtools-core": "0.1.0",
     "@tmhs/rs3-luals-stubs": "0.1.0",
-    "commander": "^12.1.0"
+    "commander": "^15.0.0"
   }
 }
