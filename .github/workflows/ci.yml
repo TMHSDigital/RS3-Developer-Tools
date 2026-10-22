@@ -63,10 +63,26 @@ jobs:
       - name: Unit tests (one vitest run over the repository tests and every package) with coverage
         run: npm run test:coverage
 
-      - name: Validate and preflight the example plugin
+      - name: Validate, preflight and package every example
+        shell: bash
         run: |
-          node packages/cli/dist/cli.js validate examples/hello-counter
-          node packages/cli/dist/cli.js preflight examples/hello-counter
+          for example in examples/*/; do
+            name=$(basename "$example")
+            node packages/cli/dist/cli.js validate "$example"
+            node packages/cli/dist/cli.js preflight "$example"
+            node packages/cli/dist/cli.js package "$example" --allow-placeholder-email --out "${{ runner.temp }}/$name.zip"
+            # The shipped manifest must sit at the archive root and carry no editor-only $schema key.
+            node -e '
+              const { unzipSync } = require("fflate");
+              const fs = require("fs");
+              const [zip, name] = process.argv.slice(1);
+              const entries = unzipSync(new Uint8Array(fs.readFileSync(zip)));
+              if (!entries["plugin.json"] || !entries["main.lua"]) throw new Error(name + ": plugin.json or main.lua is not at the archive root");
+              const manifest = JSON.parse(Buffer.from(entries["plugin.json"]).toString("utf8"));
+              if ("$schema" in manifest) throw new Error(name + ": shipped plugin.json still has $schema");
+              console.log(name + ": " + Object.keys(entries).length + " entries, manifest ok");
+            ' "${{ runner.temp }}/$name.zip" "$name"
+          done
 
       - name: Install lua-language-server (Linux)
         if: runner.os == 'Linux'
@@ -103,8 +119,12 @@ jobs:
           Expand-Archive -Path $zip -DestinationPath $dest -Force
           "LUA_LANGUAGE_SERVER=$dest\bin\lua-language-server.exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: LuaLS check of examples against the generated stubs
-        run: node scripts/luals-check.mjs examples/hello-counter
+      - name: LuaLS check of every example against the generated stubs
+        shell: bash
+        run: |
+          for example in examples/*/; do
+            node scripts/luals-check.mjs "$example"
+          done
 
       - name: LuaLS check of every scaffold template (plus --prettyui)
         shell: bash

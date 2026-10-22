@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+  "runtime.version": "Lua 5.4",
+  "runtime.path": ["?.lua"],
+  "runtime.pathStrict": true,
+  "workspace.library": ["../../packages/luals-stubs/stubs"],
+  "workspace.checkThirdParty": false,
+  "diagnostics.globals": [],
+  "diagnostics.severity": {
+    "undefined-global": "Error",
+    "undefined-field": "Error",
+    "param-type-mismatch": "Error",
+    "assign-type-mismatch": "Error",
+    "lowercase-global": "Warning"
+  }
+}

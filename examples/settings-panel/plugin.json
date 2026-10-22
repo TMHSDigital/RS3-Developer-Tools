@@ -1,0 +1,11 @@
+{
+  "$schema": "https://raw.githubusercontent.com/TMHSDigital/RS3-Developer-Tools/main/packages/schema/plugin.schema.json",
+  "name": "Settings Panel",
+  "version": "0.1.0",
+  "contactEmailAddress": "settings-panel@example.com",
+  "requiredDependencies": [],
+  "optionalDependencies": [],
+  "requiredPermissions": [],
+  "optionalPermissions": [],
+  "hasSettingsIcon": true
+}

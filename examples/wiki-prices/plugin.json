@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/TMHSDigital/RS3-Developer-Tools/main/packages/schema/plugin.schema.json",
+  "name": "Wiki Prices",
+  "version": "0.1.0",
+  "contactEmailAddress": "wiki-prices@example.com",
+  "requiredDependencies": [],
+  "optionalDependencies": [],
+  "requiredPermissions": [],
+  "optionalPermissions": ["httpAccess"],
+  "urls": {
+    "wiki": "https://runescape.wiki/"
+  }
+}

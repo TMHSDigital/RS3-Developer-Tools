@@ -7,27 +7,17 @@
 [![CI](https://github.com/TMHSDigital/RS3-Developer-Tools/actions/workflows/ci.yml/badge.svg)](https://github.com/TMHSDigital/RS3-Developer-Tools/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/RuneScape%20Client%20API-docs-indigo.svg)](https://developer.runescape.com/rs/)
 
-**[Install](#install)** - [Quick start](#quick-start-powershell) - [MCP server](#mcp-server) - [Packages](#packages) - [Skills](#skills) - [Rules](#rules) - [Copyright and AI policy](#copyright-and-ai-policy) - [Roadmap](ROADMAP.md)
+**[Install](#install)** - [Quick start](#quick-start) - [Troubleshooting](#troubleshooting) - [MCP server](#mcp-server) - [Packages](#packages) - [Skills](#skills) - [Rules](#rules) - [Copyright and AI policy](#copyright-and-ai-policy) - [Roadmap](ROADMAP.md)
 
 > 4 skills - 9 rules - 9 MCP tools - 87 API stub modules
 
 Official RS3 plugins are Lua 5.4.8 scripts run by the RuneScape beta client against the [RuneScape Client API](https://developer.runescape.com/rs/). This toolkit gives you type-checked completions for that API in any LuaLS-based editor, validates `plugin.json`, catches sandbox and permission problems before Jagex moderation does, copies your plugin into the client's `dev_plugins` folder on save, and builds the zip you upload to mod.io. The same functions are exposed to AI agents through an MCP server and documented for them through Cursor rules and Claude Code skills.
 
-## How it works
+### Who this is for
 
-```mermaid
-flowchart LR
-  Docs[developer.runescape.com] -->|crawl, signatures only| Gen[stubs-generator]
-  Gen --> Stubs[luals-stubs<br>---@meta files + index.json]
-  Stubs --> Editor[LuaLS in Cursor / VS Code]
-  Stubs --> MCP[rs3-plugin-mcp]
-  Schema[plugin.schema.json] --> Core[core: validate, preflight,<br>scaffold, sync, package]
-  Core --> CLI[rs3dev]
-  Core --> MCP
-  Rules[cursor-plugin rules + skills] --> Editor
-  CLI -->|copy| Dev[RuneScape-BETA/dev_plugins]
-  CLI -->|zip| Modio[manual upload to mod.io]
-```
+Anyone writing a plugin for the official RuneScape 3 client in Lua: you have (or want) a folder with `plugin.json` and `main.lua`, you edit it in Cursor, VS Code or Neovim, and you want the API checked as you type, the moderation rules checked before you upload, and the copy into the client to happen on save. If you already have a plugin, start at [Have a plugin already?](#have-a-plugin-already). If you work with an AI agent, the MCP server and the rules give it the same checks and the same policy.
+
+**Status:** early (0.1.0). The stubs regenerate from the documentation every week and a few types the docs never declare are aliased to `any` (listed in [`unresolved.md`](packages/luals-stubs/unresolved.md)). npm publishing is pending, so the install is a clone.
 
 ## Install
 
@@ -100,6 +90,24 @@ rs3dev watch
 rs3dev package
 ```
 
+### What it looks like
+
+`rs3dev preflight` on a plugin that leaks a subscription, never destroys a layer and scans the NPC list every tick:
+
+```
+WARNING main.lua:28 [subscribe-without-unsubscribe] Event.Draw.Subscribe(REFS.draw) has no matching Event.Draw.Unsubscribe(...) with the same reference; the handler leaks on reload
+  see https://developer.runescape.com/rs/core/events.html
+WARNING main.lua:38 [subscribe-without-unsubscribe] button:Subscribe(ui.Hook.ONBUTTONPRESSED) has no matching button:Unsubscribe(...) in PluginShutdown; the hook stays attached after a reload
+  see https://developer.runescape.com/rs/ui/component.html#unsubscribe
+INFO main.lua:11 [component-not-destroyed] ui.Layer "overlay" is created at the top level but never passed to overlay:Destroy(); destroy it in PluginShutdown so a reload does not draw it twice
+  see https://developer.runescape.com/rs/ui/component.html#destroy
+WARNING main.lua:22 [per-tick-scan] NPCList.All(...) runs inside the Event.Logic handler on every tick; cache the result and refresh it on a counter (for example every 50 ticks)
+  see https://developer.runescape.com/rs/core/events.html#logic
+preflight: 0 error(s), 4 warning(s), 1 note(s)
+```
+
+In the editor, hovering `PersistentDB:GetInt` or `ui.Button.new` shows the typed signature from the stubs and a `@see` link to the exact documentation page; an undefined API symbol is an error on the line.
+
 `rs3dev --json <command>` prints machine-readable output. Every validate and preflight finding links to the documentation page that states the rule.
 
 `rs3dev init` writes a placeholder `contactEmailAddress` (`change-me@example.com`). Preflight reports it as a `placeholder-email` warning and `rs3dev package` refuses to build until a real address is set; addresses on `example.com`, `example.org`, `example.net` or containing `change-me` count as placeholders. The shipped `plugin.json` inside the zip has the editor-only `$schema` key removed.
@@ -132,6 +140,22 @@ export RS3_STUBS_DIR=~/dev/RS3-Developer-Tools/packages/luals-stubs/stubs
 ### API change digest
 
 The weekly stub regeneration diffs `index.json` and writes what changed in the RuneScape Client API (symbols added, removed or re-signed, each with its docs link) to [api-changes.md](api-changes.md), the commit body and an Announcements post in [Discussions](https://github.com/TMHSDigital/RS3-Developer-Tools/discussions). Watch the repository to follow it.
+
+## How it works
+
+```mermaid
+flowchart LR
+  Docs[developer.runescape.com] -->|crawl, signatures only| Gen[stubs-generator]
+  Gen --> Stubs[luals-stubs<br>---@meta files + index.json]
+  Stubs --> Editor[LuaLS in Cursor / VS Code]
+  Stubs --> MCP[rs3-plugin-mcp]
+  Schema[plugin.schema.json] --> Core[core: validate, preflight,<br>scaffold, sync, package]
+  Core --> CLI[rs3dev]
+  Core --> MCP
+  Rules[cursor-plugin rules + skills] --> Editor
+  CLI -->|copy| Dev[RuneScape-BETA/dev_plugins]
+  CLI -->|zip| Modio[manual upload to mod.io]
+```
 
 ## MCP server
 
@@ -194,6 +218,26 @@ Skills live in `cursor-plugin/skills/`; `rs3dev init` copies them to `.claude/sk
 
 Rules live in `cursor-plugin/rules/`; `rs3dev init` copies them to `.cursor/rules/`.
 
+## Troubleshooting
+
+Run `rs3dev doctor` first: it prints the Node version, the `dev_plugins` root and how it was found, the stubs folder, whether `lua-language-server` runs, the plugin's `.luarc.json` and the docs cache, with a fix for each missing row.
+
+| Symptom | Cause and fix |
+| --- | --- |
+| `Could not find the RS3 beta client (no *.jcache files in ...)` from `sync` or `watch` | Detection looks for the client's `*.jcache` files in the default install folder for your platform (see Install). Set `RS3_DEV_PLUGINS_DIR` to the `dev_plugins` folder or pass `--root`; the folder must exist and be named `dev_plugins` or sit beside the `*.jcache` files. |
+| Every API symbol is underlined as undefined, or there are no completions | The `.luarc.json` library path no longer resolves (stubs moved, another machine). `rs3dev validate .` reports `luarc-stale`; run `rs3dev luarc .` to re-point it or `rs3dev luarc . --vendor` to copy the stubs into the plugin. Also check the Lua extension (`sumneko.lua`) is installed; `rs3dev init` recommends it in `.vscode/extensions.json`. |
+| `rs3dev package` stops with `[placeholder-email]` | `contactEmailAddress` in `plugin.json` is still a placeholder (`example.com`, `change-me`). Set the address users should write to; it is a legal requirement. |
+| `sync` reports a file is locked (`EBUSY`, `EPERM`) | The client holds the file. Disable the plugin in the console with `poff <name>`, sync again, then `pon <name>`. |
+| `prl <name>` does nothing or the plugin is not in `plist` | Run `prf` to refresh the plugin list first. The identifier is the folder name inside `dev_plugins`; `rs3dev sync` prints the destination it copied to. |
+| `npm install` fails with `EISDIR ... symlink` | The clone sits on a filesystem without symlink support (exFAT). Run `npm install --workspaces=false --ignore-scripts` then `npm run build`. |
+| `preflight` flags something you have reviewed | Put the code under `preflight.ignore` in `rs3dev.json`, or add `-- rs3dev-ignore <code>` on the line above; suppressed findings are still listed in `--json` output. |
+
+## How it compares
+
+- Plain LuaLS with no stubs: the editor knows Lua, not the Client API, so every `ui.`, `Event.` and `PersistentDB` call is untyped and typos surface in the client.
+- A hand-written `.luarc.json` pointing at stubs you maintain: works until the API changes; the stubs here are regenerated from the documentation every week, carry only signatures and `@see` links (the documentation is copyright Jagex), and ship with a change digest.
+- This toolkit adds what the stubs cannot: manifest validation, the moderation checks, the copy into `dev_plugins`, the zip, and the same functions for AI agents through MCP, all built from your workspace and the official documentation only, as Jagex's AI policy requires.
+
 ## Copyright and AI policy
 
 - The RuneScape Client API documentation is copyright Jagex. This repository does not mirror or bundle it. The generated stubs contain only names, parameter and return types, fields, and enumeration members, each with a `@see` link to the exact page. Page content is fetched at runtime by `docs_get` and cached under `%LOCALAPPDATA%\rs3-devtools\cache`, never committed.
@@ -209,7 +253,7 @@ Ambiguous API surface and every inference the generator made are listed in [`pac
 RS3-Developer-Tools/
   .cursor-plugin/plugin.json   Cursor plugin manifest (version source of truth)
   cursor-plugin/               rules/, skills/, AGENTS.md installed into plugin workspaces
-  examples/hello-counter/      reference plugin checked by LuaLS in CI
+  examples/                    four reference plugins, each LuaLS-checked and packaged in CI
   packages/                    npm workspaces (see Packages)
   scripts/                     build, workspace linking, LuaLS check
   tests/                       repository-level tests (skills, rules, mcp-tools, style)
@@ -221,7 +265,9 @@ RS3-Developer-Tools/
 ```powershell
 npm install
 npm run build          # builds every package in dependency order
-npm test               # repository tests, then each package's vitest suite
+npm test               # one vitest run over the repository tests and every package
+npm run test:coverage  # the same with the v8 coverage report and thresholds
+npm run lint           # Biome lint and format check (npm run format applies fixes)
 npm run stubs:generate # regenerate packages/luals-stubs from the live docs
 npm run luals:check    # requires lua-language-server on PATH or LUA_LANGUAGE_SERVER
 ```
