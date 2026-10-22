@@ -49,7 +49,7 @@ rs3dev preflight my-plugin
 rs3dev package my-plugin
 ```
 
-   The zip contains the plugin files at the root and excludes dotfiles, `AGENTS.md`, `.luarc.json`, `node_modules` and other development artefacts. Inspect it before uploading.
+   The zip contains the plugin files at the root and excludes dotfiles, `AGENTS.md`, `.luarc.json`, `rs3dev.json`, `node_modules`, OS and editor junk and anything listed in `.rs3ignore`. The command prints the largest entries, a size warning above 10 MB, and the submission checklist. Inspect the archive with `rs3dev package --verify <zip> --list` before uploading; it checks the root layout, the manifest, leftover development files and every `require` target inside the zip.
 7. Upload manually on mod.io following https://developer.runescape.com/rs/submission/process.html. Write the description per https://developer.runescape.com/rs/submission/example.html and confirm the legal requirements on https://developer.runescape.com/rs/submission/index.html.
 8. Bump `version` in `plugin.json` for every resubmission.
 

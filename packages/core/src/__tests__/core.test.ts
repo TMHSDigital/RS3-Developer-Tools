@@ -14,6 +14,8 @@ import { watchPlugin } from "../watch.js";
 import { formatDoctorReport, runDoctor } from "../doctor.js";
 import { formatFindingsGithub, toSarif } from "../findings.js";
 import { checkStubsStatus } from "../stubs-status.js";
+import { isJunk, parseIgnoreFile } from "../ignore.js";
+import { verifyArchive } from "../verify.js";
 import { packagePlugin } from "../package.js";
 import { scaffoldPlugin } from "../scaffold.js";
 import { findDevPluginsRoot } from "../paths.js";
@@ -485,6 +487,105 @@ describe("package", () => {
     expect(entries).toEqual(["lib/helpers.lua", "main.lua", "plugin.json"]);
     expect(result.reminder).toContain("submission");
     await expect(packagePlugin(plugin("clean"), { outDir: out, ...allow })).rejects.toThrow(/already exists/);
+  });
+  it("leaves out OS and editor junk and .rs3ignore matches, reports sizes and a checklist", async () => {
+    const base = await tempDir("rs3-zip-ignore-");
+    const src = path.join(base, "junky");
+    await fsp.cp(plugin("clean"), src, { recursive: true });
+    await fsp.writeFile(path.join(src, "Thumbs.db"), "x");
+    await fsp.writeFile(path.join(src, "main.lua.bak"), "x");
+    await fsp.writeFile(path.join(src, "notes~"), "x");
+    await fsp.mkdir(path.join(src, "__tests__"));
+    await fsp.writeFile(path.join(src, "__tests__", "spec.lua"), "x");
+    await fsp.mkdir(path.join(src, "art"));
+    await fsp.writeFile(path.join(src, "art", "icon.psd"), "x");
+    await fsp.writeFile(path.join(src, "art", "icon.png"), Buffer.alloc(3000, 1));
+    await fsp.mkdir(path.join(src, "docs"));
+    await fsp.writeFile(path.join(src, "docs", "design.md"), "x");
+    await fsp.writeFile(path.join(src, "README.md"), "# for github");
+    await fsp.writeFile(path.join(src, ".rs3ignore"), "# project notes\ndocs/\n*.md\n!README.md\n");
+    const out = path.join(base, "out");
+    const result = await packagePlugin(src, { outDir: out, allowPlaceholderEmail: true, maxBytes: 2000 });
+    const entries = Object.keys(unzipSync(new Uint8Array(await fsp.readFile(result.outFile)))).sort();
+    expect(entries).toEqual(["README.md", "art/icon.png", "lib/helpers.lua", "main.lua", "plugin.json"]);
+    expect(result.entries[0]).toEqual({ path: "art/icon.png", bytes: 3000 });
+    expect(result.contentBytes).toBeGreaterThan(3000);
+    expect(result.warnings.some((w) => w.includes("limit 2.0 KB") && w.includes("art/icon.png"))).toBe(true);
+    expect(result.warnings.some((w) => w.includes("README.md ships"))).toBe(true);
+    expect(result.checklist[0]).toContain("plugin.json and main.lua at the root");
+    expect(result.checklist[1]).toContain("version 0.1.0");
+    // sync shares the predicate.
+    const root = path.join(base, "dev_plugins");
+    await fsp.mkdir(root);
+    const synced = await syncPlugin(src, { override: root });
+    expect(synced.copied).toEqual(["README.md", "art/icon.png", "lib/helpers.lua", "main.lua", "plugin.json"]);
+  });
+  it("gitignore-style patterns anchor, negate and match folders", () => {
+    const m = parseIgnoreFile(["*.psd", "/build-notes.txt", "scratch/", "!keep.psd", "assets/**/*.raw", "# comment", ""].join("\n"));
+    expect(m.ignores("art/a.psd")).toBe(true);
+    expect(m.ignores("art/keep.psd")).toBe(false);
+    expect(m.ignores("build-notes.txt")).toBe(true);
+    expect(m.ignores("sub/build-notes.txt")).toBe(false);
+    expect(m.ignores("scratch/x.lua")).toBe(true);
+    expect(m.ignores("deep/scratch/x.lua")).toBe(true);
+    expect(m.ignores("assets/a/b/c.raw")).toBe(true);
+    expect(m.ignores("assets/c.raw")).toBe(true);
+    expect(m.ignores("main.lua")).toBe(false);
+    expect(isJunk("Thumbs.db")).toBe(true);
+    expect(isJunk("x/desktop.ini")).toBe(true);
+    expect(isJunk("coverage/lcov.info")).toBe(true);
+    expect(isJunk("resources/icon.png")).toBe(false);
+  });
+  it("verifies an archive built by any tool", async () => {
+    const out = await tempDir("rs3-verify-");
+    // A copy of the clean fixture with a real-looking address, so the archive is submission-ready.
+    const src = path.join(out, "ready");
+    await fsp.cp(plugin("clean"), src, { recursive: true });
+    const manifest = JSON.parse(await readUtf8(path.join(src, "plugin.json")));
+    manifest.contactEmailAddress = "support@fixture.invalid";
+    await fsp.writeFile(path.join(src, "plugin.json"), JSON.stringify(manifest, null, 2));
+    const good = await packagePlugin(src, { outDir: out });
+    const ok = await verifyArchive(good.outFile);
+    expect(ok.findings.filter((f) => f.level === "error")).toEqual([]);
+    expect(ok.entries.map((e) => e.path).sort()).toEqual(["lib/helpers.lua", "main.lua", "plugin.json"]);
+    // The placeholder fixture packaged with the test-only flag is caught by verify.
+    const placeholder = await packagePlugin(plugin("clean"), { outDir: out, ...allow });
+    expect((await verifyArchive(placeholder.outFile)).findings.filter((f) => f.level === "error").map((f) => f.code)).toEqual(["placeholder-email"]);
+    // A hand-built archive with the usual mistakes.
+    const bad = path.join(out, "bad.zip");
+    const { zipSync } = await import("fflate");
+    const enc = (s: string) => new TextEncoder().encode(s);
+    await fsp.writeFile(
+      bad,
+      zipSync({
+        "my-plugin/plugin.json": enc(JSON.stringify({ $schema: "x", name: "Bad", version: "1.0", contactEmailAddress: "me@example.com" })),
+        "my-plugin/main.lua": enc('local h = require("lib/helpers")\nprint(h)\n'),
+        "my-plugin/.luarc.json": enc("{}"),
+        "my-plugin/Thumbs.db": enc("x"),
+      }),
+    );
+    const result = await verifyArchive(bad);
+    const codes = result.findings.map((f) => f.code);
+    expect(codes.filter((c) => c === "archive-root")).toHaveLength(2);
+    expect(result.findings.find((f) => f.code === "archive-root")!.message).toContain("my-plugin/plugin.json");
+    expect(codes).toContain("archive-dev-artifact");
+    expect(codes).toContain("archive-require");
+    // The nested manifest is not checked (it is not at the root), so no schema findings here.
+    const flat = path.join(out, "flat.zip");
+    await fsp.writeFile(
+      flat,
+      zipSync({
+        "plugin.json": enc(JSON.stringify({ $schema: "x", name: "Flat", version: "1.0", contactEmailAddress: "me@example.com" })),
+        "main.lua": enc('local h = require("lib.helpers")\n'),
+      }),
+    );
+    const flatResult = await verifyArchive(flat);
+    const flatCodes = flatResult.findings.map((f) => f.code);
+    expect(flatCodes).toContain("archive-schema-key");
+    expect(flatCodes).toContain("placeholder-email");
+    expect(flatCodes).toContain("archive-require");
+    const unreadable = await verifyArchive(path.join(plugin("clean"), "main.lua"));
+    expect(unreadable.findings.map((f) => f.code)).toEqual(["archive-unreadable"]);
   });
   it("ships plugin.json without $schema, four-space indented, UTF-8 without BOM, trailing newline", async () => {
     const out = await tempDir("rs3-zip3-");

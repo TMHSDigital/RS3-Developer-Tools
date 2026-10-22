@@ -117,6 +117,9 @@ program
   .option("-o, --out <file>", "output archive path (default: dist/<plugin>-<version>.zip under the current directory)")
   .option("--overwrite", "replace an existing archive")
   .option("--allow-placeholder-email", "package even if contactEmailAddress is a placeholder (tests only)", false)
+  .option("--list", "print every archive entry with its size")
+  .option("--max-size <mb>", "warn when the plugin content exceeds this many megabytes", "10")
+  .option("--verify <zip>", "do not build; inspect an existing archive (root layout, manifest, dev artefacts, require targets)")
   .action(async (target: string | undefined, opts) => {
     process.exitCode = await runPackage(target ?? ".", opts, output());
   });

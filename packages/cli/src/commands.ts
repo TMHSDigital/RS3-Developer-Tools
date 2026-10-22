@@ -14,6 +14,7 @@ import {
   loadProjectConfig,
   packagePlugin,
   toSarif,
+  verifyArchive,
   runDoctor as doctorReport,
   preflightPlugin,
   scaffoldPlugin,
@@ -281,9 +282,27 @@ export async function runCache(action: string, options: OutputOptions): Promise<
 
 export async function runPackage(
   target: string,
-  opts: { out?: string; overwrite?: boolean; allowPlaceholderEmail?: boolean },
+  opts: { out?: string; overwrite?: boolean; allowPlaceholderEmail?: boolean; list?: boolean; maxSize?: string; verify?: string },
   options: OutputOptions,
 ): Promise<number> {
+  if (opts.verify) {
+    try {
+      const result = await verifyArchive(opts.verify);
+      if (options.json) {
+        out(options, JSON.stringify({ command: "verify", ...result, summary: summarise(result.findings) }, null, 2));
+      } else {
+        out(options, `Archive ${result.archive} (${result.bytes} bytes, ${result.entries.length} entries)`);
+        if (opts.list) for (const e of result.entries) out(options, `  ${String(e.bytes).padStart(9)}  ${e.path}`);
+        for (const line of formatFindings(result.findings)) out(options, line);
+        const s = summarise(result.findings);
+        out(options, `verify: ${s.errors} error(s), ${s.warnings} warning(s), ${s.infos} note(s)`);
+      }
+      return result.findings.some((f) => f.level === "error") ? 1 : 0;
+    } catch (error) {
+      err(options, (error as Error).message);
+      return 1;
+    }
+  }
   try {
     const pre = await preflightPlugin(path.resolve(target));
     const errors = pre.findings.filter((f) => f.level === "error");
@@ -298,11 +317,19 @@ export async function runPackage(
       outDir: config.package?.outDir ? path.resolve(path.resolve(target), config.package.outDir) : undefined,
       overwrite: Boolean(opts.overwrite),
       allowPlaceholderEmail: Boolean(opts.allowPlaceholderEmail),
+      maxBytes: opts.maxSize !== undefined ? Number(opts.maxSize) * 1024 * 1024 : undefined,
     });
     if (options.json) {
       out(options, JSON.stringify(result, null, 2));
     } else {
-      out(options, `Wrote ${result.outFile} (${result.files.length} files, ${result.bytes} bytes)`);
+      out(options, `Wrote ${result.outFile} (${result.files.length} files, ${result.bytes} bytes compressed, ${result.contentBytes} bytes of content)`);
+      const shown = opts.list ? result.entries : result.entries.slice(0, 5);
+      out(options, opts.list ? "Entries:" : "Largest entries:");
+      for (const e of shown) out(options, `  ${String(e.bytes).padStart(9)}  ${e.path}`);
+      for (const w of result.warnings) err(options, `warning: ${w}`);
+      out(options, "");
+      out(options, "Before uploading:");
+      for (const line of result.checklist) out(options, `  ${line}`);
       out(options, result.reminder);
     }
     return 0;

@@ -15,6 +15,8 @@ export * from "./doctor.js";
 export * from "./config.js";
 export * from "./docs-index.js";
 export * from "./stubs-status.js";
+export * from "./ignore.js";
+export * from "./verify.js";
 export * from "./lifecycle.js";
 export type { Rs3devConfig } from "@tmhs/rs3-plugin-schema";
 export type { PluginManifest, Permission } from "@tmhs/rs3-plugin-schema";

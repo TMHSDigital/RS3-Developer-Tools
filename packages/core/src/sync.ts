@@ -6,7 +6,7 @@ import * as path from "node:path";
 import { promises as fsp } from "node:fs";
 import { findDevPluginsRoot, type DevPluginsRootOptions } from "./paths.js";
 import { isDirectory, isInside, listFilesRecursive, pathExists } from "./fs.js";
-import { isDevArtifact } from "./manifest.js";
+import { loadArtifactFilter } from "./ignore.js";
 
 export interface SyncOptions extends DevPluginsRootOptions {
   /** Delete files in the destination that no longer exist in the source. Default true. */
@@ -110,7 +110,8 @@ export async function syncPlugin(pluginDir: string, options: SyncOptions = {}): 
     }
   }
   const dryRun = options.dryRun ?? false;
-  const files = (await listFilesRecursive(source)).filter((rel) => !isDevArtifact(rel));
+  const excluded = await loadArtifactFilter(source);
+  const files = (await listFilesRecursive(source)).filter((rel) => !excluded(rel));
   const removed: string[] = [];
   if (options.prune ?? true) {
     const existing = (await isDirectory(destination)) ? await listFilesRecursive(destination) : [];

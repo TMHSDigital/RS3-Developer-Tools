@@ -68,9 +68,22 @@ describe("rs3dev commands", () => {
     expect(await runPackage(pluginDir, { out: outFile }, refused.options)).toBe(1);
     expect(refused.errors.join("\n")).toContain("placeholder-email");
     const pack = capture();
-    expect(await runPackage(pluginDir, { out: outFile, allowPlaceholderEmail: true }, pack.options)).toBe(0);
-    expect(pack.lines.join("\n")).toContain("submission");
+    expect(await runPackage(pluginDir, { out: outFile, allowPlaceholderEmail: true, list: true }, pack.options)).toBe(0);
+    const packed = pack.lines.join("\n");
+    expect(packed).toContain("submission");
+    expect(packed).toContain("Before uploading:");
+    expect(packed).toContain("1. Archive:");
+    expect(packed).toMatch(/\d+  main\.lua/);
     expect((await fsp.stat(outFile)).size).toBeGreaterThan(0);
+    // --verify inspects the archive just built: the scaffold's placeholder address is its one error.
+    const verify = capture();
+    expect(await runPackage(".", { verify: outFile }, verify.options)).toBe(1);
+    expect(verify.lines.at(-1)).toMatch(/^verify: 1 error\(s\)/);
+    expect(verify.lines.join("\n")).toContain("[placeholder-email]");
+    const verifyJson = capture();
+    await runPackage(".", { verify: outFile }, { ...verifyJson.options, json: true });
+    expect(JSON.parse(verifyJson.lines.join("\n")).command).toBe("verify");
+    expect(await runPackage(".", { verify: path.join(pluginDir, "main.lua") }, capture().options)).toBe(1);
   });
 
   it("init writes a .luarc.json library path relative to the plugin folder when the stubs share the drive", async () => {

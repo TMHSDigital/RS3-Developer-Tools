@@ -8,7 +8,8 @@ rs3dev validate [path] [--strict] [--format text|json|github|sarif] [--ignore co
 rs3dev preflight [path] [--max-line-length 200] [--strict] [--format text|json|github|sarif] [--ignore codes] [--no-config]
 rs3dev sync [path] [--root <dev_plugins>] [--create-root] [--no-prune]
 rs3dev watch [path] [--root <dev_plugins>] [--create-root] [--no-prune] [--debounce 300]
-rs3dev package [path] [--out file.zip] [--overwrite] [--allow-placeholder-email]
+rs3dev package [path] [--out file.zip] [--overwrite] [--list] [--max-size 10] [--allow-placeholder-email]
+rs3dev package --verify <file.zip> [--list]
 rs3dev doctor [path] [--stubs <dir>]
 rs3dev stubs status [--stubs <dir>]
 rs3dev cache path | clear
@@ -36,4 +37,6 @@ Lifecycle checks: `shutdown-missing` (error) when any subscription exists withou
 
 `watch` ignores the same development artefacts that `sync` and `package` exclude, so a zip or a `dist/` folder inside the plugin never triggers a re-sync.
 
-`package` runs preflight first and refuses to build when it reports errors. The archive is written to `dist/<plugin>-<version>.zip` under the current directory unless `--out` is given. It has `plugin.json` and `main.lua` at its root and excludes dotfiles, `AGENTS.md`, `CLAUDE.md`, `node_modules`, `dist`, `tests` and other zips.
+`package` runs preflight first and refuses to build when it reports errors. The archive is written to `dist/<plugin>-<version>.zip` under the current directory unless `--out` is given. It has `plugin.json` and `main.lua` at its root and excludes dotfiles, `AGENTS.md`, `CLAUDE.md`, `rs3dev.json`, `node_modules`, `dist`, `tests`, `__tests__`, `spec`, `build`, `coverage`, other zips, and OS and editor junk (`Thumbs.db`, `desktop.ini`, `.DS_Store`, `*.bak`, `*.orig`, `*~`, `*.swp`, `*.psd`, `*.xcf`, `*.log`). An optional `.rs3ignore` in the plugin root adds patterns in gitignore syntax (`*`, `**`, `?`, a trailing `/` for folders, a leading `/` to anchor, `!` to re-include); `sync` and `watch` honour the same file. After building, `package` prints the largest entries (all of them with `--list`), warns when the content exceeds `--max-size` megabytes (default 10) or when a `README.md` ships, and ends with the submission checklist.
+
+`package --verify <zip>` inspects an archive built by any tool without extracting it: `plugin.json` and `main.lua` must sit at the root (`archive-root`), the manifest must validate and carry no `$schema` key or placeholder address, no development artefact or junk may be inside (`archive-dev-artifact`), and every `require` target must resolve inside the archive (`archive-require`). Exit code 1 on errors.
