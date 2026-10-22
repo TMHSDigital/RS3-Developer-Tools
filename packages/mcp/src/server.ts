@@ -238,14 +238,17 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     "guidelines_preflight",
     {
       title: "Preflight a plugin against the submission guidelines",
-      description: "Static checks for sandbox-forbidden globals, permission use without declaration, URLs outside the manifest, missing contact email and minified or obfuscated code. Each finding links the relevant docs page.",
-      inputSchema: { path: z.string().min(1).describe("Plugin folder, absolute or relative to the workspace") },
+      description: "Static checks for sandbox-forbidden globals, permission use without declaration, URLs outside the manifest, missing contact email, lifecycle leaks (missing PluginShutdown, Subscribe without Unsubscribe, undestroyed containers, per-tick list scans) and minified or obfuscated code. Honours rs3dev.json in the plugin folder and inline rs3dev-ignore comments. Each finding links the relevant docs page.",
+      inputSchema: {
+        path: z.string().min(1).describe("Plugin folder, absolute or relative to the workspace"),
+        ignore: z.array(z.string()).default([]).describe("Finding codes to drop, in addition to rs3dev.json preflight.ignore"),
+      },
     },
-    async ({ path: target }) => {
+    async ({ path: target, ignore }) => {
       const denied = await checkReadable(target);
       if (denied) return fail("PATH_DENIED", denied);
-      const result = await preflightPlugin(path.resolve(workspaceRoot, target));
-      return ok({ ...findingsPayload("guidelines_preflight", result.findings), filesChecked: result.files });
+      const result = await preflightPlugin(path.resolve(workspaceRoot, target), { ignore });
+      return ok({ ...findingsPayload("guidelines_preflight", result.findings), suppressed: result.suppressed, configFile: result.configFile, filesChecked: result.files });
     },
   );
 

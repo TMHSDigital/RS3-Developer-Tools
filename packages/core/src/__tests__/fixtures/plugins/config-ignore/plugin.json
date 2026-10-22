@@ -1,0 +1,9 @@
+{
+  "name": "Config Ignore",
+  "version": "0.1.0",
+  "contactEmailAddress": "config@fixture.invalid",
+  "requiredDependencies": [],
+  "optionalDependencies": [],
+  "requiredPermissions": [],
+  "optionalPermissions": []
+}

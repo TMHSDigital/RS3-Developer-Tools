@@ -1,0 +1,9 @@
+{
+  "name": "Lifecycle Missing Shutdown",
+  "version": "0.1.0",
+  "contactEmailAddress": "lifecycle@fixture.invalid",
+  "requiredDependencies": [],
+  "optionalDependencies": [],
+  "requiredPermissions": [],
+  "optionalPermissions": []
+}

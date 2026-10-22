@@ -12,6 +12,7 @@ import { enclosingCall, scanLua, globalReads, indirectGlobalReads, memberChains,
 import { syncPlugin } from "../sync.js";
 import { watchPlugin } from "../watch.js";
 import { formatDoctorReport, runDoctor } from "../doctor.js";
+import { formatFindingsGithub, toSarif } from "../findings.js";
 import { packagePlugin } from "../package.js";
 import { scaffoldPlugin } from "../scaffold.js";
 import { findDevPluginsRoot } from "../paths.js";
@@ -188,6 +189,70 @@ describe("preflight", () => {
     expect(c).toContain("low-comment-ratio");
     expect(c).toContain("encoded-string");
     expect(c).toContain("string-char-chain");
+  });
+  it("reports lifecycle leaks: missing PluginShutdown, unreleased subscriptions, undestroyed containers, per-tick scans", async () => {
+    const missing = await preflightPlugin(plugin("lifecycle-missing-shutdown"));
+    const shutdown = missing.findings.filter((f) => f.code === "shutdown-missing");
+    expect(shutdown).toHaveLength(1);
+    expect(shutdown[0]!.level).toBe("error");
+    expect(shutdown[0]!.line).toBe(7);
+
+    const leaks = await preflightPlugin(plugin("lifecycle-leaks"));
+    expect(codes(leaks.findings)).not.toContain("shutdown-missing");
+    const unreleased = leaks.findings.filter((f) => f.code === "subscribe-without-unsubscribe");
+    expect(unreleased.map((f) => f.line).sort((a, b) => a! - b!)).toEqual([28, 36, 38]);
+    expect(unreleased.find((f) => f.line === 38)!.message).toContain("button:Unsubscribe");
+    const containers = leaks.findings.filter((f) => f.code === "component-not-destroyed");
+    expect(containers.map((f) => f.message)).toEqual([expect.stringContaining('"overlay"')]);
+    const scans = leaks.findings.filter((f) => f.code === "per-tick-scan");
+    expect(scans).toHaveLength(1);
+    expect(scans[0]!.line).toBe(22);
+    expect(scans[0]!.message).toContain("NPCList.All");
+
+    // Correct plugins pay nothing.
+    for (const name of ["clean", "table-keys"]) {
+      const result = await preflightPlugin(plugin(name));
+      expect(codes(result.findings).filter((c) => ["shutdown-missing", "subscribe-without-unsubscribe", "component-not-destroyed", "per-tick-scan"].includes(c))).toEqual([]);
+    }
+  });
+  it("honours rs3dev.json, --ignore and inline rs3dev-ignore comments", async () => {
+    const dir = plugin("config-ignore");
+    const result = await preflightPlugin(dir);
+    expect(result.configFile).toBe(path.join(dir, "rs3dev.json"));
+    // maxLineLength 60 from the file turns the long table line into a warning.
+    expect(codes(result.findings)).toContain("long-lines");
+    // Both os.* reads are suppressed inline (comment above, comment on the same line).
+    expect(codes(result.findings)).not.toContain("sandbox-global");
+    expect(result.suppressed.filter((f) => f.code === "sandbox-global").map((f) => f.line)).toEqual([6, 8]);
+    // A flag adds to the file's ignore list.
+    const ignored = await preflightPlugin(dir, { ignore: ["long-lines"] });
+    expect(codes(ignored.findings)).not.toContain("long-lines");
+    expect(codes(ignored.suppressed)).toContain("long-lines");
+    // Without the file the defaults apply and the inline markers still work.
+    const noConfig = await preflightPlugin(dir, { config: false });
+    expect(codes(noConfig.findings)).not.toContain("long-lines");
+    expect(noConfig.configFile).toBeUndefined();
+    // An invalid file is reported, never silently ignored.
+    const broken = await tempDir("rs3-config-broken-");
+    await fsp.cp(dir, broken, { recursive: true });
+    await fsp.writeFile(path.join(broken, "rs3dev.json"), JSON.stringify({ preflight: { ignore: "nope" } }));
+    const invalid = await preflightPlugin(broken);
+    expect(codes(invalid.findings)).toContain("config-schema");
+    expect(isDevArtifact("rs3dev.json")).toBe(true);
+    expect(isDevArtifact("lib/rs3dev.json")).toBe(false);
+  });
+  it("renders GitHub workflow commands and SARIF", () => {
+    const findings = [
+      { level: "error" as const, code: "sandbox-global", message: 'os is not available: see "docs", 100% sure', file: "main.lua", line: 3, docsUrl: "https://example.test/rules" },
+      { level: "info" as const, code: "optional-permission-ungated", message: "gate it", file: "plugin.json", docsUrl: "https://example.test/perm" },
+    ];
+    const gh = formatFindingsGithub(findings, "plugins/demo");
+    expect(gh[0]).toBe("::error file=plugins/demo/main.lua,line=3,title=sandbox-global::os is not available: see \"docs\", 100%25 sure (see https://example.test/rules)");
+    expect(gh[1]).toBe("::notice file=plugins/demo/plugin.json,title=optional-permission-ungated::gate it (see https://example.test/perm)");
+    const sarif = toSarif(findings, { name: "rs3dev", version: "1.2.3", command: "preflight" }) as { runs: { tool: { driver: { rules: { id: string }[] } }; results: { ruleId: string; level: string; locations?: unknown[] }[] }[] };
+    expect(sarif.runs[0]!.tool.driver.rules.map((r) => r.id)).toEqual(["sandbox-global", "optional-permission-ungated"]);
+    expect(sarif.runs[0]!.results.map((r) => r.level)).toEqual(["error", "note"]);
+    expect(sarif.runs[0]!.results[0]!.locations).toHaveLength(1);
   });
   it("reports a missing main.lua as an error", async () => {
     const result = await preflightPlugin(plugin("missing-main"));

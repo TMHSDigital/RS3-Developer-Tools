@@ -98,6 +98,26 @@ describe("rs3dev commands", () => {
     expect(await runValidate(path.join(coreFixtures, "clean"), { strict: true }, capture().options)).toBe(0);
   });
 
+  it("--format github and sarif render findings for CI, --ignore drops codes", async () => {
+    const gh = capture();
+    expect(await runPreflight(path.join(coreFixtures, "sandbox"), { format: "github" }, gh.options)).toBe(1);
+    expect(gh.lines[0]).toMatch(/^::error file=main\.lua,line=4,title=sandbox-global::/);
+    const sarif = capture();
+    await runPreflight(path.join(coreFixtures, "sandbox"), { format: "sarif" }, sarif.options);
+    const log = JSON.parse(sarif.lines.join("\n"));
+    expect(log.version).toBe("2.1.0");
+    expect(log.runs[0].tool.driver.name).toBe("rs3dev");
+    expect(log.runs[0].results.some((r: { ruleId: string }) => r.ruleId === "sandbox-global")).toBe(true);
+    const ignored = capture();
+    expect(await runPreflight(path.join(coreFixtures, "sandbox"), { ignore: "sandbox-global", format: "json" }, ignored.options)).toBe(0);
+    const report = JSON.parse(ignored.lines.join("\n"));
+    expect(report.findings.some((f: { code: string }) => f.code === "sandbox-global")).toBe(false);
+    expect(report.suppressed.length).toBeGreaterThan(0);
+    const bad = capture();
+    expect(await runPreflight(path.join(coreFixtures, "sandbox"), { format: "xml" }, bad.options)).toBe(1);
+    expect(bad.errors[0]).toContain("unknown --format");
+  });
+
   it("init declares urls only from --url flags", async () => {
     const base = await tempDir("rs3-cli-urls-");
     expect(await runInit("http-plain", { cwd: base, agentFiles: false, stubs: "C:/stubs", permissions: "httpAccess" }, capture().options)).toBe(0);

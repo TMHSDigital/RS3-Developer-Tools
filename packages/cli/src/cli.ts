@@ -48,15 +48,20 @@ program
   .command("validate [path]")
   .description("check plugin.json against the schema and the plugin folder structure")
   .option("--strict", "exit 1 on warnings as well as errors (for CI)")
+  .option("--format <kind>", "text, json, github (workflow annotations) or sarif", "text")
+  .option("--ignore <codes>", "finding codes to drop, comma separated")
   .action(async (target: string | undefined, opts) => {
     process.exitCode = await runValidate(target ?? ".", opts, output());
   });
 
 program
   .command("preflight [path]")
-  .description("static checks for sandbox, permission and readability problems; exits 1 on errors")
-  .option("--max-line-length <n>", "line length that counts as minified", "200")
+  .description("static checks for sandbox, permission, lifecycle and readability problems; exits 1 on errors")
+  .option("--max-line-length <n>", "line length that counts as minified (default 200, or rs3dev.json preflight.maxLineLength)")
   .option("--strict", "exit 1 on warnings as well as errors (for CI)")
+  .option("--format <kind>", "text, json, github (workflow annotations) or sarif", "text")
+  .option("--ignore <codes>", "finding codes to drop, comma separated (adds to rs3dev.json preflight.ignore)")
+  .option("--no-config", "do not read rs3dev.json in the plugin folder")
   .action(async (target: string | undefined, opts) => {
     process.exitCode = await runPreflight(target ?? ".", opts, output());
   });

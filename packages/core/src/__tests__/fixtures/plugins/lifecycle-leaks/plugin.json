@@ -1,0 +1,9 @@
+{
+  "name": "Lifecycle Leaks",
+  "version": "0.1.0",
+  "contactEmailAddress": "leaks@fixture.invalid",
+  "requiredDependencies": [],
+  "optionalDependencies": [],
+  "requiredPermissions": [],
+  "optionalPermissions": []
+}

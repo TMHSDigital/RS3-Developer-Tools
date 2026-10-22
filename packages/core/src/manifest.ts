@@ -120,6 +120,8 @@ export function isDevArtifact(relPath: string): boolean {
   if (parts.includes("node_modules") || parts.includes("dist") || parts.includes("tests")) return true;
   const base = parts[parts.length - 1] ?? "";
   if (/\.zip$/i.test(base)) return true;
+  // The toolkit's own project configuration never ships with the plugin.
+  if (parts.length === 1 && base === "rs3dev.json") return true;
   if (["AGENTS.md", "CLAUDE.md", "package.json", "package-lock.json"].includes(base)) return true;
   return false;
 }

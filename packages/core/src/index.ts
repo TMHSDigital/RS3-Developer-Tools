@@ -12,5 +12,8 @@ export * from "./package.js";
 export * from "./luarc.js";
 export * from "./scaffold.js";
 export * from "./doctor.js";
+export * from "./config.js";
+export * from "./lifecycle.js";
+export type { Rs3devConfig } from "@tmhs/rs3-plugin-schema";
 export type { PluginManifest, Permission } from "@tmhs/rs3-plugin-schema";
 export { PERMISSIONS } from "@tmhs/rs3-plugin-schema";

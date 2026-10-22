@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/TMHSDigital/RS3-Developer-Tools/main/packages/schema/rs3dev.schema.json",
+  "preflight": {
+    "ignore": ["low-comment-ratio"],
+    "maxLineLength": 60
+  },
+  "package": {
+    "outDir": "build"
+  }
+}

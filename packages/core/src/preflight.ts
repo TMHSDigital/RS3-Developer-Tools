@@ -8,6 +8,8 @@ import { DOCS, type Finding } from "./findings.js";
 import { listFilesRecursive, readUtf8 } from "./fs.js";
 import { isDevArtifact, isPlaceholderEmail, validatePluginDir } from "./manifest.js";
 import { enclosingCall, globalReads, indirectGlobalReads, memberChains, scanLua } from "./lua-scan.js";
+import { inlineIgnores, isInlineIgnored, loadProjectConfig, type ProjectConfigResult } from "./config.js";
+import { lifecycleFindings, type LifecycleFile } from "./lifecycle.js";
 
 /** Standard libraries and functions the plugin sandbox does not provide. */
 export const FORBIDDEN_GLOBALS = ["os", "io", "debug", "load", "loadstring", "dofile"] as const;
@@ -17,12 +19,20 @@ export interface PreflightOptions {
   maxLineLength?: number;
   /** Comment lines divided by code lines; below this ratio a warning is raised for files over 40 lines. */
   minCommentRatio?: number;
+  /** Finding codes to drop (merged with rs3dev.json preflight.ignore). */
+  ignore?: string[];
+  /** Read <plugin>/rs3dev.json. Default true. */
+  config?: boolean;
 }
 
 export interface PreflightResult {
   manifest?: PluginManifest;
   findings: Finding[];
   files: string[];
+  /** Findings dropped by rs3dev.json, --ignore or an inline rs3dev-ignore comment. */
+  suppressed: Finding[];
+  /** The rs3dev.json that applied, when one was read. */
+  configFile?: string;
 }
 
 function hostOf(url: string): string | undefined {
@@ -34,10 +44,16 @@ function hostOf(url: string): string | undefined {
 }
 
 export async function preflightPlugin(pluginDir: string, options: PreflightOptions = {}): Promise<PreflightResult> {
-  const maxLineLength = options.maxLineLength ?? 200;
-  const minCommentRatio = options.minCommentRatio ?? 0.05;
+  // rs3dev.json supplies defaults; explicit options win.
+  const project: ProjectConfigResult = options.config === false ? { config: {}, findings: [] } : await loadProjectConfig(pluginDir);
+  const maxLineLength = options.maxLineLength ?? project.config.preflight?.maxLineLength ?? 200;
+  const minCommentRatio = options.minCommentRatio ?? project.config.preflight?.minCommentRatio ?? 0.05;
+  const ignoredCodes = new Set([...(project.config.preflight?.ignore ?? []), ...(options.ignore ?? [])]);
 
   const { manifest, findings } = await validatePluginDir(pluginDir);
+  findings.push(...project.findings);
+  const ignoresByFile = new Map<string, ReturnType<typeof inlineIgnores>>();
+  const lifecycleFiles: LifecycleFile[] = [];
   const permissions = new Set([...(manifest?.requiredPermissions ?? []), ...(manifest?.optionalPermissions ?? [])]);
   const optionalOnly = new Set(
     (manifest?.optionalPermissions ?? []).filter((p) => !(manifest?.requiredPermissions ?? []).includes(p)),
@@ -54,6 +70,8 @@ export async function preflightPlugin(pluginDir: string, options: PreflightOptio
   for (const rel of luaFiles) {
     const source = await readUtf8(path.join(pluginDir, rel));
     const scan = scanLua(source);
+    ignoresByFile.set(rel, inlineIgnores(source));
+    lifecycleFiles.push({ rel, scan });
     const reads = globalReads(scan);
     const chains = memberChains(scan);
     const chainText = chains.map((c) => c.chain);
@@ -159,5 +177,16 @@ export async function preflightPlugin(pluginDir: string, options: PreflightOptio
     });
   }
 
-  return { manifest, findings, files: luaFiles };
+  findings.push(...lifecycleFindings(lifecycleFiles));
+
+  // Reviewed exceptions: rs3dev.json preflight.ignore, the ignore option and
+  // inline "-- rs3dev-ignore <code>" comments. They are returned separately so
+  // a report can still say what was dropped.
+  const suppressed: Finding[] = [];
+  const kept: Finding[] = [];
+  for (const f of findings) {
+    if (ignoredCodes.has(f.code) || isInlineIgnored(f, ignoresByFile)) suppressed.push(f);
+    else kept.push(f);
+  }
+  return { manifest, findings: kept, files: luaFiles, suppressed, configFile: project.file };
 }

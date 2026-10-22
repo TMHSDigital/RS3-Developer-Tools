@@ -15,6 +15,7 @@
   "files": [
     "dist",
     "plugin.schema.json",
+    "rs3dev.schema.json",
     "settings.sample.json",
     "README.md"
   ],

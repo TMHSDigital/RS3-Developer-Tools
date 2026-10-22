@@ -2,13 +2,17 @@
 // functions can be tested without spawning a process.
 
 import * as path from "node:path";
+import { readFileSync } from "node:fs";
 import {
   DocsClient,
   cacheDir,
   formatDoctorReport,
   formatFindings,
+  formatFindingsGithub,
   listFilesRecursive,
+  loadProjectConfig,
   packagePlugin,
+  toSarif,
   runDoctor as doctorReport,
   preflightPlugin,
   scaffoldPlugin,
@@ -41,13 +45,46 @@ function splitList(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
-function reportFindings(findings: Finding[], label: string, options: OutputOptions, strict = false): number {
+export type ReportFormat = "text" | "json" | "github" | "sarif";
+
+const cliVersion: string = (() => {
+  try {
+    return (JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version?: string }).version ?? "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+})();
+
+function parseFormat(value: string | undefined, options: OutputOptions): ReportFormat {
+  if (value && value !== "text") {
+    if (value === "json" || value === "github" || value === "sarif") return value;
+    throw new Error(`unknown --format "${value}"; use text, json, github or sarif`);
+  }
+  return options.json ? "json" : "text";
+}
+
+interface ReportOptions {
+  strict?: boolean;
+  format?: ReportFormat;
+  suppressed?: Finding[];
+  configFile?: string;
+}
+
+function reportFindings(findings: Finding[], label: string, options: OutputOptions, report: ReportOptions = {}): number {
   const summary = summarise(findings);
-  if (options.json) {
-    out(options, JSON.stringify({ command: label, summary, findings, strict }, null, 2));
+  const strict = Boolean(report.strict);
+  const format = report.format ?? (options.json ? "json" : "text");
+  if (format === "json") {
+    out(options, JSON.stringify({ command: label, summary, findings, suppressed: report.suppressed ?? [], configFile: report.configFile, strict }, null, 2));
+  } else if (format === "sarif") {
+    out(options, JSON.stringify(toSarif(findings, { name: "rs3dev", version: cliVersion, command: label }), null, 2));
+  } else if (format === "github") {
+    for (const line of formatFindingsGithub(findings)) out(options, line);
+    out(options, `${label}: ${summary.errors} error(s), ${summary.warnings} warning(s), ${summary.infos} note(s)`);
   } else {
     for (const line of formatFindings(findings)) out(options, line);
-    out(options, `${label}: ${summary.errors} error(s), ${summary.warnings} warning(s), ${summary.infos} note(s)${strict && summary.warnings > 0 ? " (strict: warnings fail)" : ""}`);
+    const dropped = report.suppressed?.length ? `, ${report.suppressed.length} suppressed` : "";
+    out(options, `${label}: ${summary.errors} error(s), ${summary.warnings} warning(s), ${summary.infos} note(s)${dropped}${strict && summary.warnings > 0 ? " (strict: warnings fail)" : ""}`);
   }
   if (summary.errors > 0) return 1;
   return strict && summary.warnings > 0 ? 1 : 0;
@@ -107,19 +144,45 @@ export async function runInit(
   }
 }
 
-export async function runValidate(target: string, opts: { strict?: boolean }, options: OutputOptions): Promise<number> {
-  const { findings } = await validatePluginDir(path.resolve(target));
-  return reportFindings(findings, "validate", options, Boolean(opts.strict));
+export async function runValidate(target: string, opts: { strict?: boolean; format?: string; ignore?: string }, options: OutputOptions): Promise<number> {
+  try {
+    const format = parseFormat(opts.format, options);
+    const ignore = new Set(splitList(opts.ignore));
+    const { findings } = await validatePluginDir(path.resolve(target));
+    const kept = findings.filter((f) => !ignore.has(f.code));
+    const suppressed = findings.filter((f) => ignore.has(f.code));
+    return reportFindings(kept, "validate", options, { strict: opts.strict, format, suppressed });
+  } catch (error) {
+    err(options, (error as Error).message);
+    return 1;
+  }
 }
 
-export async function runPreflight(target: string, opts: { maxLineLength?: string; strict?: boolean }, options: OutputOptions): Promise<number> {
-  const result = await preflightPlugin(path.resolve(target), { maxLineLength: Number(opts.maxLineLength ?? 200) });
-  return reportFindings(result.findings, "preflight", options, Boolean(opts.strict));
+export async function runPreflight(
+  target: string,
+  opts: { maxLineLength?: string; strict?: boolean; format?: string; ignore?: string; config?: boolean },
+  options: OutputOptions,
+): Promise<number> {
+  try {
+    const format = parseFormat(opts.format, options);
+    const result = await preflightPlugin(path.resolve(target), {
+      maxLineLength: opts.maxLineLength !== undefined ? Number(opts.maxLineLength) : undefined,
+      ignore: splitList(opts.ignore),
+      config: opts.config ?? true,
+    });
+    return reportFindings(result.findings, "preflight", options, { strict: opts.strict, format, suppressed: result.suppressed, configFile: result.configFile });
+  } catch (error) {
+    err(options, (error as Error).message);
+    return 1;
+  }
 }
 
 export async function runSync(target: string, opts: { root?: string; prune?: boolean; createRoot?: boolean }, options: OutputOptions): Promise<number> {
   try {
-    const result = await syncPlugin(path.resolve(target), { override: opts.root, prune: opts.prune ?? true, createRoot: opts.createRoot ?? false });
+    // rs3dev.json supplies the root and prune default; flags win.
+    const { config } = await loadProjectConfig(path.resolve(target));
+    const root = opts.root ?? (config.sync?.root ? path.resolve(path.resolve(target), config.sync.root) : undefined);
+    const result = await syncPlugin(path.resolve(target), { override: root, prune: opts.prune ?? config.sync?.prune ?? true, createRoot: opts.createRoot ?? false });
     if (options.json) {
       out(options, JSON.stringify(result, null, 2));
     } else {
@@ -208,8 +271,10 @@ export async function runPackage(
       for (const line of formatFindings(errors)) err(options, line);
       return 1;
     }
+    const { config } = await loadProjectConfig(path.resolve(target));
     const result = await packagePlugin(path.resolve(target), {
       outFile: opts.out,
+      outDir: config.package?.outDir ? path.resolve(path.resolve(target), config.package.outDir) : undefined,
       overwrite: Boolean(opts.overwrite),
       allowPlaceholderEmail: Boolean(opts.allowPlaceholderEmail),
     });

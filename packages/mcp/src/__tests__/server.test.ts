@@ -122,6 +122,10 @@ describe("rs3-plugin-mcp", () => {
     expect((ok.json!.summary as { errors: number }).errors).toBe(0);
     const pre = await callTool("guidelines_preflight", { path: "clean" });
     expect(pre.json!.ok).toBe(true);
+    // ignore drops codes and reports them as suppressed.
+    const ignored = await callTool("guidelines_preflight", { path: "clean", ignore: ["placeholder-email"] });
+    expect((ignored.json!.findings as { code: string }[]).some((f) => f.code === "placeholder-email")).toBe(false);
+    expect((ignored.json!.suppressed as { code: string }[]).map((f) => f.code)).toContain("placeholder-email");
     const outside = await callTool("guidelines_preflight", { path: path.join(coreFixtures, "sandbox") });
     expect(outside.isError).toBe(true);
     expect(outside.text).toContain("PATH_DENIED");

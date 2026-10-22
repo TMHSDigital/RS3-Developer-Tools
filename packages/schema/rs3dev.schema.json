@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/TMHSDigital/RS3-Developer-Tools/main/packages/schema/rs3dev.schema.json",
+  "title": "rs3dev project configuration",
+  "description": "Optional rs3dev.json in a plugin folder. Command line flags override these values. The file is a development artefact: sync, watch and package leave it out.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "preflight": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ignore": {
+          "type": "array",
+          "description": "Finding codes to drop from preflight and validate output, for example [\"low-comment-ratio\"]. Reviewed exceptions only; the code still ships to moderators.",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "uniqueItems": true
+        },
+        "maxLineLength": {
+          "type": "integer",
+          "minimum": 40,
+          "description": "Lines longer than this count towards the minification heuristic (default 200)."
+        },
+        "minCommentRatio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Comment lines divided by code lines below which a file over 40 lines gets low-comment-ratio (default 0.05)."
+        }
+      }
+    },
+    "sync": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "root": { "type": "string", "description": "dev_plugins folder, same meaning as --root; must exist and look like dev_plugins." },
+        "prune": { "type": "boolean", "description": "Delete files in the destination that the source no longer has (default true)." }
+      }
+    },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "outDir": { "type": "string", "description": "Folder for the zip, relative to the plugin folder when not absolute (default dist/ under the current directory)." }
+      }
+    }
+  }
+}
