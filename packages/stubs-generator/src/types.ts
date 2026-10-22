@@ -50,6 +50,12 @@ export interface ClassDef {
   /** True when the docs show the name used as a table (NPCList.All(), PersistentDB:Get()). */
   isGlobal: boolean;
   anchor: string;
+  /**
+   * Module id that carries the full declaration when the same class is
+   * documented on several pages. Set on the other pages' copies, which then
+   * emit only the methods documented there.
+   */
+  canonical?: string;
 }
 
 export interface EnumDef {
@@ -127,7 +133,8 @@ export interface IndexEntry {
     | "enum-member"
     | "event"
     | "hook"
-    | "global-table";
+    | "global-table"
+    | "alias";
   module: string;
   file: string;
   url: string;

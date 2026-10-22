@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { DocsClient, extractNavLinks } from "@tmhs/rs3-devtools-core";
 import { parsePage } from "./parse.js";
 import { buildPageModel, type PageScan } from "./model.js";
-import { collectReferences, dedupe } from "./lua-types.js";
+import { collectReferences, dedupe, renderFunParams } from "./lua-types.js";
 import {
   emitExtras,
   emitGlobals,
@@ -16,8 +16,9 @@ import {
   emitUnresolved,
   indexEntries,
   moduleFilePath,
+  signatureText,
 } from "./emit.js";
-import type { FunctionSig, GenerateResult, GlobalTables, IndexEntry, ModuleDef, Note, Param } from "./types.js";
+import type { ClassDef, FunctionSig, GenerateResult, GlobalTables, IndexEntry, ModuleDef, Note, Param } from "./types.js";
 
 /** Documentation sections that document API modules (everything else is tutorial or policy). */
 export const API_SECTIONS = ["core/", "game/", "math/", "ui/", "audio/"];
@@ -92,6 +93,49 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     if (isApiPage(relPath)) modules.push(module);
   }
   modules.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+  // A page that documents an enum and a class under the same name (QuestType)
+  // would make LuaLS merge them. The enum takes a Kind suffix; every reference
+  // elsewhere means the record, and a scalar field of the class typed with its
+  // own name can only mean the enum.
+  for (const mod of modules) {
+    for (const e of mod.enums) {
+      const cls = mod.classes.find((c) => c.name === e.name);
+      if (!cls) continue;
+      const renamed = `${e.name}Kind`;
+      notes.push({ kind: "name-from-heading", page: mod.id, anchor: e.anchor, detail: `enum ${e.name} shares its name with the class ${e.name} on this page; the enum is emitted as ${renamed}, and the class field(s) typed ${e.name} (${cls.fields.filter((f) => f.type === e.name).map((f) => f.name).join(", ") || "none"}) refer to it` });
+      for (const f of cls.fields) if (f.type === e.name) f.type = renamed;
+      e.name = renamed;
+    }
+  }
+
+  // A class documented on several pages (ui.ComponentCollection on every
+  // layout page) is declared once, on the page named after it or else the
+  // first page in order; the other pages keep only the methods they document
+  // that the canonical page lacks.
+  const classesByName = new Map<string, { mod: ModuleDef; cls: ClassDef }[]>();
+  for (const mod of modules) for (const cls of mod.classes) classesByName.set(cls.name, [...(classesByName.get(cls.name) ?? []), { mod, cls }]);
+  const pageSlug = (id: string) => (id.split("/").pop() ?? "").replace(/_/g, "").toLowerCase();
+  for (const [name, copies] of classesByName) {
+    if (copies.length < 2) continue;
+    const last = (name.split(".").pop() ?? "").toLowerCase();
+    const canonical = copies.find((c) => pageSlug(c.mod.id) === last) ?? copies[0]!;
+    for (const copy of copies) {
+      if (copy === canonical) continue;
+      copy.cls.canonical = canonical.mod.id;
+      if (!canonical.cls.parent && copy.cls.parent) canonical.cls.parent = copy.cls.parent;
+      for (const f of copy.cls.fields) if (!canonical.cls.fields.some((cf) => cf.name === f.name)) canonical.cls.fields.push(f);
+      if (!canonical.cls.index && copy.cls.index) canonical.cls.index = copy.cls.index;
+      copy.cls.parent = undefined;
+      copy.cls.fields = [];
+      copy.cls.index = undefined;
+      copy.cls.methods = copy.cls.methods.filter((m) => {
+        const twin = canonical.cls.methods.find((cm) => cm.name === m.name && cm.sep === m.sep);
+        return !(twin && signatureText(twin) === signatureText(m));
+      });
+      notes.push({ kind: "owner-normalised", page: copy.mod.id, anchor: copy.cls.anchor, detail: `${name} is declared on ${canonical.mod.id}; this page adds ${copy.cls.methods.length} method(s) and no fields` });
+    }
+  }
 
   const allSigs: { sig: FunctionSig; module: ModuleDef }[] = [];
   for (const mod of modules) {
@@ -328,22 +372,39 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   for (const name of globals.var) {
     indexEntriesAll.push({ name: `var.${name}`, kind: "global-table", module: "_globals", file: globalsPath, url: `${client.baseUrl}game/config/vartype.html#overview`, signature: `var.${name}: { [string]: VarType }` });
   }
+  // The hooks a plugin defines (PluginShutdown, PluginDependencyUpdate) and the
+  // documented aliases live in _extras.lua and must be findable too.
+  const extrasPath = "stubs/_extras.lua";
+  for (const fn of emitOptions.globalFunctions) {
+    indexEntriesAll.push({ name: fn.name, kind: "function", module: "_extras", file: extrasPath, url: `${client.baseUrl}${fn.see}`, signature: `function ${fn.name}(${renderFunParams(fn.params)})` });
+  }
+  for (const alias of emitOptions.aliases) {
+    indexEntriesAll.push({ name: alias.name, kind: "alias", module: "_extras", file: extrasPath, url: `${client.baseUrl}${alias.see}`, signature: `---@alias ${alias.name} ${alias.type}` });
+  }
 
   const allNotes = dedupeNotes([...modules.flatMap((m) => m.notes), ...notes]).sort(compareNotes);
   indexEntriesAll.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0));
+  // One row per name and kind: modules are sorted, so the canonical page wins.
+  const seenRows = new Set<string>();
+  const indexEntriesUnique = indexEntriesAll.filter((e) => {
+    const key = `${e.name}|${e.kind}`;
+    if (seenRows.has(key)) return false;
+    seenRows.add(key);
+    return true;
+  });
   files["index.json"] =
     JSON.stringify(
       {
         baseUrl: client.baseUrl,
         modules: modules.map((m) => ({ id: m.id, title: m.title, url: m.url, file: moduleFilePath(m.id) })),
-        symbols: indexEntriesAll,
+        symbols: indexEntriesUnique,
       },
       null,
       2,
     ) + "\n";
   files["unresolved.md"] = renderNotes(allNotes, client.baseUrl);
 
-  return { modules, files, index: indexEntriesAll, notes: allNotes, pageCount: pages.length };
+  return { modules, files, index: indexEntriesUnique, notes: allNotes, pageCount: pages.length };
 }
 
 function noteKey(n: Note): string {

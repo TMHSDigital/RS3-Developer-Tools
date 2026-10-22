@@ -12,10 +12,6 @@
 ---@field RIGHT ui.GroupBoxHeaderAlignMode
 ui.GroupBoxHeaderAlignMode = {}
 
----@see https://developer.runescape.com/rs/ui/layout_components/group_box.html#overview
----@class ui.ComponentCollection : ui.Component
-local ui_ComponentCollection_ = {}
-
 ---@see https://developer.runescape.com/rs/ui/layout_components/group_box.html
 ---@class ui.GroupBox : ui.ComponentCollection
 ---@field headerWidth integer

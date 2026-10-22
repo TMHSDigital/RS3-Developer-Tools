@@ -10,34 +10,10 @@
 ---@param final number
 ---@param t number
 ---@return number|Vector2|Vector3|Vector4|Matrix33
-function lerp(start, final, t) end
-
----@see https://developer.runescape.com/rs/math/index.html#lerp
----@param start Vector2
----@param final Vector2
----@param t number
----@return Vector2
-function lerp(start, final, t) end
-
----@see https://developer.runescape.com/rs/math/index.html#lerp
----@param start Vector3
----@param final Vector3
----@param t number
----@return Vector3
-function lerp(start, final, t) end
-
----@see https://developer.runescape.com/rs/math/index.html#lerp
----@param start Vector4
----@param final Vector4
----@param t number
----@return Vector4
-function lerp(start, final, t) end
-
----@see https://developer.runescape.com/rs/math/index.html#lerp
----@param start Matrix33
----@param final Matrix33
----@param t number
----@return Matrix33
+---@overload fun(start: Vector2, final: Vector2, t: number): Vector2
+---@overload fun(start: Vector3, final: Vector3, t: number): Vector3
+---@overload fun(start: Vector4, final: Vector4, t: number): Vector4
+---@overload fun(start: Matrix33, final: Matrix33, t: number): Matrix33
 function lerp(start, final, t) end
 
 ---@see https://developer.runescape.com/rs/math/index.html#slerp
@@ -45,13 +21,7 @@ function lerp(start, final, t) end
 ---@param final Vector3
 ---@param t number
 ---@return Vector3|Quaternion
-function slerp(start, final, t) end
-
----@see https://developer.runescape.com/rs/math/index.html#slerp
----@param start Quaternion
----@param final Quaternion
----@param t number
----@return Quaternion
+---@overload fun(start: Quaternion, final: Quaternion, t: number): Quaternion
 function slerp(start, final, t) end
 
 ---@see https://developer.runescape.com/rs/math/index.html#clamp

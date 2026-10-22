@@ -113,11 +113,20 @@ function enumBlock(e: EnumDef, url: string): string[] {
 }
 
 function classBlock(cls: ClassDef, url: string): string[] {
+  const name = tableName(cls);
+  if (cls.canonical) {
+    // The full declaration lives on the canonical page; this page only adds the
+    // methods it documents. A bare @class line lets LuaLS attach them.
+    if (cls.methods.length === 0) return [];
+    const lines: string[] = [see(url, cls.anchor), `-- ${cls.name} is declared in ${moduleFilePath(cls.canonical)}; this page documents the methods below.`, `---@class ${cls.name}`];
+    lines.push(cls.isGlobal ? `${name} = {}` : `local ${name} = {}`, "");
+    for (const m of cls.methods) lines.push(...functionBlock(m, name, url));
+    return lines;
+  }
   const lines: string[] = [see(url, cls.anchor)];
   lines.push(`---@class ${cls.name}${cls.parent ? " : " + cls.parent : ""}`);
   for (const f of cls.fields) lines.push(`---@field ${f.name} ${f.type}`);
   if (cls.index) lines.push(`---@field [${cls.index.keyType}] ${cls.index.valueType}`);
-  const name = tableName(cls);
   lines.push(cls.isGlobal ? `${name} = {}` : `local ${name} = {}`, "");
   for (const m of cls.methods) lines.push(...functionBlock(m, name, url));
   return lines;
@@ -241,8 +250,11 @@ export function indexEntries(mod: ModuleDef, file: string): IndexEntry[] {
   const entries: IndexEntry[] = [];
   const url = (anchor: string) => `${mod.url}${anchor ? "#" + anchor : ""}`;
   for (const cls of mod.classes) {
-    entries.push({ name: cls.name, kind: "class", module: mod.id, file, url: url(cls.anchor), signature: `---@class ${cls.name}${cls.parent ? " : " + cls.parent : ""}` });
-    for (const f of cls.fields) entries.push({ name: `${cls.name}.${f.name}`, kind: "field", module: mod.id, file, url: url(f.anchor), signature: `${cls.name}.${f.name}: ${f.type}` });
+    // Only the canonical page contributes the class row; the others add methods.
+    if (!cls.canonical) {
+      entries.push({ name: cls.name, kind: "class", module: mod.id, file, url: url(cls.anchor), signature: `---@class ${cls.name}${cls.parent ? " : " + cls.parent : ""}` });
+      for (const f of cls.fields) entries.push({ name: `${cls.name}.${f.name}`, kind: "field", module: mod.id, file, url: url(f.anchor), signature: `${cls.name}.${f.name}: ${f.type}` });
+    }
     for (const m of cls.methods) entries.push({ name: `${cls.name}${m.sep}${m.name}`, kind: m.sep === ":" ? "method" : "function", module: mod.id, file, url: url(m.anchor), signature: signatureText(m) });
   }
   for (const fn of mod.freeFunctions) entries.push({ name: fn.name, kind: "function", module: mod.id, file, url: url(fn.anchor), signature: signatureText(fn) });

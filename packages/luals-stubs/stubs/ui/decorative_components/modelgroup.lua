@@ -12,10 +12,6 @@
 ---@field CROSSFADE ui.ModelCameraTransition
 ui.ModelCameraTransition = {}
 
----@see https://developer.runescape.com/rs/ui/decorative_components/modelgroup.html#overview
----@class ui.ComponentCollection : ui.Component
-local ui_ComponentCollection_ = {}
-
 ---@see https://developer.runescape.com/rs/ui/decorative_components/modelgroup.html
 ---@class ui.ModelGroup : ui.ComponentCollection
 ---@field activeCameraID integer

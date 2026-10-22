@@ -5,10 +5,6 @@
 -- Do not edit by hand; regenerate with: npm run stubs:generate
 -- Docs: https://developer.runescape.com/rs/ui/layout_components/paged_layer.html
 
----@see https://developer.runescape.com/rs/ui/layout_components/paged_layer.html#overview
----@class ui.ComponentCollection : ui.Component
-local ui_ComponentCollection_ = {}
-
 ---@see https://developer.runescape.com/rs/ui/layout_components/paged_layer.html
 ---@class ui.PagedLayer : ui.ComponentCollection
 ---@field activePage integer

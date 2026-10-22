@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Weekly `audit.yml` runs `npm audit` over every dependency and `ci.yml` audits production dependencies on every push; Dependabot alerts and private vulnerability reporting are enabled on the repository
 - Dev and runtime dependencies upgraded: vitest 5, zod 4 (the MCP SDK accepts `^3.25 || ^4`), commander 15, chokidar 6, `@types/node` 24 to match the CI Node range; TypeScript stays on 5.9 until the 7.0 compiler has been evaluated separately
 - Stub generator regexes rewritten so whitespace is collapsed once and `<...>` groups are stripped in a single pass (clears the CodeQL polynomial-ReDoS and incomplete-sanitization alerts); output is byte-identical
+- Stubs: an enum that shares its page class's name (`QuestType`) is emitted with a `Kind` suffix and the class's scalar self-typed field follows it; several signatures for one free function (`lerp`, `slerp`) become one definition with `@overload` lines; a class documented on several pages (`ui.ComponentCollection` on nine) is declared once on its own page and only re-opened for extra methods elsewhere; `PluginShutdown`, `PluginDependencyUpdate` and the aliases are indexed; `index.json` has one row per name and kind. Invariant tests run over the committed stubs
 
 ### Changed
 

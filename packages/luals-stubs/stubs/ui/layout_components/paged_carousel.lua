@@ -10,14 +10,6 @@
 ---@field SIDES ui.CarouselButtonDisplayMode
 ui.CarouselButtonDisplayMode = {}
 
----@see https://developer.runescape.com/rs/ui/layout_components/paged_carousel.html#overview
----@class ui.ComponentCollection : ui.Component
-local ui_ComponentCollection_ = {}
-
----@see https://developer.runescape.com/rs/ui/layout_components/paged_carousel.html#overview
----@class ui.PagedLayer : ui.ComponentCollection
-ui.PagedLayer = {}
-
 ---@see https://developer.runescape.com/rs/ui/layout_components/paged_carousel.html
 ---@class ui.PagedCarousel : ui.PagedLayer
 ---@field isSinglePageDisplay boolean

@@ -49,13 +49,3 @@ function ui.Carousel:SetEntryEnabled(id, enabled) end
 ---@param id integer
 ---@return boolean
 function ui.Carousel:GetEntryEnabled(id) end
-
----@see https://developer.runescape.com/rs/ui/interactive_components/carousel.html#select
----@class ui.ComboField
-ui.ComboField = {}
-
----@see https://developer.runescape.com/rs/ui/interactive_components/carousel.html#select
----@param id integer
----@param triggerEvents? boolean
----@return boolean
-function ui.ComboField:Select(id, triggerEvents) end

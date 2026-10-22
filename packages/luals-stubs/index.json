@@ -9326,6 +9326,14 @@
       "signature": "Plugin.urls: table<string, PluginURL>"
     },
     {
+      "name": "PluginDependencyUpdate",
+      "kind": "function",
+      "module": "_extras",
+      "file": "stubs/_extras.lua",
+      "url": "https://developer.runescape.com/rs/structure.html#dependency-updates",
+      "signature": "function PluginDependencyUpdate(optionalDependencyChangedEvent: OptionalDependencyChangedEvent)"
+    },
+    {
       "name": "PluginPermissions",
       "kind": "enum",
       "module": "core/plugin",
@@ -9452,6 +9460,22 @@
       "file": "stubs/core/plugin.lua",
       "url": "https://developer.runescape.com/rs/core/plugin.html#pluginresourceloadresult",
       "signature": "PluginResourceLoadResult.success"
+    },
+    {
+      "name": "PluginShutdown",
+      "kind": "function",
+      "module": "_extras",
+      "file": "stubs/_extras.lua",
+      "url": "https://developer.runescape.com/rs/core/clientoptions.html#example",
+      "signature": "function PluginShutdown()"
+    },
+    {
+      "name": "PluginURL",
+      "kind": "alias",
+      "module": "_extras",
+      "file": "stubs/_extras.lua",
+      "url": "https://developer.runescape.com/rs/core/http.html#constructor",
+      "signature": "---@alias PluginURL string"
     },
     {
       "name": "PostAnimMove",
@@ -9662,38 +9686,6 @@
       "signature": "---@class QuestType"
     },
     {
-      "name": "QuestType",
-      "kind": "enum",
-      "module": "game/config/questtype",
-      "file": "stubs/game/config/questtype.lua",
-      "url": "https://developer.runescape.com/rs/game/config/questtype.html#questtype_1",
-      "signature": "---@enum QuestType"
-    },
-    {
-      "name": "QuestType.NORMAL",
-      "kind": "enum-member",
-      "module": "game/config/questtype",
-      "file": "stubs/game/config/questtype.lua",
-      "url": "https://developer.runescape.com/rs/game/config/questtype.html#questtype_1",
-      "signature": "QuestType.NORMAL = 0"
-    },
-    {
-      "name": "QuestType.SEASONAL",
-      "kind": "enum-member",
-      "module": "game/config/questtype",
-      "file": "stubs/game/config/questtype.lua",
-      "url": "https://developer.runescape.com/rs/game/config/questtype.html#questtype_1",
-      "signature": "QuestType.SEASONAL = 1"
-    },
-    {
-      "name": "QuestType.TUTORIAL",
-      "kind": "enum-member",
-      "module": "game/config/questtype",
-      "file": "stubs/game/config/questtype.lua",
-      "url": "https://developer.runescape.com/rs/game/config/questtype.html#questtype_1",
-      "signature": "QuestType.TUTORIAL = 2"
-    },
-    {
       "name": "QuestType.canStartQuest",
       "kind": "field",
       "module": "game/config/questtype",
@@ -9867,7 +9859,7 @@
       "module": "game/config/questtype",
       "file": "stubs/game/config/questtype.lua",
       "url": "https://developer.runescape.com/rs/game/config/questtype.html#properties_2",
-      "signature": "QuestType.type: QuestType"
+      "signature": "QuestType.type: QuestTypeKind"
     },
     {
       "name": "QuestType.typeName",
@@ -9900,6 +9892,38 @@
       "file": "stubs/game/config/questtype.lua",
       "url": "https://developer.runescape.com/rs/game/config/questtype.html#hasparam",
       "signature": "function QuestType:HasParam(param: ParamType): boolean"
+    },
+    {
+      "name": "QuestTypeKind",
+      "kind": "enum",
+      "module": "game/config/questtype",
+      "file": "stubs/game/config/questtype.lua",
+      "url": "https://developer.runescape.com/rs/game/config/questtype.html#questtype_1",
+      "signature": "---@enum QuestTypeKind"
+    },
+    {
+      "name": "QuestTypeKind.NORMAL",
+      "kind": "enum-member",
+      "module": "game/config/questtype",
+      "file": "stubs/game/config/questtype.lua",
+      "url": "https://developer.runescape.com/rs/game/config/questtype.html#questtype_1",
+      "signature": "QuestTypeKind.NORMAL = 0"
+    },
+    {
+      "name": "QuestTypeKind.SEASONAL",
+      "kind": "enum-member",
+      "module": "game/config/questtype",
+      "file": "stubs/game/config/questtype.lua",
+      "url": "https://developer.runescape.com/rs/game/config/questtype.html#questtype_1",
+      "signature": "QuestTypeKind.SEASONAL = 1"
+    },
+    {
+      "name": "QuestTypeKind.TUTORIAL",
+      "kind": "enum-member",
+      "module": "game/config/questtype",
+      "file": "stubs/game/config/questtype.lua",
+      "url": "https://developer.runescape.com/rs/game/config/questtype.html#questtype_1",
+      "signature": "QuestTypeKind.TUTORIAL = 2"
     },
     {
       "name": "Rect",
@@ -14206,38 +14230,6 @@
       "signature": "function lerp(start: number, final: number, t: number): number|Vector2|Vector3|Vector4|Matrix33"
     },
     {
-      "name": "lerp",
-      "kind": "function",
-      "module": "math/index",
-      "file": "stubs/math/index.lua",
-      "url": "https://developer.runescape.com/rs/math/index.html#lerp",
-      "signature": "function lerp(start: Vector2, final: Vector2, t: number): Vector2"
-    },
-    {
-      "name": "lerp",
-      "kind": "function",
-      "module": "math/index",
-      "file": "stubs/math/index.lua",
-      "url": "https://developer.runescape.com/rs/math/index.html#lerp",
-      "signature": "function lerp(start: Vector3, final: Vector3, t: number): Vector3"
-    },
-    {
-      "name": "lerp",
-      "kind": "function",
-      "module": "math/index",
-      "file": "stubs/math/index.lua",
-      "url": "https://developer.runescape.com/rs/math/index.html#lerp",
-      "signature": "function lerp(start: Vector4, final: Vector4, t: number): Vector4"
-    },
-    {
-      "name": "lerp",
-      "kind": "function",
-      "module": "math/index",
-      "file": "stubs/math/index.lua",
-      "url": "https://developer.runescape.com/rs/math/index.html#lerp",
-      "signature": "function lerp(start: Matrix33, final: Matrix33, t: number): Matrix33"
-    },
-    {
       "name": "log",
       "kind": "function",
       "module": "core/index",
@@ -14268,14 +14260,6 @@
       "file": "stubs/math/index.lua",
       "url": "https://developer.runescape.com/rs/math/index.html#slerp",
       "signature": "function slerp(start: Vector3, final: Vector3, t: number): Vector3|Quaternion"
-    },
-    {
-      "name": "slerp",
-      "kind": "function",
-      "module": "math/index",
-      "file": "stubs/math/index.lua",
-      "url": "https://developer.runescape.com/rs/math/index.html#slerp",
-      "signature": "function slerp(start: Quaternion, final: Quaternion, t: number): Quaternion"
     },
     {
       "name": "ui.AlignMode",
@@ -14808,14 +14792,6 @@
     {
       "name": "ui.ComboField",
       "kind": "class",
-      "module": "ui/interactive_components/carousel",
-      "file": "stubs/ui/interactive_components/carousel.lua",
-      "url": "https://developer.runescape.com/rs/ui/interactive_components/carousel.html#select",
-      "signature": "---@class ui.ComboField"
-    },
-    {
-      "name": "ui.ComboField",
-      "kind": "class",
       "module": "ui/interactive_components/combo_field",
       "file": "stubs/ui/interactive_components/combo_field.lua",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/combo_field.html",
@@ -15100,14 +15076,6 @@
       "file": "stubs/ui/interactive_components/combo_field.lua",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/combo_field.html#remove",
       "signature": "function ui.ComboField:Remove(id: integer): boolean"
-    },
-    {
-      "name": "ui.ComboField:Select",
-      "kind": "method",
-      "module": "ui/interactive_components/carousel",
-      "file": "stubs/ui/interactive_components/carousel.lua",
-      "url": "https://developer.runescape.com/rs/ui/interactive_components/carousel.html#select",
-      "signature": "function ui.ComboField:Select(id: integer, triggerEvents?: boolean): boolean"
     },
     {
       "name": "ui.ComboField:Select",
@@ -15571,70 +15539,6 @@
       "module": "ui/component_collection",
       "file": "stubs/ui/component_collection.lua",
       "url": "https://developer.runescape.com/rs/ui/component_collection.html",
-      "signature": "---@class ui.ComponentCollection : ui.Component"
-    },
-    {
-      "name": "ui.ComponentCollection",
-      "kind": "class",
-      "module": "ui/decorative_components/modelgroup",
-      "file": "stubs/ui/decorative_components/modelgroup.lua",
-      "url": "https://developer.runescape.com/rs/ui/decorative_components/modelgroup.html#overview",
-      "signature": "---@class ui.ComponentCollection : ui.Component"
-    },
-    {
-      "name": "ui.ComponentCollection",
-      "kind": "class",
-      "module": "ui/layout_components/cutscene_layer",
-      "file": "stubs/ui/layout_components/cutscene_layer.lua",
-      "url": "https://developer.runescape.com/rs/ui/layout_components/cutscene_layer.html#overview",
-      "signature": "---@class ui.ComponentCollection : ui.Component"
-    },
-    {
-      "name": "ui.ComponentCollection",
-      "kind": "class",
-      "module": "ui/layout_components/grid",
-      "file": "stubs/ui/layout_components/grid.lua",
-      "url": "https://developer.runescape.com/rs/ui/layout_components/grid.html#overview",
-      "signature": "---@class ui.ComponentCollection : ui.Component"
-    },
-    {
-      "name": "ui.ComponentCollection",
-      "kind": "class",
-      "module": "ui/layout_components/group_box",
-      "file": "stubs/ui/layout_components/group_box.lua",
-      "url": "https://developer.runescape.com/rs/ui/layout_components/group_box.html#overview",
-      "signature": "---@class ui.ComponentCollection : ui.Component"
-    },
-    {
-      "name": "ui.ComponentCollection",
-      "kind": "class",
-      "module": "ui/layout_components/layer",
-      "file": "stubs/ui/layout_components/layer.lua",
-      "url": "https://developer.runescape.com/rs/ui/layout_components/layer.html#overview",
-      "signature": "---@class ui.ComponentCollection : ui.Component"
-    },
-    {
-      "name": "ui.ComponentCollection",
-      "kind": "class",
-      "module": "ui/layout_components/paged_carousel",
-      "file": "stubs/ui/layout_components/paged_carousel.lua",
-      "url": "https://developer.runescape.com/rs/ui/layout_components/paged_carousel.html#overview",
-      "signature": "---@class ui.ComponentCollection : ui.Component"
-    },
-    {
-      "name": "ui.ComponentCollection",
-      "kind": "class",
-      "module": "ui/layout_components/paged_layer",
-      "file": "stubs/ui/layout_components/paged_layer.lua",
-      "url": "https://developer.runescape.com/rs/ui/layout_components/paged_layer.html#overview",
-      "signature": "---@class ui.ComponentCollection : ui.Component"
-    },
-    {
-      "name": "ui.ComponentCollection",
-      "kind": "class",
-      "module": "ui/layout_components/panel",
-      "file": "stubs/ui/layout_components/panel.lua",
-      "url": "https://developer.runescape.com/rs/ui/layout_components/panel.html#overview",
       "signature": "---@class ui.ComponentCollection : ui.Component"
     },
     {
@@ -17416,14 +17320,6 @@
     {
       "name": "ui.Layer",
       "kind": "class",
-      "module": "ui/layout_components/cutscene_layer",
-      "file": "stubs/ui/layout_components/cutscene_layer.lua",
-      "url": "https://developer.runescape.com/rs/ui/layout_components/cutscene_layer.html#overview",
-      "signature": "---@class ui.Layer : ui.ComponentCollection"
-    },
-    {
-      "name": "ui.Layer",
-      "kind": "class",
       "module": "ui/layout_components/layer",
       "file": "stubs/ui/layout_components/layer.lua",
       "url": "https://developer.runescape.com/rs/ui/layout_components/layer.html",
@@ -18772,14 +18668,6 @@
       "file": "stubs/ui/layout_components/paged_carousel.lua",
       "url": "https://developer.runescape.com/rs/ui/layout_components/paged_carousel.html#properties",
       "signature": "ui.PagedCarousel.pageSpacing: integer"
-    },
-    {
-      "name": "ui.PagedLayer",
-      "kind": "class",
-      "module": "ui/layout_components/paged_carousel",
-      "file": "stubs/ui/layout_components/paged_carousel.lua",
-      "url": "https://developer.runescape.com/rs/ui/layout_components/paged_carousel.html#overview",
-      "signature": "---@class ui.PagedLayer : ui.ComponentCollection"
     },
     {
       "name": "ui.PagedLayer",

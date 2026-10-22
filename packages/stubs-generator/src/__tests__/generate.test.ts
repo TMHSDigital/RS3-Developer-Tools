@@ -22,6 +22,69 @@ async function run() {
   return generate({ client: client(), overrides });
 }
 
+describe("committed stubs invariants", () => {
+  // These run over packages/luals-stubs as committed, so a generator change
+  // must ship with the regenerated stubs (#39).
+  const stubsRoot = fileURLToPath(new URL("../../../luals-stubs/", import.meta.url));
+
+  async function luaFiles(): Promise<{ rel: string; text: string }[]> {
+    const out: { rel: string; text: string }[] = [];
+    async function walk(dir: string, rel: string) {
+      for (const entry of await fsp.readdir(dir, { withFileTypes: true })) {
+        const next = rel ? `${rel}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) await walk(path.join(dir, entry.name), next);
+        else if (entry.name.endsWith(".lua")) out.push({ rel: next, text: await fsp.readFile(path.join(dir, entry.name), "utf8") });
+      }
+    }
+    await walk(path.join(stubsRoot, "stubs"), "");
+    return out;
+  }
+
+  it("no name is both a class and an enum, and every class has one full declaration", async () => {
+    const files = await luaFiles();
+    const classes = new Map<string, string[]>();
+    const enums = new Set<string>();
+    for (const { rel, text } of files) {
+      for (const line of text.split("\n")) {
+        const cls = /^---@class ([\w.]+)( : [\w.]+)?$/.exec(line);
+        if (cls) classes.set(cls[1]!, [...(classes.get(cls[1]!) ?? []), `${rel}${cls[2] ? " (full)" : ""}`]);
+        const en = /^---@enum ([\w.]+)$/.exec(line);
+        if (en) enums.add(en[1]!);
+      }
+    }
+    expect([...enums].filter((e) => classes.has(e))).toEqual([]);
+    // A class may be re-opened on other pages (bare @class line) but is declared with its parent or fields once.
+    const multi = [...classes.entries()].filter(([, where]) => where.length > 1);
+    for (const [name, where] of multi) {
+      const full = where.filter((w) => w.endsWith("(full)"));
+      expect(full.length, `${name} full declarations: ${where.join(", ")}`).toBeLessThanOrEqual(1);
+    }
+    expect(classes.get("ui.ComponentCollection")!.filter((w) => w.endsWith("(full)"))).toHaveLength(1);
+    expect(enums.has("QuestTypeKind")).toBe(true);
+    expect(classes.has("QuestType")).toBe(true);
+  });
+
+  it("no global function is defined twice and the index has one row per name and kind", async () => {
+    const files = await luaFiles();
+    const defined = new Map<string, number>();
+    for (const { text } of files) {
+      for (const m of text.matchAll(/^function ([A-Za-z_]\w*)\(/gm)) defined.set(m[1]!, (defined.get(m[1]!) ?? 0) + 1);
+    }
+    expect([...defined.entries()].filter(([, n]) => n > 1)).toEqual([]);
+    expect(defined.get("lerp")).toBe(1);
+    const index = JSON.parse(await fsp.readFile(path.join(stubsRoot, "index.json"), "utf8")) as { symbols: { name: string; kind: string }[] };
+    const keys = index.symbols.map((s) => `${s.name}|${s.kind}`);
+    expect(keys.length).toBe(new Set(keys).size);
+    const byName = (n: string) => index.symbols.filter((s) => s.name === n);
+    expect(byName("ui.ComponentCollection").filter((s) => s.kind === "class")).toHaveLength(1);
+    expect(byName("lerp")).toHaveLength(1);
+    expect(byName("PluginShutdown")).toHaveLength(1);
+    expect(byName("PluginDependencyUpdate")).toHaveLength(1);
+    expect(byName("QuestType").map((s) => s.kind)).toEqual(["class"]);
+    expect(byName("QuestTypeKind").map((s) => s.kind)).toEqual(["enum"]);
+  });
+});
+
 describe("crawl guard", () => {
   it("fires on an index page without navigation and on a shrunken crawl", async () => {
     const empty = await generate({

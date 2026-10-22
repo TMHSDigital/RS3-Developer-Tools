@@ -6,8 +6,8 @@
 -- Docs: https://developer.runescape.com/rs/game/config/questtype.html
 
 ---@see https://developer.runescape.com/rs/game/config/questtype.html#questtype_1
----@enum QuestType
-QuestType = {
+---@enum QuestTypeKind
+QuestTypeKind = {
     NORMAL = 0,
     SEASONAL = 1,
     TUTORIAL = 2,
@@ -47,7 +47,7 @@ local QuestPreReqSkill_ = {}
 ---@field sortName string
 ---@field isMembers boolean
 ---@field questPoints integer
----@field type QuestType
+---@field type QuestTypeKind
 ---@field difficulty QuestDifficulty
 ---@field iconID integer
 ---@field startCoordGrids CoordGrid[]

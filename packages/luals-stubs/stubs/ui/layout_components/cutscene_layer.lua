@@ -13,14 +13,6 @@
 ---@field INTERFACE_CLOSED ui.CutscenePlaybackEndReason
 ui.CutscenePlaybackEndReason = {}
 
----@see https://developer.runescape.com/rs/ui/layout_components/cutscene_layer.html#overview
----@class ui.ComponentCollection : ui.Component
-local ui_ComponentCollection_ = {}
-
----@see https://developer.runescape.com/rs/ui/layout_components/cutscene_layer.html#overview
----@class ui.Layer : ui.ComponentCollection
-ui.Layer = {}
-
 ---@see https://developer.runescape.com/rs/ui/layout_components/cutscene_layer.html
 ---@class ui.CutsceneLayer : ui.Layer
 local ui_CutsceneLayer_ = {}

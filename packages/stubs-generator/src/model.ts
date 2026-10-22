@@ -420,6 +420,13 @@ export function buildPageModel(page: ParsedPage, options: BuildOptions): PageMod
         }
         const sig = item.sig;
         if (sig.owner === "") {
+          // Several signatures for one free function (lerp for number, Vector2, ...)
+          // become one definition with overloads, as they already do for methods.
+          const existingFree = freeFunctions.find((f) => f.name === sig.name);
+          if (existingFree) {
+            existingFree.overloads.push({ params: sig.params, returns: sig.returns });
+            continue;
+          }
           freeFunctions.push(sig);
           lastSigByHeading.set(anchor, sig);
           continue;
