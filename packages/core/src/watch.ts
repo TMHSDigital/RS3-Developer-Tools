@@ -3,8 +3,8 @@
 
 import * as path from "node:path";
 import chokidar from "chokidar";
-import { syncPlugin, type SyncOptions, type SyncResult } from "./sync.js";
 import { loadArtifactFilterSync } from "./ignore.js";
+import { type SyncOptions, type SyncResult, syncPlugin } from "./sync.js";
 
 export interface WatchOptions extends SyncOptions {
   /** Quiet period after the last change before syncing. Default 300 ms. */
@@ -43,7 +43,12 @@ export function watchPlugin(pluginDir: string, options: WatchOptions = {}): Watc
   const schedule = () => {
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => {
-      running = running.then(() => runSync().then(() => undefined, (error: Error) => options.onError?.(error)));
+      running = running.then(() =>
+        runSync().then(
+          () => undefined,
+          (error: Error) => options.onError?.(error),
+        ),
+      );
     }, debounceMs);
   };
 

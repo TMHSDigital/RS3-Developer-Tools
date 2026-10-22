@@ -4,8 +4,8 @@
 // never reaches dev_plugins or the zip (see isDevArtifact).
 
 import * as path from "node:path";
-import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.js";
 import { loadRs3devSchema, type Rs3devConfig } from "@tmhs/rs3-plugin-schema";
+import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.js";
 import { DOCS, type Finding } from "./findings.js";
 import { pathExists, readUtf8 } from "./fs.js";
 
@@ -46,7 +46,15 @@ export async function loadProjectConfig(pluginDir: string): Promise<ProjectConfi
     return {
       config: {},
       file,
-      findings: [{ level: "error", code: "config-json", message: `${CONFIG_FILE_NAME} is not valid JSON: ${(error as Error).message}`, file: CONFIG_FILE_NAME, docsUrl: DOCS.config }],
+      findings: [
+        {
+          level: "error",
+          code: "config-json",
+          message: `${CONFIG_FILE_NAME} is not valid JSON: ${(error as Error).message}`,
+          file: CONFIG_FILE_NAME,
+          docsUrl: DOCS.config,
+        },
+      ],
     };
   }
   const check = validate();
@@ -55,7 +63,15 @@ export async function loadProjectConfig(pluginDir: string): Promise<ProjectConfi
     return {
       config: {},
       file,
-      findings: [{ level: "error", code: "config-schema", message: `${CONFIG_FILE_NAME} does not match the schema: ${problems}`, file: CONFIG_FILE_NAME, docsUrl: DOCS.config }],
+      findings: [
+        {
+          level: "error",
+          code: "config-schema",
+          message: `${CONFIG_FILE_NAME} does not match the schema: ${problems}`,
+          file: CONFIG_FILE_NAME,
+          docsUrl: DOCS.config,
+        },
+      ],
     };
   }
   return { config: parsed as Rs3devConfig, file, findings: [] };

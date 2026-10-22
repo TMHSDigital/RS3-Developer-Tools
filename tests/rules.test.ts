@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-import * as path from "node:path";
 import { promises as fsp } from "node:fs";
+import * as path from "node:path";
+import { describe, expect, it } from "vitest";
 import { listFiles, parseFrontmatter, readJson, readText, repoRoot } from "./helpers.js";
 
 interface PluginManifest {

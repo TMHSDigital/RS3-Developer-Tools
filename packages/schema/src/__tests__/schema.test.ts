@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
+import { describe, expect, it } from "vitest";
 import { loadPluginSchema, PERMISSIONS } from "../index.js";
 
 function compile() {
@@ -33,9 +33,7 @@ describe("plugin.schema.json", () => {
 
   it("accepts the minimal manifest from the tutorial", () => {
     const validate = compile();
-    expect(
-      validate({ name: "Tutorial plugin", version: "0.0.1", contactEmailAddress: "x@example.com" }),
-    ).toBe(true);
+    expect(validate({ name: "Tutorial plugin", version: "0.0.1", contactEmailAddress: "x@example.com" })).toBe(true);
   });
 
   it("rejects a missing contactEmailAddress", () => {

@@ -1,9 +1,9 @@
-import { afterEach, describe, expect, it } from "vitest";
-import * as path from "node:path";
-import * as os from "node:os";
-import { promises as fsp } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { promises as fsp } from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterEach, describe, expect, it } from "vitest";
 import { parseUrlFlags, runAdopt, runCache, runDoctor, runInit, runLuarc, runPackage, runPreflight, runStubs, runSync, runValidate } from "../commands.js";
 
 // Reuse the core fixtures so the CLI and the library agree on their verdicts.
@@ -73,7 +73,7 @@ describe("rs3dev commands", () => {
     expect(packed).toContain("submission");
     expect(packed).toContain("Before uploading:");
     expect(packed).toContain("1. Archive:");
-    expect(packed).toMatch(/\d+  main\.lua/);
+    expect(packed).toMatch(/\d+ {2}main\.lua/);
     expect((await fsp.stat(outFile)).size).toBeGreaterThan(0);
     // --verify inspects the archive just built: the scaffold's placeholder address is its one error.
     const verify = capture();
@@ -138,7 +138,17 @@ describe("rs3dev commands", () => {
     expect(plain.urls).toEqual({});
     expect(await fsp.readFile(path.join(base, "http-plain", "main.lua"), "utf8")).toContain("None declared yet");
     expect(
-      await runInit("http-urls", { cwd: base, agentFiles: false, stubs: "C:/stubs", permissions: "httpAccess", url: ["wiki=https://runescape.wiki/", "api=https://api.example.test/v1/"] }, capture().options),
+      await runInit(
+        "http-urls",
+        {
+          cwd: base,
+          agentFiles: false,
+          stubs: "C:/stubs",
+          permissions: "httpAccess",
+          url: ["wiki=https://runescape.wiki/", "api=https://api.example.test/v1/"],
+        },
+        capture().options,
+      ),
     ).toBe(0);
     const withUrls = JSON.parse(await fsp.readFile(path.join(base, "http-urls", "plugin.json"), "utf8"));
     expect(withUrls.urls).toEqual({ api: "https://api.example.test/v1/", wiki: "https://runescape.wiki/" });
@@ -219,7 +229,10 @@ describe("rs3dev commands", () => {
   });
 
   it("the built binary prints help", async () => {
-    const exists = await fsp.stat(cliEntry).then(() => true, () => false);
+    const exists = await fsp.stat(cliEntry).then(
+      () => true,
+      () => false,
+    );
     if (!exists) return; // build has not run yet; the library tests above cover the logic
     const result = spawnSync(process.execPath, [cliEntry, "--help"], { encoding: "utf8" });
     expect(result.status).toBe(0);

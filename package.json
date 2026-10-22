@@ -30,14 +30,20 @@
     "link": "node scripts/link-workspaces.mjs",
     "build": "node scripts/build-all.mjs",
     "typecheck": "node scripts/build-all.mjs --typecheck",
-    "test": "vitest run --dir tests && npm test --workspaces --if-present",
+    "test": "vitest run",
     "stubs:generate": "node packages/stubs-generator/dist/cli.js --out packages/luals-stubs",
     "stubs:check": "node packages/stubs-generator/dist/cli.js --out packages/luals-stubs --check",
-    "luals:check": "node scripts/luals-check.mjs examples/hello-counter"
+    "luals:check": "node scripts/luals-check.mjs examples/hello-counter",
+    "test:coverage": "vitest run --coverage",
+    "test:packages": "npm test --workspaces --if-present",
+    "lint": "biome check .",
+    "format": "biome check --write ."
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.6.2",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^5.0.5",
     "ajv": "^8.17.0",
     "ajv-formats": "^3.0.0",
     "cheerio": "^1.0.0",

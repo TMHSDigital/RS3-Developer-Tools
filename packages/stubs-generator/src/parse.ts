@@ -80,7 +80,11 @@ function admonitionKind(classes: string): string {
 /** Parse a docs page's main article into blocks. */
 export function parsePage(html: string): ParsedPage {
   const $ = cheerio.load(html);
-  const title = $("title").first().text().replace(/\s*-\s*RuneScape Client API\s*$/i, "").trim();
+  const title = $("title")
+    .first()
+    .text()
+    .replace(/\s*-\s*RuneScape Client API\s*$/i, "")
+    .trim();
   const main = $(".md-content__inner").first();
   const blocks: Block[] = [];
   const stack: Heading[] = [];
@@ -105,9 +109,7 @@ export function parsePage(html: string): ParsedPage {
 
     if (tag === "div" && $el.hasClass("highlight")) {
       const code = $el.find("code").first();
-      const languageClass = ($el.attr("class") ?? "")
-        .split(/\s+/)
-        .find((c) => c.startsWith("language-"));
+      const languageClass = ($el.attr("class") ?? "").split(/\s+/).find((c) => c.startsWith("language-"));
       const text = (code.length ? code : $el).text().replace(/\r/g, "");
       blocks.push({
         kind: "code",
@@ -123,7 +125,12 @@ export function parsePage(html: string): ParsedPage {
       const rows = $el
         .find("tr")
         .toArray()
-        .map((tr) => $(tr).find("th,td").toArray().map((td) => textWithBreaks($, td)));
+        .map((tr) =>
+          $(tr)
+            .find("th,td")
+            .toArray()
+            .map((td) => textWithBreaks($, td)),
+        );
       const header = rows.shift() ?? [];
       blocks.push({ kind: "table", header, rows, admonition, path: [...stack] });
       return;

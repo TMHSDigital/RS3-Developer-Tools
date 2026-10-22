@@ -57,8 +57,11 @@ jobs:
       - name: Build packages
         run: npm run build
 
-      - name: Unit tests (core, cli, mcp, stubs-generator, schema, repository)
-        run: npm test
+      - name: Lint and format check (Biome)
+        run: npm run lint
+
+      - name: Unit tests (one vitest run over the repository tests and every package) with coverage
+        run: npm run test:coverage
 
       - name: Validate and preflight the example plugin
         run: |

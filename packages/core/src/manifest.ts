@@ -1,20 +1,18 @@
 // plugin.json validation: JSON Schema (draft 2020-12) plus structural checks
 // on the plugin folder itself.
 
+import { promises as fsp } from "node:fs";
 import * as path from "node:path";
+import { loadPluginSchema, type PluginManifest } from "@tmhs/rs3-plugin-schema";
 import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.js";
 import formatsPluginImport, { type FormatsPlugin } from "ajv-formats";
-import { loadPluginSchema, type PluginManifest } from "@tmhs/rs3-plugin-schema";
-import { DOCS, type Finding } from "./findings.js";
-import { requireCalls, scanLua } from "./lua-scan.js";
 import { staleLibraryEntries } from "./adopt.js";
-import { isDirectory, pathExists, readUtf8, listFilesRecursive } from "./fs.js";
-import { promises as fsp } from "node:fs";
+import { DOCS, type Finding } from "./findings.js";
+import { isDirectory, listFilesRecursive, pathExists, readUtf8 } from "./fs.js";
+import { requireCalls, scanLua } from "./lua-scan.js";
 
 // ajv-formats ships a CommonJS build; under Node ESM the plugin may sit on .default.
-const addFormats: FormatsPlugin =
-  (formatsPluginImport as unknown as { default?: FormatsPlugin }).default ??
-  (formatsPluginImport as unknown as FormatsPlugin);
+const addFormats: FormatsPlugin = (formatsPluginImport as unknown as { default?: FormatsPlugin }).default ?? (formatsPluginImport as unknown as FormatsPlugin);
 
 let compiled: ValidateFunction | undefined;
 
@@ -77,19 +75,33 @@ export async function readManifest(pluginDir: string): Promise<ManifestReadResul
   const file = path.join(pluginDir, "plugin.json");
   if (!(await pathExists(file))) {
     return {
-      findings: [{ level: "error", code: "manifest-missing", message: "plugin.json not found in the plugin folder", file: "plugin.json", docsUrl: DOCS.structure }],
+      findings: [
+        { level: "error", code: "manifest-missing", message: "plugin.json not found in the plugin folder", file: "plugin.json", docsUrl: DOCS.structure },
+      ],
     };
   }
   const raw = await fsp.readFile(file);
   const findings: Finding[] = [];
   if (raw.length >= 3 && raw[0] === 0xef && raw[1] === 0xbb && raw[2] === 0xbf) {
-    findings.push({ level: "warning", code: "utf8-bom", message: "plugin.json starts with a UTF-8 byte-order mark; save it as UTF-8 without BOM", file: "plugin.json", docsUrl: DOCS.tutorialFiles });
+    findings.push({
+      level: "warning",
+      code: "utf8-bom",
+      message: "plugin.json starts with a UTF-8 byte-order mark; save it as UTF-8 without BOM",
+      file: "plugin.json",
+      docsUrl: DOCS.tutorialFiles,
+    });
   }
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw.toString("utf8").replace(/^﻿/, ""));
   } catch (error) {
-    findings.push({ level: "error", code: "manifest-json", message: `plugin.json is not valid JSON: ${(error as Error).message}`, file: "plugin.json", docsUrl: DOCS.manifest });
+    findings.push({
+      level: "error",
+      code: "manifest-json",
+      message: `plugin.json is not valid JSON: ${(error as Error).message}`,
+      file: "plugin.json",
+      docsUrl: DOCS.manifest,
+    });
     return { findings };
   }
   findings.push(...validateManifestObject(parsed));
@@ -135,7 +147,12 @@ export async function validatePluginDir(pluginDir: string): Promise<{ manifest?:
   }
   const folderName = path.basename(path.resolve(pluginDir));
   if (/\s/.test(folderName)) {
-    findings.push({ level: "warning", code: "folder-name", message: `the plugin folder name "${folderName}" contains whitespace; the folder name is the identifier used by the console commands`, docsUrl: DOCS.tutorialFiles });
+    findings.push({
+      level: "warning",
+      code: "folder-name",
+      message: `the plugin folder name "${folderName}" contains whitespace; the folder name is the identifier used by the console commands`,
+      docsUrl: DOCS.tutorialFiles,
+    });
   }
   const { manifest, findings: manifestFindings } = await readManifest(pluginDir);
   findings.push(...manifestFindings);
@@ -146,7 +163,13 @@ export async function validatePluginDir(pluginDir: string): Promise<{ manifest?:
   } else {
     const head = Buffer.from(await fsp.readFile(mainLua)).subarray(0, 3);
     if (head[0] === 0xef && head[1] === 0xbb && head[2] === 0xbf) {
-      findings.push({ level: "error", code: "utf8-bom", message: "main.lua starts with a UTF-8 byte-order mark, which breaks the first line of the script", file: "main.lua", docsUrl: DOCS.tutorialFiles });
+      findings.push({
+        level: "error",
+        code: "utf8-bom",
+        message: "main.lua starts with a UTF-8 byte-order mark, which breaks the first line of the script",
+        file: "main.lua",
+        docsUrl: DOCS.tutorialFiles,
+      });
     }
   }
 
@@ -173,7 +196,14 @@ export async function validatePluginDir(pluginDir: string): Promise<{ manifest?:
     for (const call of requireCalls(scanLua(source))) {
       const target = call.target;
       if (target.split("/").includes("..")) {
-        findings.push({ level: "error", code: "require-path", message: `require("${target}") leaves the plugin folder; paths are relative to the plugin root`, file: rel, line: call.line, docsUrl: DOCS.dependencies });
+        findings.push({
+          level: "error",
+          code: "require-path",
+          message: `require("${target}") leaves the plugin folder; paths are relative to the plugin root`,
+          file: rel,
+          line: call.line,
+          docsUrl: DOCS.dependencies,
+        });
         continue;
       }
       const candidate = path.join(pluginDir, ...target.split("/")) + ".lua";
@@ -181,12 +211,26 @@ export async function validatePluginDir(pluginDir: string): Promise<{ manifest?:
       if (target.includes(".")) {
         const slashed = target.replace(/\./g, "/");
         const viaSlashes = await pathExists(path.join(pluginDir, ...slashed.split("/")) + ".lua");
-        findings.push({ level: "error", code: "require-dotted", message: `require("${target}") uses dots; the client documents slash-separated paths relative to the plugin root${viaSlashes ? ` (use require("${slashed}"))` : ""}`, file: rel, line: call.line, docsUrl: DOCS.dependencies });
+        findings.push({
+          level: "error",
+          code: "require-dotted",
+          message: `require("${target}") uses dots; the client documents slash-separated paths relative to the plugin root${viaSlashes ? ` (use require("${slashed}"))` : ""}`,
+          file: rel,
+          line: call.line,
+          docsUrl: DOCS.dependencies,
+        });
         continue;
       }
       const initCandidate = path.join(pluginDir, ...target.split("/"), "init.lua");
       const hint = (await pathExists(initCandidate)) ? `; ${target}/init.lua is not loaded by the client, use require("${target}/init")` : "";
-      findings.push({ level: "error", code: "require-missing", message: `require("${target}") does not match a file (expected ${target}.lua relative to the plugin root)${hint}`, file: rel, line: call.line, docsUrl: DOCS.dependencies });
+      findings.push({
+        level: "error",
+        code: "require-missing",
+        message: `require("${target}") does not match a file (expected ${target}.lua relative to the plugin root)${hint}`,
+        file: rel,
+        line: call.line,
+        docsUrl: DOCS.dependencies,
+      });
     }
   }
 
@@ -194,10 +238,22 @@ export async function validatePluginDir(pluginDir: string): Promise<{ manifest?:
     const perms = [...(manifest.requiredPermissions ?? []), ...(manifest.optionalPermissions ?? [])];
     const dup = perms.filter((p, i) => perms.indexOf(p) !== i);
     for (const p of new Set(dup)) {
-      findings.push({ level: "warning", code: "permission-duplicate", message: `permission "${p}" is listed as both required and optional`, file: "plugin.json", docsUrl: DOCS.permissions });
+      findings.push({
+        level: "warning",
+        code: "permission-duplicate",
+        message: `permission "${p}" is listed as both required and optional`,
+        file: "plugin.json",
+        docsUrl: DOCS.permissions,
+      });
     }
     if (manifest.urls && Object.keys(manifest.urls).length > 0 && !perms.includes("httpAccess")) {
-      findings.push({ level: "warning", code: "urls-without-http", message: "urls are declared but httpAccess is not requested; the URLs cannot be used", file: "plugin.json", docsUrl: DOCS.http });
+      findings.push({
+        level: "warning",
+        code: "urls-without-http",
+        message: "urls are declared but httpAccess is not requested; the URLs cannot be used",
+        file: "plugin.json",
+        docsUrl: DOCS.http,
+      });
     }
   }
   return { manifest, findings };

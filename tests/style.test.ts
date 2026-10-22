@@ -4,9 +4,9 @@
 // The forbidden characters are built from code points so this file itself does
 // not contain them.
 
-import { describe, expect, it } from "vitest";
 import { promises as fsp } from "node:fs";
 import * as path from "node:path";
+import { describe, expect, it } from "vitest";
 import { listFiles, repoRoot } from "./helpers.js";
 
 const TEXT_EXTENSIONS = [".md", ".mdc", ".ts", ".mjs", ".js", ".lua", ".json", ".yml", ".yaml", ".cursorrules", ".editorconfig"];
@@ -14,10 +14,7 @@ const cp = (...codes: number[]) => codes.map((c) => String.fromCodePoint(c)).joi
 const EM_OR_EN_DASH = new RegExp(`[${cp(0x2013, 0x2014)}]`);
 const SMART_QUOTES = new RegExp(`[${cp(0x2018, 0x2019, 0x201c, 0x201d)}]`);
 // Emoji and pictograph blocks; the generated stubs and fixtures are plain ASCII too.
-const EMOJI = new RegExp(
-  `[${cp(0x1f300)}-${cp(0x1faff)}${cp(0x1f000)}-${cp(0x1f2ff)}${cp(0x2600)}-${cp(0x27bf)}${cp(0xfe0f)}]`,
-  "u",
-);
+const EMOJI = new RegExp(`[${cp(0x1f300)}-${cp(0x1faff)}${cp(0x1f000)}-${cp(0x1f2ff)}${cp(0x2600)}-${cp(0x27bf)}${cp(0xfe0f)}]`, "u");
 
 describe("writing style", async () => {
   const files = await listFiles(repoRoot, (rel) => {

@@ -7,40 +7,61 @@
 // recognised shapes is recorded as a note and surfaces in unresolved.md
 // instead of being guessed.
 
-import type { Block, Heading, ParsedPage, TableBlock } from "./parse.js";
 import { stripAngleBrackets } from "./lua-types.js";
-import {
-  convertReturns,
-  convertType,
-  looksLikeIdentifierPath,
-  parseParam,
-  splitTopLevel,
-} from "./lua-types-extra.js";
-import type {
-  ClassDef,
-  EnumDef,
-  EventDef,
-  Field,
-  FunctionSig,
-  HookDef,
-  ModuleDef,
-  Note,
-  Param,
-} from "./types.js";
+import { convertReturns, convertType, looksLikeIdentifierPath, parseParam, splitTopLevel } from "./lua-types-extra.js";
+import type { Block, Heading, ParsedPage, TableBlock } from "./parse.js";
+import type { ClassDef, EnumDef, EventDef, Field, FunctionSig, HookDef, ModuleDef, Note, Param } from "./types.js";
 
 /** Headings that name a section of a page rather than a type or a member. */
 const SECTION_WORDS = new Set(
   [
-    "overview", "example", "examples", "methods", "method", "properties", "property", "functions",
-    "function", "constructors", "constructor", "enumerations", "enumeration", "types", "type",
-    "requirements", "usage", "index", "custom visuals", "restricted components", "handling events",
-    "positioning and layout", "visual properties", "state properties", "interface properties",
-    "supported events", "event payloads", "common methods and properties", "methods and properties",
-    "key codes", "plugin resources", "drawing shapes", "shapes", "accessing the minimenu",
-    "prerequisites and requirements", "common modfiers", "common modifiers", "image layout",
-    "recommend built-in styles", "associated enumerations", "component state change events",
-    "mouse and keyboard events", "touch gesture events", "controller events", "action events",
-    "transmission events", "miscellaneous events",
+    "overview",
+    "example",
+    "examples",
+    "methods",
+    "method",
+    "properties",
+    "property",
+    "functions",
+    "function",
+    "constructors",
+    "constructor",
+    "enumerations",
+    "enumeration",
+    "types",
+    "type",
+    "requirements",
+    "usage",
+    "index",
+    "custom visuals",
+    "restricted components",
+    "handling events",
+    "positioning and layout",
+    "visual properties",
+    "state properties",
+    "interface properties",
+    "supported events",
+    "event payloads",
+    "common methods and properties",
+    "methods and properties",
+    "key codes",
+    "plugin resources",
+    "drawing shapes",
+    "shapes",
+    "accessing the minimenu",
+    "prerequisites and requirements",
+    "common modfiers",
+    "common modifiers",
+    "image layout",
+    "recommend built-in styles",
+    "associated enumerations",
+    "component state change events",
+    "mouse and keyboard events",
+    "touch gesture events",
+    "controller events",
+    "action events",
+    "transmission events",
+    "miscellaneous events",
   ].map((s) => s.toLowerCase()),
 );
 
@@ -107,7 +128,6 @@ function stripSectionSuffix(text: string): string {
 export function collapseWhitespace(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
-
 
 function isSectionWord(text: string): boolean {
   return SECTION_WORDS.has(text.trim().toLowerCase());
@@ -199,8 +219,7 @@ export function buildPageModel(page: ParsedPage, options: BuildOptions): PageMod
   const scan: PageScan = { usedTables: [], configTables: [], idTables: [], varTables: [], varDomains: [] };
   const h1 = page.blocks.find((b) => b.kind === "heading" && b.heading.level === 1);
   const h1Text = h1 && h1.kind === "heading" ? h1.heading.text.trim() : "";
-  const note = (kind: Note["kind"], detail: string, anchor?: string) =>
-    notes.push({ kind, page: options.id, anchor, detail });
+  const note = (kind: Note["kind"], detail: string, anchor?: string) => notes.push({ kind, page: options.id, anchor, detail });
   const placeholders = options.ownerPlaceholders ?? [];
   const placeholderTables = new Map<string, string>();
 
@@ -334,12 +353,7 @@ export function buildPageModel(page: ParsedPage, options: BuildOptions): PageMod
     if (h2) {
       const owners = new Set<string>();
       for (const [anchor, sigs] of sigsByHeading) {
-        const belongs = page.blocks.some(
-          (b) =>
-            b.kind === "heading" &&
-            b.heading.anchor === anchor &&
-            b.path.some((p) => p.anchor === h2.anchor),
-        );
+        const belongs = page.blocks.some((b) => b.kind === "heading" && b.heading.anchor === anchor && b.path.some((p) => p.anchor === h2.anchor));
         if (!belongs) continue;
         for (const sig of sigs) if (sig.owner) owners.add(normaliseOwner(sig.owner, path, anchor));
       }
@@ -363,12 +377,7 @@ export function buildPageModel(page: ParsedPage, options: BuildOptions): PageMod
       }
       // Lower-case identifier headings with no signature and no table are fields the docs
       // describe in prose only (Plugin.urls, Plugin.resources). Report them.
-      if (
-        heading.level >= 3 &&
-        /^[a-z_]\w*$/.test(heading.text.trim()) &&
-        !memberHeadings.has(heading.anchor) &&
-        !isSectionWord(heading.text)
-      ) {
+      if (heading.level >= 3 && /^[a-z_]\w*$/.test(heading.text.trim()) && !memberHeadings.has(heading.anchor) && !isSectionWord(heading.text)) {
         const hasTable = page.blocks.some((b) => b.kind === "table" && innermost(b.path)?.anchor === heading.anchor);
         if (!hasTable) note("member-without-signature", `${heading.text} (heading only, no signature or table)`, heading.anchor);
       }
@@ -474,7 +483,11 @@ export function buildPageModel(page: ParsedPage, options: BuildOptions): PageMod
       for (const row of table.rows) {
         const name = (row[0] ?? "").trim().split(/\s+/)[0] ?? "";
         if (!/^[A-Z_][A-Z0-9_]*$/.test(name)) continue;
-        const params = (row[1] ?? "").split("\n").map((p) => p.trim()).filter(Boolean).map(parseParam);
+        const params = (row[1] ?? "")
+          .split("\n")
+          .map((p) => p.trim())
+          .filter(Boolean)
+          .map(parseParam);
         let hook = hooks.find((h) => h.name === name);
         if (!hook) {
           hook = { name, variants: [], anchor };
@@ -568,7 +581,6 @@ export function buildPageModel(page: ParsedPage, options: BuildOptions): PageMod
       for (const field of fieldsFromRows(table, anchor, options.id, notes)) {
         if (!cls.fields.some((f) => f.name === field.name)) cls.fields.push(field);
       }
-      continue;
     }
   }
 
@@ -600,7 +612,10 @@ function fieldsFromRows(table: TableBlock, anchor: string, page: string, notes: 
   const fields: Field[] = [];
   for (const row of table.rows) {
     // A cell holding several names (one per line) describes several fields of the same type.
-    const names = (row[0] ?? "").split("\n").map((n) => n.trim()).filter((n) => /^[A-Za-z_]\w*$/.test(n));
+    const names = (row[0] ?? "")
+      .split("\n")
+      .map((n) => n.trim())
+      .filter((n) => /^[A-Za-z_]\w*$/.test(n));
     if (names.length === 0) continue;
     const typeText = (row[1] ?? "").trim();
     const converted = convertType(typeText.replace(/\n/g, "/"));

@@ -1,13 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import * as path from "node:path";
-import * as os from "node:os";
 import { promises as fsp } from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { DocsClient } from "@tmhs/rs3-devtools-core";
-import { createServer } from "../server.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { PROMPT_NAMES, TOOL_ANNOTATIONS } from "../annotations.js";
+import { createServer } from "../server.js";
 
 const fixtures = fileURLToPath(new URL("./fixtures/", import.meta.url));
 const coreFixtures = fileURLToPath(new URL("../../../core/src/__tests__/fixtures/plugins/", import.meta.url));
@@ -216,7 +216,7 @@ describe("rs3-plugin-mcp", () => {
     const good = await callTool("package_zip", { path: "clean", allowPlaceholderEmail: true });
     expect(good.isError).toBe(false);
     expect(String(good.json!.outFile)).toContain(path.join(workspace, "dist"));
-    const escape = await callTool("package_zip", { path: "clean", outFile: path.join(os.tmpdir(), "escape.zip"), allowPlaceholderEmail: true });
-    expect(escape.isError).toBe(true);
+    const escaped = await callTool("package_zip", { path: "clean", outFile: path.join(os.tmpdir(), "escape.zip"), allowPlaceholderEmail: true });
+    expect(escaped.isError).toBe(true);
   });
 });

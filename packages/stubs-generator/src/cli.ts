@@ -12,8 +12,8 @@
 
 import * as path from "node:path";
 import { DocsClient } from "@tmhs/rs3-devtools-core";
-import { generate } from "./generate.js";
 import { diffOutput, writeOutput } from "./cli-io.js";
+import { generate } from "./generate.js";
 import { checkCrawlGuard, readBaseline } from "./guard.js";
 
 interface Args {

@@ -25,8 +25,28 @@ export interface LuaScan {
 }
 
 const KEYWORDS = new Set([
-  "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in",
-  "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while",
+  "and",
+  "break",
+  "do",
+  "else",
+  "elseif",
+  "end",
+  "false",
+  "for",
+  "function",
+  "goto",
+  "if",
+  "in",
+  "local",
+  "nil",
+  "not",
+  "or",
+  "repeat",
+  "return",
+  "then",
+  "true",
+  "until",
+  "while",
 ]);
 
 export function scanLua(source: string): LuaScan {

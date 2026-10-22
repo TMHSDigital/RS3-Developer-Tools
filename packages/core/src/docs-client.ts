@@ -5,11 +5,11 @@
 // repository. A page can also be read from an offline mirror directory, which
 // the test-suite uses with synthetic fixture pages.
 
-import * as path from "node:path";
 import { createHash } from "node:crypto";
 import { promises as fsp } from "node:fs";
+import * as path from "node:path";
+import { pathExists, readUtf8, writeUtf8NoBom } from "./fs.js";
 import { cacheDir } from "./paths.js";
-import { readUtf8, writeUtf8NoBom, pathExists } from "./fs.js";
 
 export const DOCS_BASE_URL = "https://developer.runescape.com/rs/";
 
@@ -73,7 +73,10 @@ export function normaliseDocsPath(ref: string, baseUrl: string = DOCS_BASE_URL):
     }
     rel = rel.slice(baseUrl.length);
   }
-  rel = rel.replace(/^\.?\//, "").split("#")[0]!.split("?")[0]!;
+  rel = rel
+    .replace(/^\.?\//, "")
+    .split("#")[0]!
+    .split("?")[0]!;
   if (rel === "" || rel.endsWith("/")) rel += "index.html";
   if (!rel.endsWith(".html")) rel += ".html";
   if (rel.split("/").includes("..")) throw new Error(`Invalid docs path: ${ref}`);

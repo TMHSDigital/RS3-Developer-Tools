@@ -9,11 +9,10 @@
 // lowercase terms to document ids drives the search.
 
 import * as path from "node:path";
-import { promises as fsp } from "node:fs";
-import { cacheDir } from "./paths.js";
+import type { DocsClient, DocsPage } from "./docs-client.js";
+import { docsPageToText, extractNavLinks } from "./docs-text.js";
 import { pathExists, readUtf8, writeUtf8NoBom } from "./fs.js";
-import { extractNavLinks, docsPageToText } from "./docs-text.js";
-import type { DocsClient } from "./docs-client.js";
+import { cacheDir } from "./paths.js";
 
 export interface DocsIndexDocument {
   page: string;
@@ -40,7 +39,33 @@ export interface DocsIndexHit extends DocsIndexDocument {
   score: number;
 }
 
-const STOP = new Set(["the", "a", "an", "and", "or", "of", "to", "in", "is", "it", "for", "on", "with", "this", "that", "be", "as", "by", "are", "at", "from", "can", "will", "not", "if"]);
+const STOP = new Set([
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "of",
+  "to",
+  "in",
+  "is",
+  "it",
+  "for",
+  "on",
+  "with",
+  "this",
+  "that",
+  "be",
+  "as",
+  "by",
+  "are",
+  "at",
+  "from",
+  "can",
+  "will",
+  "not",
+  "if",
+]);
 
 /** Lowercase word tokens; dotted API names are kept whole and also split. */
 export function tokenise(text: string): string[] {
@@ -82,7 +107,7 @@ export async function buildDocsIndex(client: DocsClient, options: BuildDocsIndex
     terms.set(term, set);
   };
   for (const rel of pages) {
-    let page;
+    let page: DocsPage;
     try {
       page = await client.getPage(rel);
     } catch (error) {

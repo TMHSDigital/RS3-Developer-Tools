@@ -27,7 +27,8 @@ RS3 Developer Tools -- Lua-native developer toolkit for official RuneScape 3 plu
 ```powershell
 npm install            # on exFAT: npm install --workspaces=false --ignore-scripts
 npm run build          # scripts/build-all.mjs, dependency order, refreshes node_modules/@tmhs copies
-npm test               # tests/ then every package
+npm test               # one vitest run: tests/ plus every package (npm run test:coverage for the report)
+npm run lint           # Biome lint and format check; npm run format applies fixes
 npm run stubs:generate # live crawl; commit the result with the generator change
 npm run luals:check    # needs lua-language-server (LUA_LANGUAGE_SERVER or PATH)
 node packages/cli/dist/cli.js preflight examples/hello-counter

@@ -57,7 +57,10 @@ export function extractNavLinks(html: string): string[] {
   $("nav.md-nav a.md-nav__link[href], .md-sidebar a[href]").each((_, a) => {
     const href = ($(a).attr("href") ?? "").trim();
     if (!href || href.startsWith("#") || /^https?:/i.test(href)) return;
-    const clean = href.replace(/^(\.\.\/)+/, "").replace(/^\.\//, "").split("#")[0]!;
+    const clean = href
+      .replace(/^(\.\.\/)+/, "")
+      .replace(/^\.\//, "")
+      .split("#")[0]!;
     if (clean.endsWith(".html")) links.add(clean);
   });
   return [...links].sort();
@@ -66,7 +69,11 @@ export function extractNavLinks(html: string): string[] {
 /** Page title without the site suffix. */
 export function docsPageTitle(html: string): string {
   const $ = cheerio.load(html);
-  return $("title").first().text().replace(/\s*-\s*RuneScape Client API\s*$/i, "").trim();
+  return $("title")
+    .first()
+    .text()
+    .replace(/\s*-\s*RuneScape Client API\s*$/i, "")
+    .trim();
 }
 
 /** Render the main article of a docs page as structured plain text. */
@@ -149,7 +156,11 @@ export function docsPageToText(html: string): DocsPageText {
   };
 
   main.children().each((_, child) => walk(child));
-  const text = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+  const text =
+    lines
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim() + "\n";
   // Locate each heading in the final text in document order, so two sections
   // with the same heading (a repeated "Properties") get their own offsets.
   const finalLines = text.split("\n");

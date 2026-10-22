@@ -2,8 +2,8 @@
 // preflight out of the box. Generated Lua is plain and commented because
 // moderation rejects code that is hard to follow.
 
-import * as path from "node:path";
 import { promises as fsp } from "node:fs";
+import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PERMISSIONS, type Permission, type PluginManifest } from "@tmhs/rs3-plugin-schema";
 import { isDirectory, listFilesRecursive, pathExists, writeUtf8NoBom } from "./fs.js";
@@ -134,11 +134,7 @@ export function renderMainLua(options: ScaffoldOptions, pluginName: string): str
     );
   }
   if (required.size > 0) {
-    push(
-      `-- Required permissions (${[...required].join(", ")}) are granted before the plugin is enabled,`,
-      "-- so no runtime check is needed for them.",
-      "",
-    );
+    push(`-- Required permissions (${[...required].join(", ")}) are granted before the plugin is enabled,`, "-- so no runtime check is needed for them.", "");
   }
   if (optional.has("httpAccess") || required.has("httpAccess")) {
     const names = Object.keys(options.urls ?? {}).sort();

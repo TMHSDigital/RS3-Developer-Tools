@@ -7,15 +7,17 @@
 // on any filesystem. On platforms where npm already linked the packages the
 // script leaves the existing symlinks alone.
 //
-// Usage: node scripts/link-workspaces.mjs [--copy] [--only <package dir>]
+// Usage: node scripts/link-workspaces.mjs [--copy] [--only <package dir>] [--root <monorepo dir>]
 
-import { promises as fsp } from "node:fs";
 import * as fs from "node:fs";
+import { promises as fsp } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
+// --root <dir> points at another monorepo (tests); default is this repository.
+const rootIndex = args.indexOf("--root");
+const root = rootIndex >= 0 ? path.resolve(args[rootIndex + 1]) : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const forceCopy = args.includes("--copy");
 const onlyIndex = args.indexOf("--only");
 const only = onlyIndex >= 0 ? path.resolve(root, args[onlyIndex + 1]) : undefined;

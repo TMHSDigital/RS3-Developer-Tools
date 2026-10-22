@@ -6,7 +6,7 @@ Thank you for your interest in contributing.
 
 1. Fork the repository and clone your fork.
 2. Install Node.js 22 or later, then run `npm install` and `npm run build`.
-3. Make your change with tests, run `npm test`, and open a pull request against `main`.
+3. Make your change with tests, run `npm run lint` and `npm test`, and open a pull request against `main`. `npm run format` applies Biome's fixes; CI runs the lint check and the coverage thresholds in `vitest.config.ts`.
 
 Maintainers commit directly to `main`; external contributions arrive as pull requests and are squash-merged.
 

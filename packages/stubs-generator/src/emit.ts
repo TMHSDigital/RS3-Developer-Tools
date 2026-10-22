@@ -7,18 +7,8 @@
 //   - deterministic: members keep document order, derived sets are sorted,
 //     no timestamps
 
-import type {
-  ClassDef,
-  EnumDef,
-  EventDef,
-  FunctionSig,
-  GlobalTables,
-  HookDef,
-  IndexEntry,
-  ModuleDef,
-  Param,
-} from "./types.js";
 import { renderFunParams, renderFunType } from "./lua-types.js";
+import type { ClassDef, EnumDef, EventDef, FunctionSig, GlobalTables, HookDef, IndexEntry, ModuleDef, Param } from "./types.js";
 
 export interface EmitOptions {
   baseUrl: string;
@@ -69,9 +59,7 @@ function tableName(cls: ClassDef): string {
 }
 
 function paramLines(params: Param[]): string[] {
-  return params.map((p) =>
-    p.vararg ? `---@param ... ${p.type}` : `---@param ${p.name}${p.optional ? "?" : ""} ${p.type}`,
-  );
+  return params.map((p) => (p.vararg ? `---@param ... ${p.type}` : `---@param ${p.name}${p.optional ? "?" : ""} ${p.type}`));
 }
 
 function paramNames(params: Param[]): string {
@@ -118,7 +106,11 @@ function classBlock(cls: ClassDef, url: string): string[] {
     // The full declaration lives on the canonical page; this page only adds the
     // methods it documents. A bare @class line lets LuaLS attach them.
     if (cls.methods.length === 0) return [];
-    const lines: string[] = [see(url, cls.anchor), `-- ${cls.name} is declared in ${moduleFilePath(cls.canonical)}; this page documents the methods below.`, `---@class ${cls.name}`];
+    const lines: string[] = [
+      see(url, cls.anchor),
+      `-- ${cls.name} is declared in ${moduleFilePath(cls.canonical)}; this page documents the methods below.`,
+      `---@class ${cls.name}`,
+    ];
     lines.push(cls.isGlobal ? `${name} = {}` : `local ${name} = {}`, "");
     for (const m of cls.methods) lines.push(...functionBlock(m, name, url));
     return lines;
@@ -238,7 +230,11 @@ export function emitExtras(options: EmitOptions): EmittedFile {
 
 export function emitUnresolved(options: EmitOptions): EmittedFile {
   const lines = header("types referenced by the docs but not declared on any page", options.baseUrl);
-  lines.push("-- Each name below is referenced in a signature or property table but has no page of its own.", "-- They are aliased to any so plugins type-check; see unresolved.md for where each is used.", "");
+  lines.push(
+    "-- Each name below is referenced in a signature or property table but has no page of its own.",
+    "-- They are aliased to any so plugins type-check; see unresolved.md for where each is used.",
+    "",
+  );
   for (const item of options.unresolved) {
     lines.push(`---@alias ${item.name} any`);
   }
@@ -252,23 +248,70 @@ export function indexEntries(mod: ModuleDef, file: string): IndexEntry[] {
   for (const cls of mod.classes) {
     // Only the canonical page contributes the class row; the others add methods.
     if (!cls.canonical) {
-      entries.push({ name: cls.name, kind: "class", module: mod.id, file, url: url(cls.anchor), signature: `---@class ${cls.name}${cls.parent ? " : " + cls.parent : ""}` });
-      for (const f of cls.fields) entries.push({ name: `${cls.name}.${f.name}`, kind: "field", module: mod.id, file, url: url(f.anchor), signature: `${cls.name}.${f.name}: ${f.type}` });
+      entries.push({
+        name: cls.name,
+        kind: "class",
+        module: mod.id,
+        file,
+        url: url(cls.anchor),
+        signature: `---@class ${cls.name}${cls.parent ? " : " + cls.parent : ""}`,
+      });
+      for (const f of cls.fields)
+        entries.push({ name: `${cls.name}.${f.name}`, kind: "field", module: mod.id, file, url: url(f.anchor), signature: `${cls.name}.${f.name}: ${f.type}` });
     }
-    for (const m of cls.methods) entries.push({ name: `${cls.name}${m.sep}${m.name}`, kind: m.sep === ":" ? "method" : "function", module: mod.id, file, url: url(m.anchor), signature: signatureText(m) });
+    for (const m of cls.methods)
+      entries.push({
+        name: `${cls.name}${m.sep}${m.name}`,
+        kind: m.sep === ":" ? "method" : "function",
+        module: mod.id,
+        file,
+        url: url(m.anchor),
+        signature: signatureText(m),
+      });
   }
-  for (const fn of mod.freeFunctions) entries.push({ name: fn.name, kind: "function", module: mod.id, file, url: url(fn.anchor), signature: signatureText(fn) });
+  for (const fn of mod.freeFunctions)
+    entries.push({ name: fn.name, kind: "function", module: mod.id, file, url: url(fn.anchor), signature: signatureText(fn) });
   for (const e of mod.enums) {
     entries.push({ name: e.name, kind: "enum", module: mod.id, file, url: url(e.anchor), signature: `---@enum ${e.name}` });
-    for (const m of e.members) entries.push({ name: `${e.name}.${m.name}`, kind: "enum-member", module: mod.id, file, url: url(e.anchor), signature: m.value !== undefined ? `${e.name}.${m.name} = ${m.value}` : `${e.name}.${m.name}` });
+    for (const m of e.members)
+      entries.push({
+        name: `${e.name}.${m.name}`,
+        kind: "enum-member",
+        module: mod.id,
+        file,
+        url: url(e.anchor),
+        signature: m.value !== undefined ? `${e.name}.${m.name} = ${m.value}` : `${e.name}.${m.name}`,
+      });
   }
   for (const ev of mod.events) {
     const payload = ev.payload.length > 0 ? `fun(e: ${ev.name}Event)` : "fun()";
-    entries.push({ name: `Event.${ev.name}`, kind: "event", module: mod.id, file, url: url(ev.anchor), signature: `Event.${ev.name}.Subscribe(ref: string, callback: ${payload}${ev.returnsBoolean ? ": boolean" : ""})` });
-    for (const f of ev.payload) entries.push({ name: `${ev.name}Event.${f.name}`, kind: "field", module: mod.id, file, url: url(ev.anchor), signature: `${ev.name}Event.${f.name}: ${f.type}` });
+    entries.push({
+      name: `Event.${ev.name}`,
+      kind: "event",
+      module: mod.id,
+      file,
+      url: url(ev.anchor),
+      signature: `Event.${ev.name}.Subscribe(ref: string, callback: ${payload}${ev.returnsBoolean ? ": boolean" : ""})`,
+    });
+    for (const f of ev.payload)
+      entries.push({
+        name: `${ev.name}Event.${f.name}`,
+        kind: "field",
+        module: mod.id,
+        file,
+        url: url(ev.anchor),
+        signature: `${ev.name}Event.${f.name}: ${f.type}`,
+      });
   }
   for (const hook of mod.hooks) {
-    entries.push({ name: `ui.Hook.${hook.name}`, kind: "hook", module: mod.id, file, url: url(hook.anchor), signature: hook.variants.map((v) => renderFunType(v, ["boolean?"])).join(" | ") });
+    entries.push({
+      name: `ui.Hook.${hook.name}`,
+      kind: "hook",
+      module: mod.id,
+      file,
+      url: url(hook.anchor),
+      signature: hook.variants.map((v) => renderFunType(v, ["boolean?"])).join(" | "),
+    });
   }
   return entries;
 }

@@ -49,7 +49,10 @@ export function renderDigest(diff, options = {}) {
   const out = [];
   const heading = options.date ? `## ${options.date}` : "## Changes";
   out.push(heading, "");
-  out.push(`${added.length} added, ${removed.length} removed, ${changed.length} signature change(s)${pagesAdded.length || pagesRemoved.length ? `, pages: +${pagesAdded.length} -${pagesRemoved.length}` : ""}.`, "");
+  out.push(
+    `${added.length} added, ${removed.length} removed, ${changed.length} signature change(s)${pagesAdded.length || pagesRemoved.length ? `, pages: +${pagesAdded.length} -${pagesRemoved.length}` : ""}.`,
+    "",
+  );
   if (pagesAdded.length) out.push("### New pages", "", ...pagesAdded.map((p) => `- ${p}`), "");
   if (pagesRemoved.length) out.push("### Removed pages", "", ...pagesRemoved.map((p) => `- ${p}`), "");
   if (added.length) out.push("### Added", "", ...added.map(line), "");

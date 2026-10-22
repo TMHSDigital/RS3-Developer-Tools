@@ -4,8 +4,8 @@
 // exposes the permission list so other packages do not duplicate the enum.
 
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 export const PLUGIN_SCHEMA_PATH = fileURLToPath(new URL("../plugin.schema.json", import.meta.url));
 

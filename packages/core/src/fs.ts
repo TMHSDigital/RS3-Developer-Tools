@@ -7,8 +7,8 @@
 //   2. Paths are handled with node:path so they work with drive letters and
 //      backslashes on Windows as well as forward slashes elsewhere.
 
-import { promises as fsp } from "node:fs";
 import * as fs from "node:fs";
+import { promises as fsp } from "node:fs";
 import * as path from "node:path";
 
 const UTF8_BOM = "﻿";

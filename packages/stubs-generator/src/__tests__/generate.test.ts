@@ -1,13 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { promises as fsp } from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DocsClient } from "@tmhs/rs3-devtools-core";
-import * as path from "node:path";
-import * as os from "node:os";
-import { promises as fsp } from "node:fs";
+import { describe, expect, it } from "vitest";
 import { generate, loadOverrides } from "../generate.js";
+import { checkCrawlGuard, readBaseline } from "../guard.js";
 import { convertType, parseParam, stripAngleBrackets } from "../lua-types.js";
 import { collapseWhitespace } from "../model.js";
-import { checkCrawlGuard, readBaseline } from "../guard.js";
 
 const fixtures = fileURLToPath(new URL("./fixtures/", import.meta.url));
 const fixturesNoNav = fileURLToPath(new URL("./fixtures-no-nav/", import.meta.url));
@@ -18,7 +18,16 @@ function client() {
 
 async function run() {
   // Overrides target the real docs; an empty set keeps the fixture run self-contained.
-  const overrides = { ...loadOverrides(), classParents: [], eventCallbackReturnsBoolean: [], extraFields: [], ownerPlaceholders: [], returnTypes: [], globalFunctions: [], aliases: [] };
+  const overrides = {
+    ...loadOverrides(),
+    classParents: [],
+    eventCallbackReturnsBoolean: [],
+    extraFields: [],
+    ownerPlaceholders: [],
+    returnTypes: [],
+    globalFunctions: [],
+    aliases: [],
+  };
   return generate({ client: client(), overrides });
 }
 
@@ -89,7 +98,16 @@ describe("crawl guard", () => {
   it("fires on an index page without navigation and on a shrunken crawl", async () => {
     const empty = await generate({
       client: new DocsClient({ offlineDir: fixturesNoNav, baseUrl: "https://example.test/rs/" }),
-      overrides: { ...loadOverrides(), classParents: [], eventCallbackReturnsBoolean: [], extraFields: [], ownerPlaceholders: [], returnTypes: [], globalFunctions: [], aliases: [] },
+      overrides: {
+        ...loadOverrides(),
+        classParents: [],
+        eventCallbackReturnsBoolean: [],
+        extraFields: [],
+        ownerPlaceholders: [],
+        returnTypes: [],
+        globalFunctions: [],
+        aliases: [],
+      },
     });
     expect(empty.pageCount).toBe(0);
     expect(empty.modules).toEqual([]);
@@ -183,7 +201,10 @@ describe("generate (synthetic fixtures)", () => {
     expect(get?.url).toBe("https://example.test/rs/core/sample.html#get");
     expect(get?.signature).toBe("function Sample:Get(key: string): integer?");
     // Provenance: counts and the generator version are always present; ETags only when the server sent them.
-    const index = JSON.parse(result.files["index.json"]!) as { source: { pageCount: number; generatorVersion: string; indexEtag?: string }; modules: { id: string; etag?: string }[] };
+    const index = JSON.parse(result.files["index.json"]!) as {
+      source: { pageCount: number; generatorVersion: string; indexEtag?: string };
+      modules: { id: string; etag?: string }[];
+    };
     expect(index.source.pageCount).toBe(3);
     expect(index.source.generatorVersion).toMatch(/^\d+\.\d+\.\d+/);
     expect(index.source.indexEtag).toBeUndefined();

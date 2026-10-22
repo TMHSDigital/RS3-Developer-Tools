@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
 import * as path from "node:path";
-import { listFiles, readText, repoRoot } from "./helpers.js";
+import { describe, expect, it } from "vitest";
 import { isPlaceholderEmail } from "../packages/core/src/manifest.js";
+import { listFiles, readText, repoRoot } from "./helpers.js";
 
 // The quick start, the CLI README and the skills must not tell the reader to
 // scaffold with an address that rs3dev package then refuses (#7). A value in
@@ -11,9 +11,7 @@ async function docFiles(): Promise<string[]> {
   const skills = (await listFiles(path.join(repoRoot, "cursor-plugin", "skills"), (rel) => rel.endsWith("SKILL.md"))).map(
     (rel) => `cursor-plugin/skills/${rel}`,
   );
-  const rules = (await listFiles(path.join(repoRoot, "cursor-plugin", "rules"), (rel) => rel.endsWith(".mdc"))).map(
-    (rel) => `cursor-plugin/rules/${rel}`,
-  );
+  const rules = (await listFiles(path.join(repoRoot, "cursor-plugin", "rules"), (rel) => rel.endsWith(".mdc"))).map((rel) => `cursor-plugin/rules/${rel}`);
   return ["README.md", "packages/cli/README.md", "packages/mcp/README.md", "AGENTS.md", ...skills, ...rules];
 }
 

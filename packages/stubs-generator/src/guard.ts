@@ -6,8 +6,8 @@
 // handful of modules. Comparing against the committed index.json and
 // unresolved.md turns that into a loud failure instead of a silent commit.
 
-import * as path from "node:path";
 import { promises as fsp } from "node:fs";
+import * as path from "node:path";
 
 export interface CrawlBaseline {
   modules: number;

@@ -3,25 +3,17 @@
 // and render the output files plus the lookup index and the unresolved report.
 
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 
 /** Version of this generator, recorded in index.json so users can tell which build produced their stubs. */
 const GENERATOR_VERSION: string = (createRequire(import.meta.url)("../package.json") as { version?: string }).version ?? "0.0.0";
-import { DocsClient, extractNavLinks } from "@tmhs/rs3-devtools-core";
-import { parsePage } from "./parse.js";
-import { buildPageModel, type PageScan } from "./model.js";
+
+import { type DocsClient, extractNavLinks } from "@tmhs/rs3-devtools-core";
+import { emitExtras, emitGlobals, emitModule, emitNamespaces, emitUnresolved, indexEntries, moduleFilePath, signatureText } from "./emit.js";
 import { collectReferences, dedupe, renderFunParams } from "./lua-types.js";
-import {
-  emitExtras,
-  emitGlobals,
-  emitModule,
-  emitNamespaces,
-  emitUnresolved,
-  indexEntries,
-  moduleFilePath,
-  signatureText,
-} from "./emit.js";
+import { buildPageModel, type PageScan } from "./model.js";
+import { parsePage } from "./parse.js";
 import type { ClassDef, FunctionSig, GenerateResult, GlobalTables, IndexEntry, ModuleDef, Note, Param } from "./types.js";
 
 /** Documentation sections that document API modules (everything else is tutorial or policy). */
@@ -108,7 +100,17 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       const cls = mod.classes.find((c) => c.name === e.name);
       if (!cls) continue;
       const renamed = `${e.name}Kind`;
-      notes.push({ kind: "name-from-heading", page: mod.id, anchor: e.anchor, detail: `enum ${e.name} shares its name with the class ${e.name} on this page; the enum is emitted as ${renamed}, and the class field(s) typed ${e.name} (${cls.fields.filter((f) => f.type === e.name).map((f) => f.name).join(", ") || "none"}) refer to it` });
+      notes.push({
+        kind: "name-from-heading",
+        page: mod.id,
+        anchor: e.anchor,
+        detail: `enum ${e.name} shares its name with the class ${e.name} on this page; the enum is emitted as ${renamed}, and the class field(s) typed ${e.name} (${
+          cls.fields
+            .filter((f) => f.type === e.name)
+            .map((f) => f.name)
+            .join(", ") || "none"
+        }) refer to it`,
+      });
       for (const f of cls.fields) if (f.type === e.name) f.type = renamed;
       e.name = renamed;
     }
@@ -138,7 +140,12 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
         const twin = canonical.cls.methods.find((cm) => cm.name === m.name && cm.sep === m.sep);
         return !(twin && signatureText(twin) === signatureText(m));
       });
-      notes.push({ kind: "owner-normalised", page: copy.mod.id, anchor: copy.cls.anchor, detail: `${name} is declared on ${canonical.mod.id}; this page adds ${copy.cls.methods.length} method(s) and no fields` });
+      notes.push({
+        kind: "owner-normalised",
+        page: copy.mod.id,
+        anchor: copy.cls.anchor,
+        detail: `${name} is declared on ${canonical.mod.id}; this page adds ${copy.cls.methods.length} method(s) and no fields`,
+      });
     }
   }
 
@@ -205,10 +212,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     if (!mod.id.startsWith("game/config/")) continue;
     for (const cls of mod.classes) if (cls.name.endsWith("Type")) configClasses.add(cls.name);
   }
-  const configNames = dedupe([
-    ...[...configClasses].map((c) => c.slice(0, -"Type".length)),
-    ...scans.flatMap((s) => s.configTables),
-  ]).sort();
+  const configNames = dedupe([...[...configClasses].map((c) => c.slice(0, -"Type".length)), ...scans.flatMap((s) => s.configTables)]).sort();
   const globals: GlobalTables = { config: {}, id: [], var: [] };
   for (const name of configNames) {
     const cls = `${name}Type`;
@@ -216,7 +220,11 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       globals.config[name] = cls;
     } else {
       globals.config[name] = "any";
-      notes.push({ kind: "unresolved-type", page: "game/index", detail: `config.${name} is used in docs code but no ${cls} page exists; value type emitted as any` });
+      notes.push({
+        kind: "unresolved-type",
+        page: "game/index",
+        detail: `config.${name} is used in docs code but no ${cls} page exists; value type emitted as any`,
+      });
     }
   }
   globals.id = dedupe([...configNames, ...scans.flatMap((s) => s.idTables)]).sort();
@@ -225,7 +233,8 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     kind: "inferred-from-example",
     page: "game/config/npctype",
     anchor: "overview",
-    detail: "config.<Name>, id.<Name> and var.<Domain> tables and their FromID(integer) functions are read from the code samples on the config pages; no page declares them as signatures",
+    detail:
+      "config.<Name>, id.<Name> and var.<Domain> tables and their FromID(integer) functions are read from the code samples on the config pages; no page declares them as signatures",
   });
 
   // Type resolution across modules.
@@ -260,7 +269,12 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       if (known.has(candidate)) {
         resolution.set(ref, candidate);
         if (candidate.endsWith("Type")) {
-          notes.push({ kind: "unresolved-type", page: where.split("#")[0]!, anchor: where.split("#")[1], detail: `${ref} is not declared on any page; resolved to the config type ${candidate}` });
+          notes.push({
+            kind: "unresolved-type",
+            page: where.split("#")[0]!,
+            anchor: where.split("#")[1],
+            detail: `${ref} is not declared on any page; resolved to the config type ${candidate}`,
+          });
         }
         return;
       }
@@ -300,10 +314,20 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       const sigKnown = sig.returns.every(isKnownType);
       const tableKnown = sig.tableReturns.every(isKnownType);
       if (!sigKnown && tableKnown) {
-        notes.push({ kind: "return-mismatch", page: module.id, anchor: sig.anchor, detail: `${qualifiedName(sig)}: signature says "${sig.returns.join(", ")}", returns table says "${sig.tableReturns.join(", ")}"; the table type is used because the signature type is not declared anywhere` });
+        notes.push({
+          kind: "return-mismatch",
+          page: module.id,
+          anchor: sig.anchor,
+          detail: `${qualifiedName(sig)}: signature says "${sig.returns.join(", ")}", returns table says "${sig.tableReturns.join(", ")}"; the table type is used because the signature type is not declared anywhere`,
+        });
         sig.returns = sig.tableReturns;
       } else {
-        notes.push({ kind: "return-mismatch", page: module.id, anchor: sig.anchor, detail: `${qualifiedName(sig)}: signature says "${sig.returns.join(", ")}", returns table says "${sig.tableReturns.join(", ")}"; the signature type is used` });
+        notes.push({
+          kind: "return-mismatch",
+          page: module.id,
+          anchor: sig.anchor,
+          detail: `${qualifiedName(sig)}: signature says "${sig.returns.join(", ")}", returns table says "${sig.tableReturns.join(", ")}"; the signature type is used`,
+        });
       }
       sig.tableReturns = undefined;
     }
@@ -314,7 +338,9 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
 
   // Apply the resolution map everywhere.
   const fix = (type: string) => rewriteType(type, resolution);
-  const fixParams = (params: Param[]) => params.forEach((p) => (p.type = fix(p.type)));
+  const fixParams = (params: Param[]) => {
+    for (const p of params) p.type = fix(p.type);
+  };
   for (const mod of modules) {
     for (const cls of mod.classes) {
       if (cls.parent) cls.parent = resolution.get(cls.parent) ?? cls.parent;
@@ -337,7 +363,11 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   }
   for (const [name, refs] of [...unresolved.entries()].sort()) {
     const sorted = [...refs].sort();
-    notes.push({ kind: "unresolved-type", page: sorted[0]!.split("#")[0]!, detail: `${name} is referenced by ${sorted.join(", ")} but no page declares it; aliased to any` });
+    notes.push({
+      kind: "unresolved-type",
+      page: sorted[0]!.split("#")[0]!,
+      detail: `${name} is referenced by ${sorted.join(", ")} but no page declares it; aliased to any`,
+    });
   }
 
   // Render.
@@ -364,27 +394,67 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   for (const o of overrides.aliases) notes.push({ kind: "override-applied", page: pageOf(o.see), detail: `alias ${o.name} = ${o.type}. ${o.reason}` });
   for (const o of overrides.globalFunctions) notes.push({ kind: "override-applied", page: pageOf(o.see), detail: `global function ${o.name}. ${o.reason}` });
 
-  for (const file of [emitNamespaces(emitOptions.namespaces, client.baseUrl), emitGlobals(globals, client.baseUrl), emitExtras(emitOptions), emitUnresolved(emitOptions)]) {
+  for (const file of [
+    emitNamespaces(emitOptions.namespaces, client.baseUrl),
+    emitGlobals(globals, client.baseUrl),
+    emitExtras(emitOptions),
+    emitUnresolved(emitOptions),
+  ]) {
     files[file.path] = file.content;
   }
   const globalsPath = "stubs/_globals.lua";
   for (const name of Object.keys(globals.config)) {
-    indexEntriesAll.push({ name: `config.${name}`, kind: "global-table", module: "_globals", file: globalsPath, url: `${client.baseUrl}game/config/${name.toLowerCase()}type.html`, signature: `config.${name}: { [string]: ${globals.config[name]} }` });
+    indexEntriesAll.push({
+      name: `config.${name}`,
+      kind: "global-table",
+      module: "_globals",
+      file: globalsPath,
+      url: `${client.baseUrl}game/config/${name.toLowerCase()}type.html`,
+      signature: `config.${name}: { [string]: ${globals.config[name]} }`,
+    });
   }
   for (const name of globals.id) {
-    indexEntriesAll.push({ name: `id.${name}`, kind: "global-table", module: "_globals", file: globalsPath, url: `${client.baseUrl}game/config/npctype.html#examples`, signature: `id.${name}: { [string]: integer }` });
+    indexEntriesAll.push({
+      name: `id.${name}`,
+      kind: "global-table",
+      module: "_globals",
+      file: globalsPath,
+      url: `${client.baseUrl}game/config/npctype.html#examples`,
+      signature: `id.${name}: { [string]: integer }`,
+    });
   }
   for (const name of globals.var) {
-    indexEntriesAll.push({ name: `var.${name}`, kind: "global-table", module: "_globals", file: globalsPath, url: `${client.baseUrl}game/config/vartype.html#overview`, signature: `var.${name}: { [string]: VarType }` });
+    indexEntriesAll.push({
+      name: `var.${name}`,
+      kind: "global-table",
+      module: "_globals",
+      file: globalsPath,
+      url: `${client.baseUrl}game/config/vartype.html#overview`,
+      signature: `var.${name}: { [string]: VarType }`,
+    });
   }
   // The hooks a plugin defines (PluginShutdown, PluginDependencyUpdate) and the
   // documented aliases live in _extras.lua and must be findable too.
   const extrasPath = "stubs/_extras.lua";
   for (const fn of emitOptions.globalFunctions) {
-    indexEntriesAll.push({ name: fn.name, kind: "function", module: "_extras", file: extrasPath, url: `${client.baseUrl}${fn.see}`, signature: `function ${fn.name}(${renderFunParams(fn.params)})` });
+    indexEntriesAll.push({
+      name: fn.name,
+      kind: "function",
+      module: "_extras",
+      file: extrasPath,
+      url: `${client.baseUrl}${fn.see}`,
+      signature: `function ${fn.name}(${renderFunParams(fn.params)})`,
+    });
   }
   for (const alias of emitOptions.aliases) {
-    indexEntriesAll.push({ name: alias.name, kind: "alias", module: "_extras", file: extrasPath, url: `${client.baseUrl}${alias.see}`, signature: `---@alias ${alias.name} ${alias.type}` });
+    indexEntriesAll.push({
+      name: alias.name,
+      kind: "alias",
+      module: "_extras",
+      file: extrasPath,
+      url: `${client.baseUrl}${alias.see}`,
+      signature: `---@alias ${alias.name} ${alias.type}`,
+    });
   }
 
   const allNotes = dedupeNotes([...modules.flatMap((m) => m.notes), ...notes]).sort(compareNotes);

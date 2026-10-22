@@ -6,19 +6,21 @@
 // the per-user cache folder; the server never indexes any plugin code other
 // than the files inside the workspace it was started for.
 
-import * as path from "node:path";
 import { promises as fsp } from "node:fs";
+import * as path from "node:path";
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import {
-  DocsClient,
-  PERMISSIONS,
   buildDocsIndex,
+  DocsClient,
+  type DocsPage,
   docsIndexPath,
   docsPageToText,
+  type Finding,
   findDevPluginsRoot,
   isInside,
   loadDocsIndex,
+  PERMISSIONS,
+  type Permission,
   packagePlugin,
   pathExists,
   preflightPlugin,
@@ -29,9 +31,8 @@ import {
   summarise,
   syncPlugin,
   validatePluginDir,
-  type Finding,
-  type Permission,
 } from "@tmhs/rs3-devtools-core";
+import { z } from "zod";
 import { TOOL_ANNOTATIONS } from "./annotations.js";
 import { SERVER_INSTRUCTIONS } from "./instructions.js";
 
@@ -105,8 +106,7 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     return path.dirname(indexFile!);
   };
 
-  const resolveDevRoot = async (override?: string): Promise<string> =>
-    (await findDevPluginsRoot({ override: override ?? options.devPluginsRoot })).root;
+  const resolveDevRoot = async (override?: string): Promise<string> => (await findDevPluginsRoot({ override: override ?? options.devPluginsRoot })).root;
 
   /** A path may be read when it is inside the workspace or inside dev_plugins. */
   const checkReadable = async (target: string): Promise<string | undefined> => {
@@ -136,7 +136,8 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     "docs_search",
     {
       title: "Search the RuneScape Client API docs",
-      description: "Search API symbols and documentation pages by name, and page sections by words once docs_index has built the per-user full-text index. Returns matching symbols with their signature and the exact docs URL.",
+      description:
+        "Search API symbols and documentation pages by name, and page sections by words once docs_index has built the per-user full-text index. Returns matching symbols with their signature and the exact docs URL.",
       inputSchema: {
         query: z.string().min(1).describe("Symbol or page name (PersistentDB, ui.Button, NPCEntityAdded) or plain words (combat level, chat message colour)"),
         limit: z.number().int().min(1).max(50).default(15),
@@ -146,7 +147,13 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
       const index = await loadIndex();
       const fullText = await loadDocsIndex(fullTextIndexFile);
       const sections = fullText
-        ? searchDocsIndex(fullText, query, Math.min(limit, 10)).map((h) => ({ page: h.page, heading: h.heading, url: h.url, excerpt: h.excerpt, score: h.score }))
+        ? searchDocsIndex(fullText, query, Math.min(limit, 10)).map((h) => ({
+            page: h.page,
+            heading: h.heading,
+            url: h.url,
+            excerpt: h.excerpt,
+            score: h.score,
+          }))
         : undefined;
       const q = query.toLowerCase();
       const score = (name: string): number => {
@@ -173,7 +180,9 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
         symbols,
         pages,
         sections,
-        hint: sections ? "Use docs_get with a url (and the section anchor) to read the page text." : "Run docs_index once to search page sections by words; then use docs_get with a url to read the text.",
+        hint: sections
+          ? "Use docs_get with a url (and the section anchor) to read the page text."
+          : "Run docs_index once to search page sections by words; then use docs_get with a url to read the text.",
       });
     },
   );
@@ -182,7 +191,8 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     "docs_index",
     {
       title: "Build the full-text docs index",
-      description: "Fetch every documentation page through the ETag cache, convert it to text and build a per-user full-text index (never committed anywhere) so docs_search can answer questions in plain words. Takes a minute the first time; later runs only refetch changed pages.",
+      description:
+        "Fetch every documentation page through the ETag cache, convert it to text and build a per-user full-text index (never committed anywhere) so docs_search can answer questions in plain words. Takes a minute the first time; later runs only refetch changed pages.",
       inputSchema: {},
     },
     async () => {
@@ -199,7 +209,8 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     "docs_get",
     {
       title: "Fetch a documentation page",
-      description: "Fetch a developer.runescape.com page (live, with a local ETag cache) and return its text. Optionally restrict to one section by heading or anchor.",
+      description:
+        "Fetch a developer.runescape.com page (live, with a local ETag cache) and return its text. Optionally restrict to one section by heading or anchor.",
       inputSchema: {
         url: z.string().min(1).describe("Full URL or path such as core/persistentdb.html"),
         section: z.string().optional().describe("Heading text or anchor id to return only that section"),
@@ -207,7 +218,7 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
       },
     },
     async ({ url, section, maxChars }) => {
-      let page;
+      let page: DocsPage;
       try {
         page = await docs.getPage(url);
       } catch (error) {
@@ -229,18 +240,36 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
         // is the explicit form.
         const matches = explicitAnchor ? byAnchor : byHeading.length > 1 ? byHeading : byAnchor.length > 0 ? byAnchor : byHeading;
         if (matches.length === 0) {
-          return fail("DOCS_SECTION", `no section "${section}" on ${page.url}; available anchors: ${text.sections.map((s) => s.anchor || `(line ${s.line + 1})`).join(", ")}`);
+          return fail(
+            "DOCS_SECTION",
+            `no section "${section}" on ${page.url}; available anchors: ${text.sections.map((s) => s.anchor || `(line ${s.line + 1})`).join(", ")}`,
+          );
         }
         if (matches.length > 1) {
-          return fail("DOCS_SECTION", `"${section}" matches ${matches.length} headings on ${page.url}; pass one of the anchors instead: ${matches.map(({ s }) => s.anchor || `(line ${s.line + 1})`).join(", ")}`);
+          return fail(
+            "DOCS_SECTION",
+            `"${section}" matches ${matches.length} headings on ${page.url}; pass one of the anchors instead: ${matches.map(({ s }) => s.anchor || `(line ${s.line + 1})`).join(", ")}`,
+          );
         }
         const { s: start, i: idx } = matches[0]!;
         const next = text.sections.slice(idx + 1).find((s) => s.level <= start.level);
-        body = body.split("\n").slice(start.line, next ? next.line : undefined).join("\n").trim() + "\n";
+        body =
+          body
+            .split("\n")
+            .slice(start.line, next ? next.line : undefined)
+            .join("\n")
+            .trim() + "\n";
       }
       const truncated = body.length > maxChars;
       if (truncated) body = body.slice(0, maxChars) + `\n\n[truncated; ${body.length} characters total. Pass a section or a larger maxChars.]`;
-      return ok({ url: page.url, title: text.title, source: page.source, sections: text.sections.map((s) => s.anchor), text: body, copyright: "Documentation content is copyright Jagex; link to it rather than copying it into plugins or repositories." });
+      return ok({
+        url: page.url,
+        title: text.title,
+        source: page.source,
+        sections: text.sections.map((s) => s.anchor),
+        text: body,
+        copyright: "Documentation content is copyright Jagex; link to it rather than copying it into plugins or repositories.",
+      });
     },
   );
 
@@ -265,7 +294,11 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
           ? exactMatches
           : index.symbols.filter((s) => norm(s.name).endsWith("." + q) || norm(s.name).includes(q)).slice(0, 25);
       if (matches.length === 0) return fail("NOT_FOUND", `no symbol matches "${name}"; try docs_search`);
-      return ok({ query: name, stubsVersion: index.source?.generatorVersion ?? null, matches: matches.map((s) => ({ name: s.name, kind: s.kind, signature: s.signature, stubFile: s.file, url: s.url })) });
+      return ok({
+        query: name,
+        stubsVersion: index.source?.generatorVersion ?? null,
+        matches: matches.map((s) => ({ name: s.name, kind: s.kind, signature: s.signature, stubFile: s.file, url: s.url })),
+      });
     },
   );
 
@@ -290,7 +323,8 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     "guidelines_preflight",
     {
       title: "Preflight a plugin against the submission guidelines",
-      description: "Static checks for sandbox-forbidden globals, permission use without declaration, URLs outside the manifest, missing contact email, lifecycle leaks (missing PluginShutdown, Subscribe without Unsubscribe, undestroyed containers, per-tick list scans) and minified or obfuscated code. Honours rs3dev.json in the plugin folder and inline rs3dev-ignore comments. Each finding links the relevant docs page.",
+      description:
+        "Static checks for sandbox-forbidden globals, permission use without declaration, URLs outside the manifest, missing contact email, lifecycle leaks (missing PluginShutdown, Subscribe without Unsubscribe, undestroyed containers, per-tick list scans) and minified or obfuscated code. Honours rs3dev.json in the plugin folder and inline rs3dev-ignore comments. Each finding links the relevant docs page.",
       inputSchema: {
         path: z.string().min(1).describe("Plugin folder, absolute or relative to the workspace"),
         ignore: z.array(z.string()).default([]).describe("Finding codes to drop, in addition to rs3dev.json preflight.ignore"),
@@ -300,7 +334,12 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
       const denied = await checkReadable(target);
       if (denied) return fail("PATH_DENIED", denied);
       const result = await preflightPlugin(path.resolve(workspaceRoot, target), { ignore });
-      return ok({ ...findingsPayload("guidelines_preflight", result.findings), suppressed: result.suppressed, configFile: result.configFile, filesChecked: result.files });
+      return ok({
+        ...findingsPayload("guidelines_preflight", result.findings),
+        suppressed: result.suppressed,
+        configFile: result.configFile,
+        filesChecked: result.files,
+      });
     },
   );
 
@@ -308,7 +347,8 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     "plugin_scaffold",
     {
       title: "Scaffold a new plugin",
-      description: "Create a new plugin folder with a commented main.lua, plugin.json, .luarc.json and agent guidance files. Writes only inside the workspace and never overwrites existing files.",
+      description:
+        "Create a new plugin folder with a commented main.lua, plugin.json, .luarc.json and agent guidance files. Writes only inside the workspace and never overwrites existing files.",
       inputSchema: {
         path: z.string().min(1).describe("Folder to create; its basename is the plugin identifier"),
         name: z.string().optional().describe("Display name for plugin.json (defaults to the folder name)"),
@@ -345,7 +385,8 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     "devplugins_sync",
     {
       title: "Copy a plugin into dev_plugins",
-      description: "Copy the plugin folder into the client's dev_plugins root (overwriting the previous copy) and return the console reload command. Requires confirm=true; dry_run returns the destination and the exact files a real sync would copy and remove, without writing.",
+      description:
+        "Copy the plugin folder into the client's dev_plugins root (overwriting the previous copy) and return the console reload command. Requires confirm=true; dry_run returns the destination and the exact files a real sync would copy and remove, without writing.",
       inputSchema: {
         path: z.string().min(1).describe("Plugin folder, absolute or relative to the workspace"),
         root: z.string().optional().describe("dev_plugins folder; defaults to RS3_DEV_PLUGINS_DIR or client detection"),
@@ -364,7 +405,8 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
           return fail("DEV_ROOT", (error as Error).message);
         }
       }
-      if (!confirm) return fail("CONFIRM_REQUIRED", "devplugins_sync overwrites the copy in dev_plugins; call again with confirm=true (or dry_run=true to preview)");
+      if (!confirm)
+        return fail("CONFIRM_REQUIRED", "devplugins_sync overwrites the copy in dev_plugins; call again with confirm=true (or dry_run=true to preview)");
       try {
         const result = await syncPlugin(source, { override: root ?? options.devPluginsRoot });
         return ok(result);
@@ -378,7 +420,8 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     "package_zip",
     {
       title: "Package a plugin for mod.io",
-      description: "Run preflight, then build the zip with plugin.json and main.lua at the archive root. Writes only inside the workspace. Upload is manual; the result includes the submission reminder.",
+      description:
+        "Run preflight, then build the zip with plugin.json and main.lua at the archive root. Writes only inside the workspace. Upload is manual; the result includes the submission reminder.",
       inputSchema: {
         path: z.string().min(1).describe("Plugin folder, absolute or relative to the workspace"),
         outFile: z.string().optional().describe("Archive path; defaults to <workspace>/dist/<plugin>-<version>.zip"),
@@ -424,7 +467,14 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
       prompt(
         [
           `Create a RuneScape 3 plugin named "${name}" in this workspace.`,
-          `1. Call plugin_scaffold with path "${name}"${permissions ? ` and permissions [${permissions.split(",").map((p) => `"${p.trim()}"`).join(", ")}]` : " and no permissions"}. Never overwrite an existing folder.`,
+          `1. Call plugin_scaffold with path "${name}"${
+            permissions
+              ? ` and permissions [${permissions
+                  .split(",")
+                  .map((p) => `"${p.trim()}"`)
+                  .join(", ")}]`
+              : " and no permissions"
+          }. Never overwrite an existing folder.`,
           "2. Read the generated main.lua and keep its structure: reference names at the top, helpers, UI construction, event subscriptions, then PluginShutdown that unsubscribes every event and destroys every component.",
           "3. Gate every optional permission with Plugin.HasPermission so the plugin still works when the user declines; request only URLs declared under urls in plugin.json through Plugin.urls.<name>.",
           "4. Set contactEmailAddress in plugin.json to the address users should write to; package_zip refuses placeholders.",
@@ -484,7 +534,11 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
   server.registerResource(
     "stubs-unresolved",
     "rs3://stubs/unresolved.md",
-    { title: "Unresolved and inferred API surface", description: "The generator's report of names it could not resolve from the docs", mimeType: "text/markdown" },
+    {
+      title: "Unresolved and inferred API surface",
+      description: "The generator's report of names it could not resolve from the docs",
+      mimeType: "text/markdown",
+    },
     async (uri) => {
       const file = path.join(await stubsDir(), "unresolved.md");
       const text = (await pathExists(file)) ? await readUtf8(file) : "unresolved.md is not present beside this index.json\n";
@@ -497,10 +551,16 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
     new ResourceTemplate("rs3://stubs/modules/{+id}", {
       list: async () => {
         const index = await loadIndex();
-        return { resources: index.modules.map((m) => ({ uri: `rs3://stubs/modules/${m.id}`, name: m.id, title: m.title, description: m.url, mimeType: "text/x-lua" })) };
+        return {
+          resources: index.modules.map((m) => ({ uri: `rs3://stubs/modules/${m.id}`, name: m.id, title: m.title, description: m.url, mimeType: "text/x-lua" })),
+        };
       },
     }),
-    { title: "Stub module", description: "The LuaLS ---@meta stub for one documentation page; id is the page path without extension, for example core/persistentdb", mimeType: "text/x-lua" },
+    {
+      title: "Stub module",
+      description: "The LuaLS ---@meta stub for one documentation page; id is the page path without extension, for example core/persistentdb",
+      mimeType: "text/x-lua",
+    },
     async (uri, { id }) => {
       const index = await loadIndex();
       const moduleId = Array.isArray(id) ? id.join("/") : String(id);

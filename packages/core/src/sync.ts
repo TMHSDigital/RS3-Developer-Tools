@@ -2,11 +2,11 @@
 // junctions: the client reads from its own folder and a junction would let a
 // stray delete reach the source tree.
 
-import * as path from "node:path";
 import { promises as fsp } from "node:fs";
-import { findDevPluginsRoot, type DevPluginsRootOptions } from "./paths.js";
+import * as path from "node:path";
 import { isDirectory, isInside, listFilesRecursive, pathExists } from "./fs.js";
 import { loadArtifactFilter } from "./ignore.js";
+import { type DevPluginsRootOptions, findDevPluginsRoot } from "./paths.js";
 
 export interface SyncOptions extends DevPluginsRootOptions {
   /** Delete files in the destination that no longer exist in the source. Default true. */

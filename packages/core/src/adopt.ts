@@ -7,11 +7,11 @@
 // to <plugin>/.rs3/stubs (a dotfolder, excluded from sync and package) and
 // points .luarc.json at ./.rs3/stubs.
 
-import * as path from "node:path";
 import { promises as fsp } from "node:fs";
-import { copyAgentFiles } from "./scaffold.js";
-import { libraryPathFor, luarcTemplate, resolveStubsDir, type StubsResolveOptions } from "./luarc.js";
+import * as path from "node:path";
 import { isDirectory, listFilesRecursive, pathExists, readUtf8, writeUtf8NoBom } from "./fs.js";
+import { libraryPathFor, luarcTemplate, resolveStubsDir, type StubsResolveOptions } from "./luarc.js";
+import { copyAgentFiles } from "./scaffold.js";
 
 export const VENDORED_STUBS_DIR = path.join(".rs3", "stubs");
 
@@ -95,7 +95,7 @@ export async function adoptPlugin(pluginDir: string, options: AdoptOptions = {})
     throw new Error(`${dir} has no plugin.json; adopt works on an existing plugin folder (use rs3dev init <name> for a new one)`);
   }
   const luarc = await writePluginLuarc(dir, options);
-  const files = options.agentFiles ?? true ? await copyAgentFiles(dir) : [];
+  const files = (options.agentFiles ?? true) ? await copyAgentFiles(dir) : [];
   return { dir, luarc, files };
 }
 

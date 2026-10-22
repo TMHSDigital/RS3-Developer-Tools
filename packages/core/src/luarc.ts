@@ -11,8 +11,8 @@
 // two share a drive, so a plugin folder can be moved or committed without
 // carrying a machine-specific absolute path.
 
-import * as path from "node:path";
 import { createRequire } from "node:module";
+import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { pathExists, writeUtf8NoBom } from "./fs.js";
 
@@ -43,9 +43,7 @@ export async function stubsPackageDir(options: StubsResolveOptions = {}): Promis
   const here = path.dirname(fileURLToPath(import.meta.url));
   const monorepo = path.resolve(here, "..", "..", "luals-stubs");
   if (await pathExists(path.join(monorepo, "stubs"))) return monorepo;
-  throw new Error(
-    "Could not find the RS3 LuaLS stubs. Install @tmhs/rs3-luals-stubs, set RS3_STUBS_DIR, or run npm run stubs:generate.",
-  );
+  throw new Error("Could not find the RS3 LuaLS stubs. Install @tmhs/rs3-luals-stubs, set RS3_STUBS_DIR, or run npm run stubs:generate.");
 }
 
 /** Absolute path to the stubs folder, honouring the explicit and environment overrides. */

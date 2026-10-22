@@ -1,31 +1,31 @@
 // Command implementations for rs3dev. Each returns the process exit code so the
 // functions can be tested without spawning a process.
 
-import * as path from "node:path";
 import { readFileSync } from "node:fs";
+import * as path from "node:path";
 import {
-  DocsClient,
   adoptPlugin,
   cacheDir,
   checkStubsStatus,
+  DocsClient,
+  runDoctor as doctorReport,
+  type Finding,
   formatDoctorReport,
   formatFindings,
   formatFindingsGithub,
   listFilesRecursive,
   loadProjectConfig,
+  type Permission,
   packagePlugin,
-  toSarif,
-  verifyArchive,
-  writePluginLuarc,
-  runDoctor as doctorReport,
   preflightPlugin,
   scaffoldPlugin,
   summarise,
   syncPlugin,
+  toSarif,
   validatePluginDir,
+  verifyArchive,
   watchPlugin,
-  type Finding,
-  type Permission,
+  writePluginLuarc,
 } from "@tmhs/rs3-devtools-core";
 
 export interface OutputOptions {
@@ -88,7 +88,10 @@ function reportFindings(findings: Finding[], label: string, options: OutputOptio
   } else {
     for (const line of formatFindings(findings)) out(options, line);
     const dropped = report.suppressed?.length ? `, ${report.suppressed.length} suppressed` : "";
-    out(options, `${label}: ${summary.errors} error(s), ${summary.warnings} warning(s), ${summary.infos} note(s)${dropped}${strict && summary.warnings > 0 ? " (strict: warnings fail)" : ""}`);
+    out(
+      options,
+      `${label}: ${summary.errors} error(s), ${summary.warnings} warning(s), ${summary.infos} note(s)${dropped}${strict && summary.warnings > 0 ? " (strict: warnings fail)" : ""}`,
+    );
   }
   if (summary.errors > 0) return 1;
   return strict && summary.warnings > 0 ? 1 : 0;
@@ -114,7 +117,17 @@ export function parseUrlFlags(values: string[] | undefined): Record<string, stri
 
 export async function runInit(
   name: string,
-  opts: { permissions?: string; requiredPermissions?: string; prettyui?: boolean; email?: string; url?: string[]; agentFiles?: boolean; stubs?: string; force?: boolean; cwd?: string },
+  opts: {
+    permissions?: string;
+    requiredPermissions?: string;
+    prettyui?: boolean;
+    email?: string;
+    url?: string[];
+    agentFiles?: boolean;
+    stubs?: string;
+    force?: boolean;
+    cwd?: string;
+  },
   options: OutputOptions,
 ): Promise<number> {
   try {
@@ -186,7 +199,11 @@ export async function runSync(target: string, opts: { root?: string; prune?: boo
     // rs3dev.json supplies the root and prune default; flags win.
     const { config } = await loadProjectConfig(path.resolve(target));
     const root = opts.root ?? (config.sync?.root ? path.resolve(path.resolve(target), config.sync.root) : undefined);
-    const result = await syncPlugin(path.resolve(target), { override: root, prune: opts.prune ?? config.sync?.prune ?? true, createRoot: opts.createRoot ?? false });
+    const result = await syncPlugin(path.resolve(target), {
+      override: root,
+      prune: opts.prune ?? config.sync?.prune ?? true,
+      createRoot: opts.createRoot ?? false,
+    });
     if (options.json) {
       out(options, JSON.stringify(result, null, 2));
     } else {
@@ -203,7 +220,11 @@ export async function runSync(target: string, opts: { root?: string; prune?: boo
   }
 }
 
-export async function runWatch(target: string, opts: { root?: string; debounce?: string; createRoot?: boolean; prune?: boolean }, options: OutputOptions): Promise<number> {
+export async function runWatch(
+  target: string,
+  opts: { root?: string; debounce?: string; createRoot?: boolean; prune?: boolean },
+  options: OutputOptions,
+): Promise<number> {
   const source = path.resolve(target);
   const watcher = watchPlugin(source, {
     override: opts.root,
@@ -243,14 +264,20 @@ export async function runDoctor(target: string | undefined, opts: { stubs?: stri
 
 function describeLuarc(result: { file: string; library: string; resolved: string; source: string; vendoredFiles?: number }): string[] {
   const lines = [`Wrote ${result.file}`, `  workspace.library: ${result.library} (${result.source}; resolves to ${result.resolved})`];
-  if (result.vendoredFiles !== undefined) lines.push(`  copied ${result.vendoredFiles} stub files into the plugin; rerun rs3dev luarc --vendor after updating the stubs`);
+  if (result.vendoredFiles !== undefined)
+    lines.push(`  copied ${result.vendoredFiles} stub files into the plugin; rerun rs3dev luarc --vendor after updating the stubs`);
   else lines.push("  this path is specific to this machine; use --vendor to copy the stubs into the plugin folder when the plugin is shared");
   return lines;
 }
 
 export async function runAdopt(target: string, opts: { stubs?: string; vendor?: boolean; agentFiles?: boolean }, options: OutputOptions): Promise<number> {
   try {
-    const result = await adoptPlugin(path.resolve(target), { stubsDir: opts.stubs, vendor: Boolean(opts.vendor), agentFiles: opts.agentFiles ?? true, resolveFrom: import.meta.url });
+    const result = await adoptPlugin(path.resolve(target), {
+      stubsDir: opts.stubs,
+      vendor: Boolean(opts.vendor),
+      agentFiles: opts.agentFiles ?? true,
+      resolveFrom: import.meta.url,
+    });
     if (options.json) {
       out(options, JSON.stringify({ command: "adopt", ...result }, null, 2));
     } else {

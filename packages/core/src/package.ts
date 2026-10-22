@@ -2,13 +2,13 @@
 // archive root, other plugin files alongside, development artefacts excluded.
 // Timestamps are fixed so the same tree produces the same archive.
 
-import * as path from "node:path";
 import { promises as fsp } from "node:fs";
-import { zipSync, type Zippable } from "fflate";
-import { listFilesRecursive, pathExists } from "./fs.js";
-import { isPlaceholderEmail, readManifest } from "./manifest.js";
-import { loadArtifactFilter } from "./ignore.js";
+import * as path from "node:path";
+import { type Zippable, zipSync } from "fflate";
 import { DOCS } from "./findings.js";
+import { listFilesRecursive, pathExists } from "./fs.js";
+import { loadArtifactFilter } from "./ignore.js";
+import { isPlaceholderEmail, readManifest } from "./manifest.js";
 
 export interface PackageOptions {
   /** Output file. Defaults to <plugin folder name>-<version>.zip in the current directory. */
@@ -124,15 +124,14 @@ export async function packagePlugin(pluginDir: string, options: PackageOptions =
     );
   }
   const readme = files.find((f) => /^readme\.md$/i.test(f));
-  if (readme) warnings.push(`${readme} ships in the archive; moderators and users see it, so make sure it is written for them (add it to .rs3ignore to leave it out)`);
+  if (readme)
+    warnings.push(`${readme} ships in the archive; moderators and users see it, so make sure it is written for them (add it to .rs3ignore to leave it out)`);
 
   const safeVersion = manifest.version.replace(/[^0-9A-Za-z.+-]/g, "_");
   // Default to dist/ under the current directory. When that is the plugin
   // folder itself (the quick start does cd my-plugin), dist/ is a dev artefact
   // that sync, watch and package all ignore, so the zip never re-syncs itself.
-  const outFile = path.resolve(
-    options.outFile ?? path.join(options.outDir ?? path.join(process.cwd(), "dist"), `${path.basename(source)}-${safeVersion}.zip`),
-  );
+  const outFile = path.resolve(options.outFile ?? path.join(options.outDir ?? path.join(process.cwd(), "dist"), `${path.basename(source)}-${safeVersion}.zip`));
   if ((await pathExists(outFile)) && !options.overwrite) {
     throw new Error(`${outFile} already exists; pass --overwrite to replace it`);
   }

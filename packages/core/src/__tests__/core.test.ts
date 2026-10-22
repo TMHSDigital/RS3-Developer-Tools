@@ -1,29 +1,27 @@
-import { afterEach, describe, expect, it } from "vitest";
-import * as path from "node:path";
-import * as os from "node:os";
 import { promises as fsp } from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { unzipSync } from "fflate";
-import { readUtf8 } from "../fs.js";
-import { validateManifestObject, validatePluginDir, isDevArtifact, isPlaceholderEmail } from "../manifest.js";
-import { libraryPathFor, resolveStubsDir } from "../luarc.js";
-import { preflightPlugin } from "../preflight.js";
-import { enclosingCall, scanLua, globalReads, indirectGlobalReads, memberChains, requireCalls } from "../lua-scan.js";
-import { syncPlugin } from "../sync.js";
-import { watchPlugin } from "../watch.js";
+import { afterEach, describe, expect, it } from "vitest";
+import { adoptPlugin, writePluginLuarc } from "../adopt.js";
+import { DocsClient, DocsFetchError, normaliseDocsPath } from "../docs-client.js";
+import { docsPageToText, extractNavLinks } from "../docs-text.js";
 import { formatDoctorReport, runDoctor } from "../doctor.js";
 import { formatFindingsGithub, toSarif } from "../findings.js";
-import { checkStubsStatus } from "../stubs-status.js";
+import { isInside, pathExists, readUtf8 } from "../fs.js";
 import { isJunk, parseIgnoreFile } from "../ignore.js";
-import { verifyArchive } from "../verify.js";
-import { adoptPlugin, writePluginLuarc } from "../adopt.js";
-import { pathExists } from "../fs.js";
+import { enclosingCall, globalReads, indirectGlobalReads, memberChains, requireCalls, scanLua } from "../lua-scan.js";
+import { libraryPathFor, resolveStubsDir } from "../luarc.js";
+import { isDevArtifact, isPlaceholderEmail, validateManifestObject, validatePluginDir } from "../manifest.js";
 import { packagePlugin } from "../package.js";
-import { scaffoldPlugin } from "../scaffold.js";
 import { defaultClientRoots, findDevPluginsRoot } from "../paths.js";
-import { normaliseDocsPath, DocsClient, DocsFetchError } from "../docs-client.js";
-import { docsPageToText, extractNavLinks } from "../docs-text.js";
-import { isInside } from "../fs.js";
+import { preflightPlugin } from "../preflight.js";
+import { scaffoldPlugin } from "../scaffold.js";
+import { checkStubsStatus } from "../stubs-status.js";
+import { syncPlugin } from "../sync.js";
+import { verifyArchive } from "../verify.js";
+import { watchPlugin } from "../watch.js";
 
 const fixtures = fileURLToPath(new URL("./fixtures/", import.meta.url));
 const plugin = (name: string) => path.join(fixtures, "plugins", name);
@@ -98,7 +96,13 @@ describe("lua scanner", () => {
   });
   it("treats table constructor keys as strings and _G access as a read", () => {
     const scan = scanLua(
-      ['local s = { debug = false, io = "x"; load = { os = 1 } }', "local f = g(a, b)", "goto debug", "::debug::", 'local x = _G.os + _G["io"] + rawget(_G, "debug")'].join("\n"),
+      [
+        'local s = { debug = false, io = "x"; load = { os = 1 } }',
+        "local f = g(a, b)",
+        "goto debug",
+        "::debug::",
+        'local x = _G.os + _G["io"] + rawget(_G, "debug")',
+      ].join("\n"),
     );
     expect(globalReads(scan).map((r) => r.name)).toEqual(["g", "a", "b", "_G", "_G", "rawget", "_G"]);
     expect(indirectGlobalReads(scan)).toEqual([
@@ -121,7 +125,9 @@ describe("lua scanner", () => {
     expect(chains.map((c) => c.rootDeclared)).toEqual([false, false, true]);
   });
   it("finds the call that encloses a token", () => {
-    const scan = scanLua('local r = HTTPRequest.new("https://a.test/", path)\nlog("https://b.test/")\nlocal t = { url = "https://c.test/" }\nx = f(g("https://d.test/"))');
+    const scan = scanLua(
+      'local r = HTTPRequest.new("https://a.test/", path)\nlog("https://b.test/")\nlocal t = { url = "https://c.test/" }\nx = f(g("https://d.test/"))',
+    );
     const tokens = scan.tokens.filter((t) => t.kind !== "comment");
     const urls = tokens.map((t, i) => ({ t, i })).filter(({ t }) => t.kind === "string");
     expect(urls.map(({ i }) => enclosingCall(tokens, i))).toEqual(["HTTPRequest.new", "log", undefined, "g"]);
@@ -217,7 +223,9 @@ describe("preflight", () => {
     // Correct plugins pay nothing.
     for (const name of ["clean", "table-keys"]) {
       const result = await preflightPlugin(plugin(name));
-      expect(codes(result.findings).filter((c) => ["shutdown-missing", "subscribe-without-unsubscribe", "component-not-destroyed", "per-tick-scan"].includes(c))).toEqual([]);
+      expect(
+        codes(result.findings).filter((c) => ["shutdown-missing", "subscribe-without-unsubscribe", "component-not-destroyed", "per-tick-scan"].includes(c)),
+      ).toEqual([]);
     }
   });
   it("honours rs3dev.json, --ignore and inline rs3dev-ignore comments", async () => {
@@ -248,13 +256,24 @@ describe("preflight", () => {
   });
   it("renders GitHub workflow commands and SARIF", () => {
     const findings = [
-      { level: "error" as const, code: "sandbox-global", message: 'os is not available: see "docs", 100% sure', file: "main.lua", line: 3, docsUrl: "https://example.test/rules" },
+      {
+        level: "error" as const,
+        code: "sandbox-global",
+        message: 'os is not available: see "docs", 100% sure',
+        file: "main.lua",
+        line: 3,
+        docsUrl: "https://example.test/rules",
+      },
       { level: "info" as const, code: "optional-permission-ungated", message: "gate it", file: "plugin.json", docsUrl: "https://example.test/perm" },
     ];
     const gh = formatFindingsGithub(findings, "plugins/demo");
-    expect(gh[0]).toBe("::error file=plugins/demo/main.lua,line=3,title=sandbox-global::os is not available: see \"docs\", 100%25 sure (see https://example.test/rules)");
+    expect(gh[0]).toBe(
+      '::error file=plugins/demo/main.lua,line=3,title=sandbox-global::os is not available: see "docs", 100%25 sure (see https://example.test/rules)',
+    );
     expect(gh[1]).toBe("::notice file=plugins/demo/plugin.json,title=optional-permission-ungated::gate it (see https://example.test/perm)");
-    const sarif = toSarif(findings, { name: "rs3dev", version: "1.2.3", command: "preflight" }) as { runs: { tool: { driver: { rules: { id: string }[] } }; results: { ruleId: string; level: string; locations?: unknown[] }[] }[] };
+    const sarif = toSarif(findings, { name: "rs3dev", version: "1.2.3", command: "preflight" }) as {
+      runs: { tool: { driver: { rules: { id: string }[] } }; results: { ruleId: string; level: string; locations?: unknown[] }[] }[];
+    };
     expect(sarif.runs[0]!.tool.driver.rules.map((r) => r.id)).toEqual(["sandbox-global", "optional-permission-ungated"]);
     expect(sarif.runs[0]!.results.map((r) => r.level)).toEqual(["error", "note"]);
     expect(sarif.runs[0]!.results[0]!.locations).toHaveLength(1);
@@ -309,9 +328,9 @@ describe("sync", () => {
     const typo = path.join(base, "dev_plugnis");
     await expect(findDevPluginsRoot({ override: typo })).rejects.toThrow(/does not exist \(resolved to .*dev_plugnis\)/);
     // A Windows path copied into a Unix config resolves under the cwd and does not exist either.
-    await expect(findDevPluginsRoot({ env: { RS3_DEV_PLUGINS_DIR: "C:\\ProgramData\\Jagex\\RuneScape-BETA\\dev_plugins" }, override: undefined })).rejects.toThrow(
-      /RS3_DEV_PLUGINS_DIR .* does not exist|does not look like a dev_plugins folder/,
-    );
+    await expect(
+      findDevPluginsRoot({ env: { RS3_DEV_PLUGINS_DIR: "C:\\ProgramData\\Jagex\\RuneScape-BETA\\dev_plugins" }, override: undefined }),
+    ).rejects.toThrow(/RS3_DEV_PLUGINS_DIR .* does not exist|does not look like a dev_plugins folder/);
     const documents = path.join(base, "Documents");
     await fsp.mkdir(documents);
     await expect(findDevPluginsRoot({ override: documents })).rejects.toThrow(/does not look like a dev_plugins folder/);
@@ -447,7 +466,12 @@ describe("stubs status", () => {
     expect(changed.message).toContain("stubs:generate");
     const same = await checkStubsStatus({ indexPath, fetchImpl: respond(200, '"v1"') });
     expect(same.status).toBe("current");
-    const offline = await checkStubsStatus({ indexPath, fetchImpl: (async () => { throw new Error("ENOTFOUND"); }) as typeof fetch });
+    const offline = await checkStubsStatus({
+      indexPath,
+      fetchImpl: (async () => {
+        throw new Error("ENOTFOUND");
+      }) as typeof fetch,
+    });
     expect(offline.status).toBe("offline");
     await write(undefined);
     const unknown = await checkStubsStatus({ indexPath, fetchImpl: respond(304) });
@@ -727,7 +751,9 @@ describe("scaffold", () => {
     const base = await tempDir("rs3-init2-");
     await fsp.writeFile(path.join(base, "x.txt"), "");
     await expect(scaffoldPlugin({ dir: base, agentFiles: false, stubsDir: "s" })).rejects.toThrow(/not empty/);
-    await expect(scaffoldPlugin({ dir: path.join(base, "p"), permissions: ["fileAccess" as never], agentFiles: false, stubsDir: "s" })).rejects.toThrow(/unknown permission/);
+    await expect(scaffoldPlugin({ dir: path.join(base, "p"), permissions: ["fileAccess" as never], agentFiles: false, stubsDir: "s" })).rejects.toThrow(
+      /unknown permission/,
+    );
   });
 });
 

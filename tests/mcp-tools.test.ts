@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { readJson, readText } from "./helpers.js";
 import { PROMPT_NAMES, TOOL_ANNOTATIONS } from "../packages/mcp/src/annotations.js";
+import { readJson, readText } from "./helpers.js";
 
 interface McpTools {
   server: string;
@@ -75,7 +75,16 @@ describe("server instructions", () => {
   it("state the same rules as the workspace AGENTS.md", async () => {
     const { SERVER_INSTRUCTIONS } = await import("../packages/mcp/src/instructions.js");
     const agents = await readText("cursor-plugin/AGENTS.md");
-    for (const phrase of ["loadstring", "Plugin.HasPermission", "PluginShutdown", "display name", "contactEmailAddress", "copyright Jagex", "developer.runescape.com", "mod.io"]) {
+    for (const phrase of [
+      "loadstring",
+      "Plugin.HasPermission",
+      "PluginShutdown",
+      "display name",
+      "contactEmailAddress",
+      "copyright Jagex",
+      "developer.runescape.com",
+      "mod.io",
+    ]) {
       expect(SERVER_INSTRUCTIONS, phrase).toContain(phrase);
       expect(agents, phrase).toContain(phrase);
     }

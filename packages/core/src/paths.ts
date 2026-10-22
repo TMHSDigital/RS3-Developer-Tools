@@ -1,9 +1,9 @@
 // Well-known locations: the per-user cache folder and the RS3 beta client's
 // dev_plugins root.
 
+import { promises as fsp } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { promises as fsp } from "node:fs";
 import { isDirectory } from "./fs.js";
 
 /**
@@ -114,9 +114,7 @@ export interface DevPluginsRootResult {
  * Order: explicit override, RS3_DEV_PLUGINS_DIR, then a scan of the default
  * client roots for a folder holding *.jcache files (dev_plugins sits beside them).
  */
-export async function findDevPluginsRoot(
-  options: DevPluginsRootOptions = {},
-): Promise<DevPluginsRootResult> {
+export async function findDevPluginsRoot(options: DevPluginsRootOptions = {}): Promise<DevPluginsRootResult> {
   const env = options.env ?? process.env;
   if (options.override) {
     return checkExplicitRoot(options.override, "override", options.createRoot ?? false);
@@ -131,8 +129,6 @@ export async function findDevPluginsRoot(
     }
   }
   throw new Error(
-    "Could not find the RS3 beta client (no *.jcache files in: " +
-      candidates.join(", ") +
-      "). Set RS3_DEV_PLUGINS_DIR or pass --root <path to dev_plugins>.",
+    "Could not find the RS3 beta client (no *.jcache files in: " + candidates.join(", ") + "). Set RS3_DEV_PLUGINS_DIR or pass --root <path to dev_plugins>.",
   );
 }

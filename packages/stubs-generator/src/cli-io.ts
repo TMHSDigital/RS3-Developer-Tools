@@ -1,14 +1,11 @@
 // Disk I/O for the generator: write the exact output set, or diff it for --check.
 
-import * as path from "node:path";
 import { promises as fsp } from "node:fs";
-import { listFilesRecursive, readUtf8, writeUtf8NoBom, pathExists } from "@tmhs/rs3-devtools-core";
+import * as path from "node:path";
+import { listFilesRecursive, pathExists, readUtf8, writeUtf8NoBom } from "@tmhs/rs3-devtools-core";
 
 /** Write the generated files, removing stale stub files so the output set is exact. */
-export async function writeOutput(
-  outDir: string,
-  files: Record<string, string>,
-): Promise<{ written: number; removed: number }> {
+export async function writeOutput(outDir: string, files: Record<string, string>): Promise<{ written: number; removed: number }> {
   const stubsDir = path.join(outDir, "stubs");
   let removed = 0;
   if (await pathExists(stubsDir)) {

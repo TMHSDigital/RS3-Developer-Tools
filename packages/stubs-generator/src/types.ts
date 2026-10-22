@@ -126,17 +126,7 @@ export interface GlobalTables {
 
 export interface IndexEntry {
   name: string;
-  kind:
-    | "class"
-    | "function"
-    | "method"
-    | "field"
-    | "enum"
-    | "enum-member"
-    | "event"
-    | "hook"
-    | "global-table"
-    | "alias";
+  kind: "class" | "function" | "method" | "field" | "enum" | "enum-member" | "event" | "hook" | "global-table" | "alias";
   module: string;
   file: string;
   url: string;

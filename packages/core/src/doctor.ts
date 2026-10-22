@@ -3,12 +3,12 @@
 // PATH, .luarc.json pointing at a moved stubs folder, a stale docs cache)
 // otherwise surfaces from a different command with a different message.
 
-import * as path from "node:path";
-import { promises as fsp } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { cacheDir, defaultClientRoots, findDevPluginsRoot } from "./paths.js";
-import { resolveStubsDir, stubsIndexPath, type StubsResolveOptions } from "./luarc.js";
+import { promises as fsp } from "node:fs";
+import * as path from "node:path";
 import { isDirectory, listFilesRecursive, pathExists, readUtf8 } from "./fs.js";
+import { resolveStubsDir, type StubsResolveOptions, stubsIndexPath } from "./luarc.js";
+import { cacheDir, defaultClientRoots, findDevPluginsRoot } from "./paths.js";
 
 export type DoctorStatus = "ok" | "warning" | "missing";
 
@@ -60,7 +60,9 @@ async function devPluginsRow(options: DoctorOptions): Promise<DoctorRow> {
       item: "dev_plugins",
       status: exists ? "ok" : "warning",
       value: `${found.root} (${found.source})`,
-      hint: exists ? undefined : "the folder does not exist yet; the client creates it, or rs3dev sync will when it is detected beside the client's *.jcache files",
+      hint: exists
+        ? undefined
+        : "the folder does not exist yet; the client creates it, or rs3dev sync will when it is detected beside the client's *.jcache files",
     };
   } catch (error) {
     return {
@@ -78,7 +80,12 @@ async function stubsRow(options: DoctorOptions): Promise<DoctorRow> {
   try {
     const dir = await resolveStubsDir(options);
     if (!(await isDirectory(dir))) {
-      return { item: "stubs", status: "missing", value: `${dir} (${source})`, hint: "the stubs folder does not exist; install @tmhs/rs3-luals-stubs, fix RS3_STUBS_DIR, or run npm run stubs:generate in the toolkit checkout" };
+      return {
+        item: "stubs",
+        status: "missing",
+        value: `${dir} (${source})`,
+        hint: "the stubs folder does not exist; install @tmhs/rs3-luals-stubs, fix RS3_STUBS_DIR, or run npm run stubs:generate in the toolkit checkout",
+      };
     }
     let modules = "";
     try {
@@ -117,7 +124,12 @@ function lualsRow(options: DoctorOptions): DoctorRow {
 async function luarcRow(pluginDir: string): Promise<DoctorRow> {
   const file = path.join(path.resolve(pluginDir), ".luarc.json");
   if (!(await pathExists(file))) {
-    return { item: "luarc", status: "missing", value: `${file} not found`, hint: "run rs3dev init on a new folder, or copy packages/luals-stubs/luarc.template.json and set workspace.library" };
+    return {
+      item: "luarc",
+      status: "missing",
+      value: `${file} not found`,
+      hint: "run rs3dev init on a new folder, or copy packages/luals-stubs/luarc.template.json and set workspace.library",
+    };
   }
   try {
     const luarc = JSON.parse(await readUtf8(file)) as { "workspace.library"?: string[] };
@@ -129,8 +141,20 @@ async function luarcRow(pluginDir: string): Promise<DoctorRow> {
       }),
     );
     const broken = resolved.filter((r) => !r.ok);
-    if (libraries.length === 0) return { item: "luarc", status: "warning", value: `${file} has no workspace.library`, hint: "add the stubs folder to workspace.library so LuaLS can see the Client API" };
-    if (broken.length > 0) return { item: "luarc", status: "missing", value: `${file}: ${broken.map((b) => `${b.lib} -> ${b.abs}`).join("; ")} does not exist`, hint: "the stubs folder moved; rerun rs3dev init --force or edit workspace.library (rs3dev doctor shows where the stubs are)" };
+    if (libraries.length === 0)
+      return {
+        item: "luarc",
+        status: "warning",
+        value: `${file} has no workspace.library`,
+        hint: "add the stubs folder to workspace.library so LuaLS can see the Client API",
+      };
+    if (broken.length > 0)
+      return {
+        item: "luarc",
+        status: "missing",
+        value: `${file}: ${broken.map((b) => `${b.lib} -> ${b.abs}`).join("; ")} does not exist`,
+        hint: "the stubs folder moved; rerun rs3dev init --force or edit workspace.library (rs3dev doctor shows where the stubs are)",
+      };
     return { item: "luarc", status: "ok", value: `${file} -> ${resolved.map((r) => r.abs).join(", ")}` };
   } catch (error) {
     return { item: "luarc", status: "missing", value: `${file} is not valid JSON`, hint: (error as Error).message };
@@ -152,7 +176,12 @@ async function cacheRow(env: NodeJS.ProcessEnv): Promise<DoctorRow> {
   }
   const pages = files.filter((f) => f.endsWith(".html")).length;
   const span = oldest && newest ? `, oldest ${oldest.toISOString().slice(0, 10)}, newest ${newest.toISOString().slice(0, 10)}` : "";
-  return { item: "cache", status: "ok", value: `${dir} (${pages} pages, ${(bytes / 1024).toFixed(0)} KB${span})`, hint: pages > 0 ? "rs3dev cache clear removes it" : undefined };
+  return {
+    item: "cache",
+    status: "ok",
+    value: `${dir} (${pages} pages, ${(bytes / 1024).toFixed(0)} KB${span})`,
+    hint: pages > 0 ? "rs3dev cache clear removes it" : undefined,
+  };
 }
 
 /** Inspect the environment and return one row per check. */

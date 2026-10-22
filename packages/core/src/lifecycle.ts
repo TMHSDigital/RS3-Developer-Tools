@@ -85,7 +85,8 @@ function matchingEnd(tokens: LuaToken[], index: number): number {
     const t = tokens[i]!;
     if (t.kind !== "op") continue;
     if (OPENERS.has(t.value)) depth++;
-    else if (t.value === "elseif") depth--; // its "then" re-opens the same block
+    else if (t.value === "elseif")
+      depth--; // its "then" re-opens the same block
     else if (t.value === "end" || t.value === "until") {
       depth--;
       if (depth === 0) return i;
@@ -190,7 +191,7 @@ export function lifecycleFindings(files: LifecycleFile[]): Finding[] {
       }
 
       // Top-level "local name = ui.<Container>.new(parent)"
-      if (t.value === "local" ) continue;
+      if (t.value === "local") continue;
       if (isOp(prev, "local") && depth[i] === 0 && isOp(tokens[i + 1], "=") && tokens[i + 2]?.kind === "name") {
         const ctor = chainFrom(tokens, i + 2);
         const m = /^ui\.(\w+)\.new$/.exec(ctor.chain);

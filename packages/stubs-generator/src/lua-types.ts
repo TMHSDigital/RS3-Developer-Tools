@@ -67,8 +67,28 @@ export interface ConvertedType {
 
 /** Lua reserved words cannot be parameter names; suffix them. */
 const RESERVED = new Set([
-  "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in",
-  "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while",
+  "and",
+  "break",
+  "do",
+  "else",
+  "elseif",
+  "end",
+  "false",
+  "for",
+  "function",
+  "goto",
+  "if",
+  "in",
+  "local",
+  "nil",
+  "not",
+  "or",
+  "repeat",
+  "return",
+  "then",
+  "true",
+  "until",
+  "while",
 ]);
 
 export function sanitiseName(name: string): string {
@@ -95,9 +115,7 @@ export function parseParam(text: string): Param {
 
 /** Render a parameter list as it appears inside a LuaLS "fun(...)" type. */
 export function renderFunParams(params: Param[]): string {
-  return params
-    .map((p) => (p.vararg ? "..." : `${p.name}${p.optional ? "?" : ""}: ${p.type}`))
-    .join(", ");
+  return params.map((p) => (p.vararg ? "..." : `${p.name}${p.optional ? "?" : ""}: ${p.type}`)).join(", ");
 }
 
 /** Render a full LuaLS function type. */

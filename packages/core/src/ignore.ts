@@ -6,8 +6,8 @@
 // (comments, *, **, ?, a trailing slash for folders, a leading slash to anchor
 // at the root, and ! to re-include).
 
-import * as path from "node:path";
 import { readFileSync } from "node:fs";
+import * as path from "node:path";
 import { pathExists, readUtf8 } from "./fs.js";
 import { isDevArtifact } from "./manifest.js";
 
@@ -102,7 +102,7 @@ export function parseIgnoreFile(text: string): IgnoreMatcher {
 export type ArtifactFilter = (relPath: string) => boolean;
 
 function combine(matcher: IgnoreMatcher | undefined): ArtifactFilter {
-  return (rel) => isDevArtifact(rel) || isJunk(rel) || (matcher !== undefined && matcher.ignores(rel));
+  return (rel) => isDevArtifact(rel) || isJunk(rel) || Boolean(matcher?.ignores(rel));
 }
 
 /** Async form for package and sync. */

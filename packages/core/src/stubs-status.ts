@@ -4,8 +4,8 @@
 // changed since, 200 with a different ETag means it has.
 
 import * as path from "node:path";
-import { stubsIndexPath, type StubsResolveOptions } from "./luarc.js";
 import { readUtf8 } from "./fs.js";
+import { type StubsResolveOptions, stubsIndexPath } from "./luarc.js";
 
 export interface StubsSource {
   indexEtag?: string;
@@ -55,14 +55,24 @@ export async function checkStubsStatus(options: StubsStatusOptions = {}): Promis
       signal: controller.signal,
     });
     if (response.status === 304) {
-      return { ...base, currentEtag: index.source.indexEtag, status: "current", message: `the documentation index has not changed since these stubs were generated (ETag ${index.source.indexEtag})` };
+      return {
+        ...base,
+        currentEtag: index.source.indexEtag,
+        status: "current",
+        message: `the documentation index has not changed since these stubs were generated (ETag ${index.source.indexEtag})`,
+      };
     }
     const currentEtag = response.headers.get("etag") ?? undefined;
     if (response.ok && currentEtag && currentEtag === index.source.indexEtag) {
       return { ...base, currentEtag, status: "current", message: `the documentation index still carries ETag ${currentEtag}` };
     }
     if (response.ok) {
-      return { ...base, currentEtag, status: "changed", message: `the documentation changed since these stubs were generated (recorded ETag ${index.source.indexEtag}, server now ${currentEtag ?? "sends none"}); update @tmhs/rs3-luals-stubs or run npm run stubs:generate` };
+      return {
+        ...base,
+        currentEtag,
+        status: "changed",
+        message: `the documentation changed since these stubs were generated (recorded ETag ${index.source.indexEtag}, server now ${currentEtag ?? "sends none"}); update @tmhs/rs3-luals-stubs or run npm run stubs:generate`,
+      };
     }
     return { ...base, status: "offline", message: `could not check: HTTP ${response.status} from ${url}` };
   } catch (error) {

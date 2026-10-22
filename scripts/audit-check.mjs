@@ -25,9 +25,7 @@ const npmArgs = ["audit", "--json", ...(omitDev ? ["--omit=dev"] : [])];
 // npm is a .cmd shim on Windows, which needs a shell; pass one fixed command
 // string there so Node does not warn about unescaped arguments (DEP0190).
 const result =
-  process.platform === "win32"
-    ? spawnSync(`npm.cmd ${npmArgs.join(" ")}`, { encoding: "utf8", shell: true })
-    : spawnSync("npm", npmArgs, { encoding: "utf8" });
+  process.platform === "win32" ? spawnSync(`npm.cmd ${npmArgs.join(" ")}`, { encoding: "utf8", shell: true }) : spawnSync("npm", npmArgs, { encoding: "utf8" });
 const output = `${result.stdout ?? ""}`.trim();
 
 let report;
@@ -52,7 +50,7 @@ const failing = severities.slice(threshold).reduce((n, s) => n + (counts[s] ?? 0
 if (failing > 0) {
   for (const [name, v] of Object.entries(report.vulnerabilities ?? {})) {
     if (severities.indexOf(v.severity) >= threshold) {
-      const via = (v.via ?? []).map((x) => (typeof x === "object" ? x.url ?? x.title : x)).join(", ");
+      const via = (v.via ?? []).map((x) => (typeof x === "object" ? (x.url ?? x.title) : x)).join(", ");
       console.log(`::error title=npm audit ${v.severity}::${name} ${v.range ?? ""} ${via}`.trim());
     }
   }

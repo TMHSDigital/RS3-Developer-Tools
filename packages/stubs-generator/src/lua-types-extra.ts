@@ -1,16 +1,16 @@
 // Re-exports from lua-types plus the identifier test used by the model builder.
 
 export {
-  convertType,
+  collectReferences,
   convertReturns,
+  convertType,
+  dedupe,
+  optionalType,
   parseParam,
-  splitTopLevel,
   renderFunParams,
   renderFunType,
-  collectReferences,
-  optionalType,
+  splitTopLevel,
   wrapIfUnion,
-  dedupe,
 } from "./lua-types.js";
 
 /** True for "Name", "ui.Name", "audio.Sound.Instance" and similar dotted identifiers. */

@@ -1,9 +1,9 @@
-import { afterEach, describe, expect, it } from "vitest";
-import * as path from "node:path";
-import * as os from "node:os";
-import { promises as fsp } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { promises as fsp } from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterEach, describe, expect, it } from "vitest";
 
 // Guards the stdio entry point. npm installs the bin as a symlink on Linux and
 // macOS, so the server must start regardless of what process.argv[1] looks like.
@@ -38,7 +38,10 @@ function waitForReady(entry: string, workspace: string): Promise<{ stderr: strin
 
 describe("rs3-plugin-mcp bin", () => {
   it("starts and prints the ready line when run directly", async () => {
-    const exists = await fsp.stat(binEntry).then(() => true, () => false);
+    const exists = await fsp.stat(binEntry).then(
+      () => true,
+      () => false,
+    );
     if (!exists) return; // build has not run yet; server.test.ts covers the logic
     const workspace = await fsp.mkdtemp(path.join(os.tmpdir(), "rs3-mcp-bin-"));
     tempDirs.push(workspace);
@@ -48,7 +51,10 @@ describe("rs3-plugin-mcp bin", () => {
   });
 
   it("starts when launched through a symlink named like the npm bin", async () => {
-    const exists = await fsp.stat(binEntry).then(() => true, () => false);
+    const exists = await fsp.stat(binEntry).then(
+      () => true,
+      () => false,
+    );
     if (!exists) return;
     const workspace = await fsp.mkdtemp(path.join(os.tmpdir(), "rs3-mcp-bin-link-"));
     tempDirs.push(workspace);

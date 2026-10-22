@@ -13,7 +13,7 @@
 
 import { readFileSync } from "node:fs";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { SERVER_NAME, createServer } from "./server.js";
+import { createServer, SERVER_NAME } from "./server.js";
 
 function readVersion(): string {
   try {
@@ -27,7 +27,7 @@ function readVersion(): string {
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const wsIndex = args.indexOf("--workspace");
-  const workspaceRoot = wsIndex >= 0 ? args[wsIndex + 1] ?? process.cwd() : process.env.RS3_WORKSPACE ?? process.cwd();
+  const workspaceRoot = wsIndex >= 0 ? (args[wsIndex + 1] ?? process.cwd()) : (process.env.RS3_WORKSPACE ?? process.cwd());
   const version = readVersion();
   const server = await createServer({ workspaceRoot, version });
   await server.connect(new StdioServerTransport());

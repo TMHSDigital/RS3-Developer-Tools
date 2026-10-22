@@ -1,22 +1,23 @@
 #!/usr/bin/env node
+
 // rs3dev: command line for RuneScape 3 plugin development.
 
-import { Command } from "commander";
 import { createRequire } from "node:module";
 import * as path from "node:path";
+import { Command } from "commander";
 import {
+  type OutputOptions,
+  runAdopt,
+  runCache,
+  runDoctor,
   runInit,
+  runLuarc,
   runPackage,
   runPreflight,
-  runSync,
-  runDoctor,
-  runCache,
   runStubs,
-  runAdopt,
-  runLuarc,
+  runSync,
   runValidate,
   runWatch,
-  type OutputOptions,
 } from "./commands.js";
 
 const require = createRequire(import.meta.url);
@@ -39,7 +40,12 @@ program
   .option("--required-permissions <list>", "permissions the plugin cannot work without, comma separated")
   .option("--prettyui", "add PrettyUI as a required dependency")
   .option("--email <address>", "contactEmailAddress for plugin.json")
-  .option("--url <name=https://host/>", "base URL to declare under urls in plugin.json (repeatable)", (value: string, previous: string[]) => [...previous, value], [] as string[])
+  .option(
+    "--url <name=https://host/>",
+    "base URL to declare under urls in plugin.json (repeatable)",
+    (value: string, previous: string[]) => [...previous, value],
+    [] as string[],
+  )
   .option("--no-agent-files", "do not copy AGENTS.md, Cursor rules and Claude Code skills")
   .option("--stubs <dir>", "stubs folder to reference from .luarc.json (default: RS3_STUBS_DIR or the installed @tmhs/rs3-luals-stubs)")
   .option("--force", "add files to an existing non-empty folder (never overwrites)")
@@ -52,7 +58,9 @@ program
 
 program
   .command("adopt [path]")
-  .description("bring an existing plugin folder into the toolkit: .luarc.json plus AGENTS.md, Cursor rules and Claude Code skills; plugin.json and main.lua are never touched")
+  .description(
+    "bring an existing plugin folder into the toolkit: .luarc.json plus AGENTS.md, Cursor rules and Claude Code skills; plugin.json and main.lua are never touched",
+  )
   .option("--stubs <dir>", "stubs folder to reference (default: RS3_STUBS_DIR or the installed @tmhs/rs3-luals-stubs)")
   .option("--vendor", "copy the stubs into <plugin>/.rs3/stubs and point .luarc.json at ./.rs3/stubs (portable, about 11 MB)")
   .option("--no-agent-files", "write .luarc.json only")
