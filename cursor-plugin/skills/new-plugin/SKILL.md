@@ -31,11 +31,11 @@ Produce a plugin folder that the RS3 beta client can load with `pon <name>`, tha
 3. Run the scaffold from the parent folder:
 
 ```powershell
-rs3dev init my-plugin --permissions chatAccess --email you@example.com
+rs3dev init my-plugin --permissions chatAccess --email <address>
 ```
 
-   Add `--prettyui` when the plugin builds on the PrettyUI library, and `--no-agent-files` to skip the Cursor rules and Claude skills copy. With the MCP server, call `plugin_scaffold` with the same options.
-4. Open `plugin.json` and set `name`, `version` and a real `contactEmailAddress`.
+   `<address>` is the address users should write to; `rs3dev package` refuses placeholder domains such as `example.com`, so leave the flag off only if step 4 sets it. Add `--prettyui` when the plugin builds on the PrettyUI library, and `--no-agent-files` to skip the Cursor rules and Claude skills copy. With the MCP server, call `plugin_scaffold` with the same options.
+4. Open `plugin.json` and set `name` and `version`, and confirm `contactEmailAddress` is a real address (the scaffold writes `change-me@example.com` when `--email` is omitted).
 5. Read `main.lua`. Keep the structure: constants and reference names at the top, helpers, UI construction, event subscriptions, then `PluginShutdown`.
 6. Check the editor picks up completions: hovering `PersistentDB` or `ui.Button` should show a signature and a `@see` link. If not, confirm `.luarc.json` points at the `stubs` folder of `@tmhs/rs3-luals-stubs`.
 7. Sync and load:

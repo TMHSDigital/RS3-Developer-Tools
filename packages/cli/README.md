@@ -3,7 +3,7 @@
 The `rs3dev` command for RuneScape 3 plugin development.
 
 ```powershell
-rs3dev init <name> [--permissions httpAccess,chatAccess] [--required-permissions ...] [--prettyui] [--email you@example.com] [--no-agent-files] [--force]
+rs3dev init <name> [--permissions httpAccess,chatAccess] [--required-permissions ...] [--prettyui] [--email <address>] [--no-agent-files] [--force]
 rs3dev validate [path]
 rs3dev preflight [path] [--max-line-length 200]
 rs3dev sync [path] [--root <dev_plugins>] [--no-prune]

@@ -23,6 +23,7 @@ standards-version: 1.10.1
 - `hasSettingsIcon` and `hasRibbonIcon` opt into `Event.SettingsLayerReady` and `Event.ContentLayerReady`.
 - Do not hand-write `remote*` fields; the plugin repository sets them.
 - Add the `$schema` line so the editor validates while you type, and run `rs3dev validate` before syncing.
+- `contactEmailAddress` must be an address users can actually write to. `rs3dev package` refuses `example.com`, `example.org`, `example.net` and `change-me` addresses; the example below uses one only as an illustration.
 
 ## Examples
 

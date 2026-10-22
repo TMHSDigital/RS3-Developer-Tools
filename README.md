@@ -55,11 +55,13 @@ If `npm install` fails with `EISDIR ... symlink`, the clone is on a filesystem w
 
 ```powershell
 # 1. Scaffold a plugin. The folder name is the identifier the client console uses.
-rs3dev init my-plugin --permissions chatAccess --email you@example.com
+rs3dev init my-plugin --permissions chatAccess
 cd my-plugin
 
 # 2. Open the folder in Cursor or VS Code. .luarc.json already points LuaLS at the stubs;
 #    hover PersistentDB or ui.Button for the signature and a link to the docs page.
+#    In plugin.json, set contactEmailAddress to the address users should write to
+#    (or pass --email <address> to init). Step 5 refuses the scaffolded placeholder.
 
 # 3. Check the manifest and the code.
 rs3dev validate
