@@ -12,7 +12,7 @@ An RS3 plugin: Lua 5.4.8 that the RuneScape beta client runs against the RuneSca
 - `main.lua` runs when the plugin is enabled; `function PluginShutdown()` runs when it is disabled or reloaded.
 - Other `.lua` files load with `require("folder/file")`, relative to this folder, no extension.
 - `resources/` holds sprites and audio the plugin ships.
-- `.luarc.json` points the Lua language server at generated API stubs. Hover any API symbol for its signature and a `@see` docs link.
+- `.luarc.json` points the Lua language server at generated API stubs. Hover any API symbol for its signature and a `@see` docs link. If every API symbol shows as undefined, the stubs moved: run `rs3dev luarc .` (or `rs3dev luarc . --vendor` to copy them into `.rs3/stubs`); `rs3dev validate .` reports this as `luarc-stale`.
 - `.cursor/rules/*.mdc` and `.claude/skills/*/SKILL.md` are the conventions and task guides; they are development files and are excluded from the packaged zip.
 
 ## Commands

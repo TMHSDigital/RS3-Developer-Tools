@@ -83,9 +83,22 @@ rs3dev package
 
 `rs3dev init` writes a placeholder `contactEmailAddress` (`change-me@example.com`). Preflight reports it as a `placeholder-email` warning and `rs3dev package` refuses to build until a real address is set; addresses on `example.com`, `example.org`, `example.net` or containing `change-me` count as placeholders. The shipped `plugin.json` inside the zip has the editor-only `$schema` key removed.
 
+### Have a plugin already?
+
+Run the toolkit on the folder you have; nothing in it is rewritten:
+
+```powershell
+cd my-existing-plugin
+rs3dev adopt .            # .luarc.json plus AGENTS.md, Cursor rules and Claude Code skills
+rs3dev adopt . --vendor   # same, with the stubs copied into .rs3/stubs so .luarc.json works on every machine
+rs3dev validate . ; rs3dev preflight .
+```
+
+`rs3dev init <folder> --existing` does the same. When completions stop because the stubs moved (npm update, another drive, a teammate's machine), `rs3dev validate` reports `luarc-stale` and `rs3dev luarc .` re-points `.luarc.json`; `rs3dev doctor` shows where the stubs are.
+
 ### LuaLS stubs location
 
-`.luarc.json` points `workspace.library` at the stubs folder, written relative to the plugin folder when both are on the same drive. The folder is found in this order: `--stubs <dir>`, the `RS3_STUBS_DIR` environment variable, the `@tmhs/rs3-luals-stubs` package installed next to the CLI, then the monorepo checkout. Set `RS3_STUBS_DIR` when you keep a regenerated copy of the stubs somewhere else:
+`.luarc.json` points `workspace.library` at the stubs folder. The path is written relative to the plugin folder, but it is still specific to the machine it was written on (it leads into the npm install or the checkout), so do not commit it as is: a collaborator runs `rs3dev luarc .` once, or you vendor the stubs with `rs3dev luarc . --vendor` (about 11 MB under `.rs3/stubs`, a dotfolder that never ships; refresh it after a stubs update). The folder is found in this order: `--stubs <dir>`, the `RS3_STUBS_DIR` environment variable, the `@tmhs/rs3-luals-stubs` package installed next to the CLI, then the monorepo checkout. Set `RS3_STUBS_DIR` when you keep a regenerated copy of the stubs somewhere else:
 
 ```powershell
 $env:RS3_STUBS_DIR = "C:\dev\RS3-Developer-Tools\packages\luals-stubs\stubs"

@@ -4,7 +4,7 @@ import * as os from "node:os";
 import { promises as fsp } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { parseUrlFlags, runCache, runDoctor, runInit, runPackage, runPreflight, runStubs, runSync, runValidate } from "../commands.js";
+import { parseUrlFlags, runAdopt, runCache, runDoctor, runInit, runLuarc, runPackage, runPreflight, runStubs, runSync, runValidate } from "../commands.js";
 
 // Reuse the core fixtures so the CLI and the library agree on their verdicts.
 const coreFixtures = fileURLToPath(new URL("../../../core/src/__tests__/fixtures/plugins/", import.meta.url));
@@ -183,6 +183,24 @@ describe("rs3dev commands", () => {
       else process.env.LUA_LANGUAGE_SERVER = previous.luals;
       if (previous.root !== undefined) process.env.RS3_DEV_PLUGINS_DIR = previous.root;
     }
+  });
+
+  it("adopt and luarc bring an existing folder in without touching its code", async () => {
+    const base = await tempDir("rs3-cli-adopt-");
+    const dir = path.join(base, "mine");
+    await fsp.cp(path.join(coreFixtures, "clean"), dir, { recursive: true });
+    const stubs = path.join(base, "stubs");
+    await fsp.mkdir(stubs);
+    await fsp.writeFile(path.join(stubs, "_globals.lua"), "---@meta\n");
+    const c = capture();
+    expect(await runAdopt(dir, { stubs }, c.options)).toBe(0);
+    expect(c.lines.join("\n")).toContain("AGENTS.md");
+    expect(c.lines.join("\n")).toContain("specific to this machine");
+    expect(await fsp.readFile(path.join(dir, "main.lua"), "utf8")).toContain("Clean fixture");
+    const v = capture();
+    expect(await runLuarc(dir, { stubs, vendor: true }, v.options)).toBe(0);
+    expect(v.lines.join("\n")).toContain("./.rs3/stubs");
+    expect(await runAdopt(path.join(base, "nothing"), {}, capture().options)).toBe(1);
   });
 
   it("stubs status reports the installed stubs against the live docs index", async () => {

@@ -194,6 +194,13 @@ export function renderMainLua(options: ScaffoldOptions, pluginName: string): str
   return lines.join("\n") + "\n";
 }
 
+/** Copy AGENTS.md, the Cursor rules and the Claude Code skills into a plugin folder; existing files are kept. */
+export async function copyAgentFiles(pluginDir: string): Promise<string[]> {
+  const written: string[] = [];
+  await copyTree(AGENT_FILES_DIR, path.resolve(pluginDir), written, "");
+  return written.sort();
+}
+
 async function copyTree(from: string, to: string, written: string[], base: string): Promise<void> {
   if (!(await isDirectory(from))) return;
   for (const rel of await listFilesRecursive(from)) {

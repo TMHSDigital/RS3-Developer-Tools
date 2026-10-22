@@ -7,6 +7,7 @@ import formatsPluginImport, { type FormatsPlugin } from "ajv-formats";
 import { loadPluginSchema, type PluginManifest } from "@tmhs/rs3-plugin-schema";
 import { DOCS, type Finding } from "./findings.js";
 import { requireCalls, scanLua } from "./lua-scan.js";
+import { staleLibraryEntries } from "./adopt.js";
 import { isDirectory, pathExists, readUtf8, listFilesRecursive } from "./fs.js";
 import { promises as fsp } from "node:fs";
 
@@ -147,6 +148,18 @@ export async function validatePluginDir(pluginDir: string): Promise<{ manifest?:
     if (head[0] === 0xef && head[1] === 0xbb && head[2] === 0xbf) {
       findings.push({ level: "error", code: "utf8-bom", message: "main.lua starts with a UTF-8 byte-order mark, which breaks the first line of the script", file: "main.lua", docsUrl: DOCS.tutorialFiles });
     }
+  }
+
+  // A .luarc.json whose library path no longer resolves leaves the editor without
+  // completions and errors on every API symbol; say so and name the fix.
+  for (const stale of await staleLibraryEntries(pluginDir)) {
+    findings.push({
+      level: "warning",
+      code: "luarc-stale",
+      message: `.luarc.json workspace.library entry "${stale.entry}" does not resolve to the stubs (no _globals.lua at ${stale.resolved}); run rs3dev luarc . to re-point it, or rs3dev luarc . --vendor to copy the stubs into the plugin`,
+      file: ".luarc.json",
+      docsUrl: DOCS.tutorialFiles,
+    });
   }
 
   // Every require("x/y") must point at an existing Lua file inside the plugin.

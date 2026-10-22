@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { readFileSync } from "node:fs";
 import {
   DocsClient,
+  adoptPlugin,
   cacheDir,
   checkStubsStatus,
   formatDoctorReport,
@@ -15,6 +16,7 @@ import {
   packagePlugin,
   toSarif,
   verifyArchive,
+  writePluginLuarc,
   runDoctor as doctorReport,
   preflightPlugin,
   scaffoldPlugin,
@@ -237,6 +239,46 @@ export async function runDoctor(target: string | undefined, opts: { stubs?: stri
     for (const line of formatDoctorReport(report)) out(options, line);
   }
   return report.ok ? 0 : 1;
+}
+
+function describeLuarc(result: { file: string; library: string; resolved: string; source: string; vendoredFiles?: number }): string[] {
+  const lines = [`Wrote ${result.file}`, `  workspace.library: ${result.library} (${result.source}; resolves to ${result.resolved})`];
+  if (result.vendoredFiles !== undefined) lines.push(`  copied ${result.vendoredFiles} stub files into the plugin; rerun rs3dev luarc --vendor after updating the stubs`);
+  else lines.push("  this path is specific to this machine; use --vendor to copy the stubs into the plugin folder when the plugin is shared");
+  return lines;
+}
+
+export async function runAdopt(target: string, opts: { stubs?: string; vendor?: boolean; agentFiles?: boolean }, options: OutputOptions): Promise<number> {
+  try {
+    const result = await adoptPlugin(path.resolve(target), { stubsDir: opts.stubs, vendor: Boolean(opts.vendor), agentFiles: opts.agentFiles ?? true, resolveFrom: import.meta.url });
+    if (options.json) {
+      out(options, JSON.stringify({ command: "adopt", ...result }, null, 2));
+    } else {
+      out(options, `Adopted ${result.dir}`);
+      for (const line of describeLuarc(result.luarc)) out(options, line);
+      if (result.files.length > 0) {
+        out(options, "Agent files added (existing files were kept):");
+        for (const f of result.files) out(options, `  ${f}`);
+      }
+      out(options, "Next: rs3dev validate . and rs3dev preflight .");
+    }
+    return 0;
+  } catch (error) {
+    err(options, (error as Error).message);
+    return 1;
+  }
+}
+
+export async function runLuarc(target: string, opts: { stubs?: string; vendor?: boolean }, options: OutputOptions): Promise<number> {
+  try {
+    const result = await writePluginLuarc(path.resolve(target), { stubsDir: opts.stubs, vendor: Boolean(opts.vendor), resolveFrom: import.meta.url });
+    if (options.json) out(options, JSON.stringify({ command: "luarc", ...result }, null, 2));
+    else for (const line of describeLuarc(result)) out(options, line);
+    return 0;
+  } catch (error) {
+    err(options, (error as Error).message);
+    return 1;
+  }
 }
 
 export async function runStubs(action: string, opts: { stubs?: string; fetchImpl?: typeof fetch }, options: OutputOptions): Promise<number> {

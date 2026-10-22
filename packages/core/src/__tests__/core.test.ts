@@ -16,6 +16,8 @@ import { formatFindingsGithub, toSarif } from "../findings.js";
 import { checkStubsStatus } from "../stubs-status.js";
 import { isJunk, parseIgnoreFile } from "../ignore.js";
 import { verifyArchive } from "../verify.js";
+import { adoptPlugin, writePluginLuarc } from "../adopt.js";
+import { pathExists } from "../fs.js";
 import { packagePlugin } from "../package.js";
 import { scaffoldPlugin } from "../scaffold.js";
 import { findDevPluginsRoot } from "../paths.js";
@@ -368,6 +370,47 @@ describe("sync", () => {
     expect(overlap).toBe(0);
     expect(syncs).toBeGreaterThanOrEqual(2);
     expect(await readUtf8(path.join(root, "watched", "extra5.lua"))).toBe("-- 5");
+  });
+});
+
+describe("adopt and luarc", () => {
+  it("adopts an existing plugin, refreshes a stale .luarc.json and vendors the stubs", async () => {
+    const base = await tempDir("rs3-adopt-");
+    const stubs = path.join(base, "stubs");
+    await fsp.mkdir(stubs);
+    await fsp.writeFile(path.join(stubs, "_globals.lua"), "---@meta\n");
+    await fsp.writeFile(path.join(stubs, "core.lua"), "---@meta\n");
+    const dir = path.join(base, "existing");
+    await fsp.cp(plugin("clean"), dir, { recursive: true });
+    const manifestBefore = await readUtf8(path.join(dir, "plugin.json"));
+    // A .luarc.json pointing at a folder that moved away, with a global the author added.
+    await fsp.writeFile(path.join(dir, ".luarc.json"), JSON.stringify({ "workspace.library": ["../gone/stubs"], "diagnostics.globals": ["PrettyUI"] }));
+    const stale = await validatePluginDir(dir);
+    const warning = stale.findings.find((f) => f.code === "luarc-stale");
+    expect(warning?.level).toBe("warning");
+    expect(warning?.message).toContain("rs3dev luarc");
+    await expect(adoptPlugin(path.join(base, "not-a-plugin"), { stubsDir: stubs })).rejects.toThrow(/no plugin\.json/);
+
+    const adopted = await adoptPlugin(dir, { stubsDir: stubs, agentFiles: true });
+    expect(adopted.luarc.source).toBe("--stubs");
+    expect(adopted.luarc.library).toBe("../stubs");
+    const luarc = JSON.parse(await readUtf8(path.join(dir, ".luarc.json")));
+    expect(luarc["diagnostics.globals"]).toEqual(["PrettyUI"]);
+    expect(adopted.files).toContain("AGENTS.md");
+    expect(await readUtf8(path.join(dir, "plugin.json"))).toBe(manifestBefore);
+    expect((await validatePluginDir(dir)).findings.some((f) => f.code === "luarc-stale")).toBe(false);
+    // Adopting again keeps the existing agent files.
+    expect((await adoptPlugin(dir, { stubsDir: stubs })).files).toEqual([]);
+
+    const vendored = await writePluginLuarc(dir, { stubsDir: stubs, vendor: true });
+    expect(vendored.source).toBe("vendored");
+    expect(vendored.library).toBe("./.rs3/stubs");
+    expect(vendored.vendoredFiles).toBe(2);
+    expect(await pathExists(path.join(dir, ".rs3", "stubs", "_globals.lua"))).toBe(true);
+    expect(JSON.parse(await readUtf8(path.join(dir, ".luarc.json")))["workspace.library"]).toEqual(["./.rs3/stubs"]);
+    // The vendored copy is a dotfolder, so it never ships.
+    expect(isDevArtifact(".rs3/stubs/_globals.lua")).toBe(true);
+    expect((await validatePluginDir(dir)).findings.some((f) => f.code === "luarc-stale")).toBe(false);
   });
 });
 

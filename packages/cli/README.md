@@ -4,6 +4,8 @@ The `rs3dev` command for RuneScape 3 plugin development.
 
 ```powershell
 rs3dev init <name> [--permissions httpAccess,chatAccess] [--required-permissions ...] [--prettyui] [--email <address>] [--url api=https://host/ ...] [--stubs <dir>] [--no-agent-files] [--force] [-C <parent dir>]
+rs3dev adopt [path] [--stubs <dir>] [--vendor] [--no-agent-files]
+rs3dev luarc [path] [--stubs <dir>] [--vendor]
 rs3dev validate [path] [--strict] [--format text|json|github|sarif] [--ignore codes]
 rs3dev preflight [path] [--max-line-length 200] [--strict] [--format text|json|github|sarif] [--ignore codes] [--no-config]
 rs3dev sync [path] [--root <dev_plugins>] [--create-root] [--no-prune]
@@ -19,6 +21,8 @@ rs3dev --json <command>
 `doctor` is the first thing to run when something does not work: it prints the Node version, the `dev_plugins` root and how it was chosen (`override`, `env`, `detected`, or the candidates it checked), the stubs folder with its module count, whether `lua-language-server` runs, the plugin's `.luarc.json` library path when a path is given, and the documentation cache size. Each missing item comes with the fix, and the exit code is 1 when anything is missing. `cache clear` removes the documentation cache under `%LOCALAPPDATA%\rs3-devtools\cache` (or `$XDG_CACHE_HOME/rs3-devtools`).
 
 `stubs status` answers "are my stubs current?" with one conditional request: `index.json` records the ETag the documentation server sent when the stubs were generated (`source.indexEtag`, plus `pageCount`, `generatorVersion` and a per-module `etag`), and the command sends it back with `If-None-Match`. Exit code 0 when the docs are unchanged (or the index predates provenance), 2 when they changed since, 1 when the check could not run.
+
+`adopt` (or `init <folder> --existing`) brings an existing plugin folder in: it writes or refreshes `.luarc.json` (keeping any `diagnostics.globals` already listed) and copies `AGENTS.md`, the Cursor rules and the Claude Code skills without overwriting anything, and never touches `plugin.json` or `main.lua`. `luarc` only rewrites `.luarc.json` and prints which stubs location won. With `--vendor` both copy the stubs into `<plugin>/.rs3/stubs` and reference `./.rs3/stubs`, the one form that works on every machine; the dotfolder never ships. `validate` reports `luarc-stale` when `workspace.library` does not resolve to a folder holding `_globals.lua`.
 
 `--json` is a global flag and goes before the command name. `init` writes `urls` only from `--url name=https://host/` flags (repeatable); with `httpAccess` and no `--url` the manifest gets an empty `urls` and `main.lua` says where to declare hosts.
 

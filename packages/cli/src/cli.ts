@@ -3,6 +3,7 @@
 
 import { Command } from "commander";
 import { createRequire } from "node:module";
+import * as path from "node:path";
 import {
   runInit,
   runPackage,
@@ -11,6 +12,8 @@ import {
   runDoctor,
   runCache,
   runStubs,
+  runAdopt,
+  runLuarc,
   runValidate,
   runWatch,
   type OutputOptions,
@@ -40,9 +43,30 @@ program
   .option("--no-agent-files", "do not copy AGENTS.md, Cursor rules and Claude Code skills")
   .option("--stubs <dir>", "stubs folder to reference from .luarc.json (default: RS3_STUBS_DIR or the installed @tmhs/rs3-luals-stubs)")
   .option("--force", "add files to an existing non-empty folder (never overwrites)")
+  .option("--existing", "treat <name> as an existing plugin folder: write .luarc.json and the agent files only (same as rs3dev adopt)")
+  .option("--vendor", "with --existing: copy the stubs into <plugin>/.rs3/stubs so .luarc.json is portable")
   .option("-C, --cwd <dir>", "parent directory for the new plugin", process.cwd())
   .action(async (name: string, opts) => {
-    process.exitCode = await runInit(name, opts, output());
+    process.exitCode = opts.existing ? await runAdopt(path.resolve(opts.cwd ?? process.cwd(), name), opts, output()) : await runInit(name, opts, output());
+  });
+
+program
+  .command("adopt [path]")
+  .description("bring an existing plugin folder into the toolkit: .luarc.json plus AGENTS.md, Cursor rules and Claude Code skills; plugin.json and main.lua are never touched")
+  .option("--stubs <dir>", "stubs folder to reference (default: RS3_STUBS_DIR or the installed @tmhs/rs3-luals-stubs)")
+  .option("--vendor", "copy the stubs into <plugin>/.rs3/stubs and point .luarc.json at ./.rs3/stubs (portable, about 11 MB)")
+  .option("--no-agent-files", "write .luarc.json only")
+  .action(async (target: string | undefined, opts) => {
+    process.exitCode = await runAdopt(target ?? ".", opts, output());
+  });
+
+program
+  .command("luarc [path]")
+  .description("write or refresh .luarc.json for a plugin folder and print which stubs location was used")
+  .option("--stubs <dir>", "stubs folder to reference (default: RS3_STUBS_DIR or the installed @tmhs/rs3-luals-stubs)")
+  .option("--vendor", "copy the stubs into <plugin>/.rs3/stubs and point .luarc.json at ./.rs3/stubs (portable, about 11 MB)")
+  .action(async (target: string | undefined, opts) => {
+    process.exitCode = await runLuarc(target ?? ".", opts, output());
   });
 
 program
