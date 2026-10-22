@@ -112,7 +112,10 @@ export function luarcTemplate(libraryPath: string, globals: string[] = []): Reco
   return {
     $schema: "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
     "runtime.version": "Lua 5.4",
-    "runtime.path": ["?.lua", "?/init.lua"],
+    // The client documents require("a/b") as a path relative to the plugin root
+    // that maps to a/b.lua. No init.lua or dotted-name convention is documented,
+    // so LuaLS is told the same single rule (see validatePluginDir).
+    "runtime.path": ["?.lua"],
     "runtime.pathStrict": true,
     "workspace.library": [libraryPath],
     "workspace.checkThirdParty": false,

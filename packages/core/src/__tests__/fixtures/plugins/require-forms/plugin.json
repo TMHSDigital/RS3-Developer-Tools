@@ -1,0 +1,9 @@
+{
+  "name": "Require Forms Fixture",
+  "version": "0.1.0",
+  "contactEmailAddress": "require-forms@fixture.invalid",
+  "requiredDependencies": [],
+  "optionalDependencies": [],
+  "requiredPermissions": [],
+  "optionalPermissions": []
+}

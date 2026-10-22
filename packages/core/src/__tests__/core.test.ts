@@ -8,12 +8,12 @@ import { readUtf8 } from "../fs.js";
 import { validateManifestObject, validatePluginDir, isDevArtifact, isPlaceholderEmail } from "../manifest.js";
 import { libraryPathFor, resolveStubsDir } from "../luarc.js";
 import { preflightPlugin } from "../preflight.js";
-import { scanLua, globalReads, indirectGlobalReads, memberChains } from "../lua-scan.js";
+import { scanLua, globalReads, indirectGlobalReads, memberChains, requireCalls } from "../lua-scan.js";
 import { syncPlugin } from "../sync.js";
 import { packagePlugin } from "../package.js";
 import { scaffoldPlugin } from "../scaffold.js";
 import { findDevPluginsRoot } from "../paths.js";
-import { normaliseDocsPath, DocsClient } from "../docs-client.js";
+import { normaliseDocsPath, DocsClient, DocsFetchError } from "../docs-client.js";
 import { docsPageToText, extractNavLinks } from "../docs-text.js";
 import { isInside } from "../fs.js";
 
@@ -56,6 +56,19 @@ describe("manifest validation", () => {
     const missing = await validatePluginDir(plugin("missing-main"));
     expect(codes(missing.findings)).toContain("main-missing");
   });
+  it("checks require targets from tokens and only accepts the documented slash form", async () => {
+    const { findings } = await validatePluginDir(plugin("require-forms"));
+    const requires = findings.filter((f) => f.code.startsWith("require-"));
+    expect(requires.map((f) => [f.code, f.line])).toEqual([
+      ["require-dotted", 7],
+      ["require-missing", 8],
+      ["require-path", 9],
+    ]);
+    expect(requires[0]!.message).toContain('use require("lib/helpers")');
+    expect(requires[1]!.message).toContain("lib/init.lua is not loaded by the client");
+    // Nothing from the comment or the string literal.
+    expect(findings.some((f) => f.message.includes("ghost"))).toBe(false);
+  });
   it("treats dotfiles and dev files as artefacts", () => {
     expect(isDevArtifact(".luarc.json")).toBe(true);
     expect(isDevArtifact(".cursor/rules/x.mdc")).toBe(true);
@@ -84,6 +97,14 @@ describe("lua scanner", () => {
       { name: "os", line: 5 },
       { name: "io", line: 5 },
       { name: "debug", line: 5 },
+    ]);
+  });
+  it("finds require calls from tokens only", () => {
+    const lines = ['-- require("a")', "local s = \"require('b')\"", 'local m = require("c/d")', 'local n = require "e"', 'local o = obj.require("f")'];
+    const scan = scanLua(lines.join("\n"));
+    expect(requireCalls(scan)).toEqual([
+      { target: "c/d", line: 3 },
+      { target: "e", line: 4 },
     ]);
   });
   it("collects member chains", () => {
@@ -328,6 +349,29 @@ describe("docs client", () => {
     const text = docsPageToText(second.html);
     expect(text.title).toBe("T");
     expect(text.text).toContain("# T");
+  });
+  it("fails a hung fetch within the timeout, retries 5xx once and falls back to the cache", async () => {
+    const cache = await tempDir("rs3-cache-timeout-");
+    const hung = (() => new Promise<Response>(() => undefined)) as typeof fetch;
+    const client = new DocsClient({ cacheRoot: cache, fetchImpl: hung, timeoutMs: 50, retries: 1, retryDelayMs: 1 });
+    await expect(client.getPage("core/hung.html")).rejects.toThrow(/Timed out fetching .*core\/hung\.html after 50 ms/);
+    await expect(client.getPage("core/hung.html")).rejects.toBeInstanceOf(DocsFetchError);
+
+    let calls = 0;
+    const flaky = (async () => {
+      calls++;
+      return calls === 1 ? new Response("down", { status: 503 }) : new Response("<html><div class='md-content__inner'><p>ok</p></div></html>", { status: 200 });
+    }) as typeof fetch;
+    const retrying = new DocsClient({ cacheRoot: cache, fetchImpl: flaky, retries: 1, retryDelayMs: 1 });
+    const page = await retrying.getPage("core/flaky.html");
+    expect(page.source).toBe("network");
+    expect(calls).toBe(2);
+
+    // The page is cached now, so a hung network serves the cache instead of failing.
+    const offlineLater = new DocsClient({ cacheRoot: cache, fetchImpl: hung, timeoutMs: 50, retries: 0 });
+    const served = await offlineLater.getPage("core/flaky.html");
+    expect(served.source).toBe("cache");
+    expect(served.html).toContain("ok");
   });
   it("extracts nav links", () => {
     const html = '<nav class="md-nav"><a class="md-nav__link" href="./a/b.html">x</a><a class="md-nav__link" href="#top">y</a></nav>';

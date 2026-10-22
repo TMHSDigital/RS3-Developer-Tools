@@ -260,6 +260,26 @@ export function indirectGlobalReads(scan: LuaScan): { name: string; line: number
   return reads;
 }
 
+/**
+ * require("x/y") calls found from tokens, so comments and strings that merely
+ * mention require do not count. Both require("x") and require "x" are matched.
+ */
+export function requireCalls(scan: LuaScan): { target: string; line: number }[] {
+  const tokens = scan.tokens.filter((t) => t.kind !== "comment");
+  const calls: { target: string; line: number }[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i]!;
+    if (t.kind !== "name" || t.value !== "require") continue;
+    const prev = tokens[i - 1];
+    if (prev && prev.kind === "op" && (prev.value === "." || prev.value === ":")) continue;
+    let j = i + 1;
+    if (tokens[j]?.kind === "op" && tokens[j]!.value === "(") j++;
+    const arg = tokens[j];
+    if (arg?.kind === "string") calls.push({ target: arg.value, line: arg.line });
+  }
+  return calls;
+}
+
 /** Dotted access chains such as "Event.ChatMessage.Subscribe" or "Chat.AddMessage". */
 export function memberChains(scan: LuaScan): { chain: string; line: number }[] {
   const tokens = scan.tokens.filter((t) => t.kind !== "comment");

@@ -22,7 +22,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - `@tmhs/rs3-plugin-mcp` ships a dedicated `dist/bin.js` executable so the npm bin symlink starts the server on Linux and macOS; a spawn smoke test guards it
 - `rs3dev init --prettyui` whitelists the dependency global in `.luarc.json` (`diagnostics.globals`) and guards the first use, so the scaffold passes the LuaLS check it ships with; CI runs that check on plain and `--prettyui` scaffolds
 
+### Fixed
 
+- `scripts/luals-check.mjs` dropped the first LuaLS diagnostic when it shared a line with the progress output
+- Preflight `sandbox-global` no longer fires on table constructor keys (`{ debug = false }`), goto labels or parameters; it now also reports `_G.os`, `_G["io"]` and `rawget(_G, "debug")`. An empty folder reports `manifest-missing` and `main-missing` only
+- `DocsClient` aborts a fetch after `timeoutMs` (default 15 s), retries network errors, timeouts and 5xx once, and serves the cached copy when every attempt fails; `docs_get` and the stub crawl can no longer hang. Every workflow job has a `timeout-minutes`
+- `require` validation reads calls from tokens (comments and strings no longer count), reports dotted names as `require-dotted` with the slash form to use, and points out an unloaded `init.lua`; `.luarc.json` now declares only `?.lua`, matching the documented client rule
 
 ### Changed
 

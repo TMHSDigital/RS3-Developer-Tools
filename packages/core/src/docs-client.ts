@@ -26,6 +26,24 @@ export interface DocsClientOptions {
   fetchImpl?: typeof fetch;
   /** Treat cached entries younger than this many seconds as fresh (no conditional request). */
   maxAgeSeconds?: number;
+  /** Abort a single fetch after this many milliseconds. Default 15000. */
+  timeoutMs?: number;
+  /** Extra attempts after a network error, timeout or 5xx response. Default 1. */
+  retries?: number;
+  /** Pause before a retry, in milliseconds. Default 500. */
+  retryDelayMs?: number;
+}
+
+/** Thrown when every attempt to reach a page failed and nothing is cached. */
+export class DocsFetchError extends Error {
+  constructor(
+    readonly url: string,
+    message: string,
+    readonly attempts: number,
+  ) {
+    super(message);
+    this.name = "DocsFetchError";
+  }
 }
 
 export interface DocsPage {
@@ -67,6 +85,9 @@ export class DocsClient {
   private readonly cacheOnly: boolean;
   private readonly fetchImpl: typeof fetch;
   private readonly maxAgeSeconds: number;
+  private readonly timeoutMs: number;
+  private readonly retries: number;
+  private readonly retryDelayMs: number;
 
   constructor(options: DocsClientOptions = {}) {
     this.baseUrl = options.baseUrl ?? DOCS_BASE_URL;
@@ -75,6 +96,53 @@ export class DocsClient {
     this.cacheOnly = options.cacheOnly ?? false;
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.maxAgeSeconds = options.maxAgeSeconds ?? 0;
+    this.timeoutMs = options.timeoutMs ?? 15000;
+    this.retries = options.retries ?? 1;
+    this.retryDelayMs = options.retryDelayMs ?? 500;
+  }
+
+  /**
+   * One fetch bounded by timeoutMs. The abort signal stops a real fetch; the
+   * race stops an injected fetchImpl that ignores signals, so a stalled
+   * connection can never hang docs_get or the stub crawl.
+   */
+  private async fetchWithTimeout(url: string, headers: Record<string, string>): Promise<Response> {
+    const controller = new AbortController();
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(new Error(`Timed out fetching ${url} after ${this.timeoutMs} ms`));
+      }, this.timeoutMs);
+    });
+    try {
+      return await Promise.race([this.fetchImpl(url, { headers, signal: controller.signal }), timeout]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Fetch with retries. Network errors, timeouts and 5xx responses are retried
+   * after retryDelayMs; any other response is returned to the caller as is.
+   */
+  private async fetchWithRetry(url: string, headers: Record<string, string>): Promise<{ response?: Response; error?: Error; attempts: number }> {
+    let lastError: Error | undefined;
+    let lastResponse: Response | undefined;
+    const attempts = 1 + Math.max(0, this.retries);
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        const response = await this.fetchWithTimeout(url, headers);
+        if (response.status < 500) return { response, attempts: attempt };
+        lastResponse = response;
+        lastError = undefined;
+      } catch (error) {
+        lastError = error as Error;
+        lastResponse = undefined;
+      }
+      if (attempt < attempts && this.retryDelayMs > 0) await new Promise((r) => setTimeout(r, this.retryDelayMs));
+    }
+    return lastError ? { error: lastError, attempts } : { response: lastResponse, attempts };
   }
 
   urlFor(relPath: string): string {
@@ -135,13 +203,14 @@ export class DocsClient {
     };
     if (cached?.meta.etag) headers["if-none-match"] = cached.meta.etag;
 
-    let response: Response;
-    try {
-      response = await this.fetchImpl(url, { headers });
-    } catch (error) {
+    const attempt = await this.fetchWithRetry(url, headers);
+    if (!attempt.response) {
+      // A stale cached copy beats no page at all; the caller sees source: "cache".
       if (cached) return { relPath, url, html: cached.html, source: "cache", etag: cached.meta.etag };
-      throw new Error(`Failed to fetch ${url}: ${(error as Error).message}`);
+      const reason = attempt.error?.message ?? "no response";
+      throw new DocsFetchError(url, `Failed to fetch ${url} after ${attempt.attempts} attempt(s): ${reason}`, attempt.attempts);
     }
+    const response = attempt.response;
 
     if (response.status === 304 && cached) {
       await this.writeCache(url, cached.html, { ...cached.meta, fetchedAt: new Date().toISOString() });
@@ -149,7 +218,7 @@ export class DocsClient {
     }
     if (!response.ok) {
       if (cached) return { relPath, url, html: cached.html, source: "cache", etag: cached.meta.etag };
-      throw new Error(`Failed to fetch ${url}: HTTP ${response.status}`);
+      throw new DocsFetchError(url, `Failed to fetch ${url} after ${attempt.attempts} attempt(s): HTTP ${response.status}`, attempt.attempts);
     }
     const html = await response.text();
     const meta: CacheMeta = {

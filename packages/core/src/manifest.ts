@@ -6,6 +6,7 @@ import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.
 import formatsPluginImport, { type FormatsPlugin } from "ajv-formats";
 import { loadPluginSchema, type PluginManifest } from "@tmhs/rs3-plugin-schema";
 import { DOCS, type Finding } from "./findings.js";
+import { requireCalls, scanLua } from "./lua-scan.js";
 import { isDirectory, pathExists, readUtf8, listFilesRecursive } from "./fs.js";
 import { promises as fsp } from "node:fs";
 
@@ -147,19 +148,30 @@ export async function validatePluginDir(pluginDir: string): Promise<{ manifest?:
   }
 
   // Every require("x/y") must point at an existing Lua file inside the plugin.
+  // The documented rule (structure.html#dependencies) is a slash-separated path
+  // relative to the plugin root with the .lua extension omitted. Neither Lua's
+  // dotted module names nor an init.lua fallback are documented, so .luarc.json
+  // declares the same single rule and dotted names are reported here.
   for (const rel of await listFilesRecursive(pluginDir)) {
     if (!rel.endsWith(".lua") || isDevArtifact(rel)) continue;
     const source = await readUtf8(path.join(pluginDir, rel));
-    for (const m of source.matchAll(/\brequire\s*\(?\s*["']([^"']+)["']/g)) {
-      const target = m[1]!;
-      if (target.includes("..")) {
-        findings.push({ level: "error", code: "require-path", message: `require("${target}") leaves the plugin folder; paths are relative to the plugin root`, file: rel, docsUrl: DOCS.dependencies });
+    for (const call of requireCalls(scanLua(source))) {
+      const target = call.target;
+      if (target.split("/").includes("..")) {
+        findings.push({ level: "error", code: "require-path", message: `require("${target}") leaves the plugin folder; paths are relative to the plugin root`, file: rel, line: call.line, docsUrl: DOCS.dependencies });
         continue;
       }
       const candidate = path.join(pluginDir, ...target.split("/")) + ".lua";
-      if (!(await pathExists(candidate))) {
-        findings.push({ level: "error", code: "require-missing", message: `require("${target}") does not match a file (expected ${target}.lua relative to the plugin root)`, file: rel, docsUrl: DOCS.dependencies });
+      if (await pathExists(candidate)) continue;
+      if (target.includes(".")) {
+        const slashed = target.replace(/\./g, "/");
+        const viaSlashes = await pathExists(path.join(pluginDir, ...slashed.split("/")) + ".lua");
+        findings.push({ level: "error", code: "require-dotted", message: `require("${target}") uses dots; the client documents slash-separated paths relative to the plugin root${viaSlashes ? ` (use require("${slashed}"))` : ""}`, file: rel, line: call.line, docsUrl: DOCS.dependencies });
+        continue;
       }
+      const initCandidate = path.join(pluginDir, ...target.split("/"), "init.lua");
+      const hint = (await pathExists(initCandidate)) ? `; ${target}/init.lua is not loaded by the client, use require("${target}/init")` : "";
+      findings.push({ level: "error", code: "require-missing", message: `require("${target}") does not match a file (expected ${target}.lua relative to the plugin root)${hint}`, file: rel, line: call.line, docsUrl: DOCS.dependencies });
     }
   }
 
