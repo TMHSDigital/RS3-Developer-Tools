@@ -3,7 +3,7 @@
 The `rs3dev` command for RuneScape 3 plugin development.
 
 ```powershell
-rs3dev init <name> [--permissions httpAccess,chatAccess] [--required-permissions ...] [--prettyui] [--email <address>] [--url api=https://host/ ...] [--stubs <dir>] [--no-agent-files] [--force] [-C <parent dir>]
+rs3dev init <name> [--template window|event|library|minimal] [--permissions httpAccess,chatAccess] [--required-permissions ...] [--prettyui] [--email <address>] [--url api=https://host/ ...] [--stubs <dir>] [--no-agent-files] [--no-editor-files] [--force] [-C <parent dir>]
 rs3dev adopt [path] [--stubs <dir>] [--vendor] [--no-agent-files]
 rs3dev luarc [path] [--stubs <dir>] [--vendor]
 rs3dev validate [path] [--strict] [--format text|json|github|sarif] [--ignore codes]
@@ -23,6 +23,8 @@ rs3dev --json <command>
 `stubs status` answers "are my stubs current?" with one conditional request: `index.json` records the ETag the documentation server sent when the stubs were generated (`source.indexEtag`, plus `pageCount`, `generatorVersion` and a per-module `etag`), and the command sends it back with `If-None-Match`. Exit code 0 when the docs are unchanged (or the index predates provenance), 2 when they changed since, 1 when the check could not run.
 
 `adopt` (or `init <folder> --existing`) brings an existing plugin folder in: it writes or refreshes `.luarc.json` (keeping any `diagnostics.globals` already listed) and copies `AGENTS.md`, the Cursor rules and the Claude Code skills without overwriting anything, and never touches `plugin.json` or `main.lua`. `luarc` only rewrites `.luarc.json` and prints which stubs location won. With `--vendor` both copy the stubs into `<plugin>/.rs3/stubs` and reference `./.rs3/stubs`, the one form that works on every machine; the dotfolder never ships. `validate` reports `luarc-stale` when `workspace.library` does not resolve to a folder holding `_globals.lua`.
+
+`init --template` picks the shape of `main.lua`: `window` (a GroupBox with a label and a Logic handler, the default), `event` (no UI, one event handler on a tick counter), `library` (returns a table for plugins that list this folder as a dependency) or `minimal` (`PluginShutdown` only). Every template passes `validate`, `preflight` and the LuaLS check. Beside the plugin files `init` writes `.vscode/extensions.json` (recommends the Lua extension), `.vscode/settings.json` (schema for `plugin.json`), `.gitignore`, `.rs3ignore` (keeps the scaffolded `README.md` out of the zip; delete the line to ship it) and `README.md`; `--no-editor-files` skips them. None of these ship.
 
 `--json` is a global flag and goes before the command name. `init` writes `urls` only from `--url name=https://host/` flags (repeatable); with `httpAccess` and no `--url` the manifest gets an empty `urls` and `main.lua` says where to declare hosts.
 

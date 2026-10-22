@@ -17,7 +17,7 @@ import { isDevArtifact, isPlaceholderEmail, validateManifestObject, validatePlug
 import { packagePlugin } from "../package.js";
 import { defaultClientRoots, findDevPluginsRoot } from "../paths.js";
 import { preflightPlugin } from "../preflight.js";
-import { scaffoldPlugin } from "../scaffold.js";
+import { SCAFFOLD_TEMPLATES, scaffoldPlugin } from "../scaffold.js";
 import { checkStubsStatus } from "../stubs-status.js";
 import { syncPlugin } from "../sync.js";
 import { verifyArchive } from "../verify.js";
@@ -718,7 +718,19 @@ describe("scaffold", () => {
     const dir = path.join(base, "my-plugin");
     const stubsDir = path.join(base, "stubs");
     const result = await scaffoldPlugin({ dir, permissions: ["httpAccess"], prettyUi: true, agentFiles: false, stubsDir });
-    expect(result.files).toEqual([".luarc.json", "main.lua", "plugin.json"]);
+    expect(result.files).toEqual([
+      ".gitignore",
+      ".luarc.json",
+      ".rs3ignore",
+      ".vscode/extensions.json",
+      ".vscode/settings.json",
+      "README.md",
+      "main.lua",
+      "plugin.json",
+    ]);
+    // The editor files never ship: dotfiles by rule, README.md through the scaffolded .rs3ignore.
+    expect(await readUtf8(path.join(dir, ".rs3ignore"))).toContain("README.md");
+    expect(JSON.parse(await readUtf8(path.join(dir, ".vscode", "extensions.json"))).recommendations).toEqual(["sumneko.lua"]);
     const manifest = JSON.parse(await readUtf8(path.join(dir, "plugin.json")));
     expect(manifest.optionalPermissions).toEqual(["httpAccess"]);
     // httpAccess without --url: an empty urls map, never a surprise host.
@@ -738,6 +750,29 @@ describe("scaffold", () => {
     expect(luarc["diagnostics.globals"]).toEqual(["PrettyUI"]);
     expect(main).toContain("local prettyUi = PrettyUI");
     expect(main).toContain("if prettyUi == nil then");
+  });
+  it("every template passes validate and preflight and only window and event subscribe", async () => {
+    const base = await tempDir("rs3-templates-");
+    for (const template of SCAFFOLD_TEMPLATES) {
+      const dir = path.join(base, template);
+      await scaffoldPlugin({ dir, template, agentFiles: false, editorFiles: false, stubsDir: path.join(base, "stubs") });
+      const main = await readUtf8(path.join(dir, "main.lua"));
+      expect(main).toContain("function PluginShutdown()");
+      expect(main.includes("Event.Logic.Subscribe")).toBe(template === "window" || template === "event");
+      expect(main.includes("return library")).toBe(template === "library");
+      const pre = await preflightPlugin(dir);
+      expect(
+        pre.findings.filter((f) => f.level === "error"),
+        template,
+      ).toEqual([]);
+      expect(
+        pre.findings.filter((f) => ["subscribe-without-unsubscribe", "shutdown-missing", "per-tick-scan", "component-not-destroyed"].includes(f.code)),
+        template,
+      ).toEqual([]);
+    }
+    await expect(scaffoldPlugin({ dir: path.join(base, "bad"), template: "popup" as never, agentFiles: false, stubsDir: "s" })).rejects.toThrow(
+      /unknown template/,
+    );
   });
   it("leaves diagnostics.globals empty without --prettyui", async () => {
     const base = await tempDir("rs3-init-plain-");

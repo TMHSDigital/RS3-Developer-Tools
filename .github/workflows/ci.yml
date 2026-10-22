@@ -106,9 +106,13 @@ jobs:
       - name: LuaLS check of examples against the generated stubs
         run: node scripts/luals-check.mjs examples/hello-counter
 
-      - name: LuaLS check of a scaffolded plugin (plain and --prettyui)
+      - name: LuaLS check of every scaffold template (plus --prettyui)
+        shell: bash
         run: |
-          node packages/cli/dist/cli.js init "${{ runner.temp }}/scaffold-plain" --permissions chatAccess --no-agent-files
-          node scripts/luals-check.mjs "${{ runner.temp }}/scaffold-plain"
+          for template in window event library minimal; do
+            node packages/cli/dist/cli.js init "${{ runner.temp }}/scaffold-$template" --template "$template" --permissions chatAccess --no-agent-files
+            node packages/cli/dist/cli.js validate "${{ runner.temp }}/scaffold-$template"
+            node scripts/luals-check.mjs "${{ runner.temp }}/scaffold-$template"
+          done
           node packages/cli/dist/cli.js init "${{ runner.temp }}/scaffold-prettyui" --prettyui --no-agent-files
           node scripts/luals-check.mjs "${{ runner.temp }}/scaffold-prettyui"

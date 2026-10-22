@@ -18,6 +18,7 @@ import {
   type Permission,
   packagePlugin,
   preflightPlugin,
+  type ScaffoldTemplate,
   scaffoldPlugin,
   summarise,
   syncPlugin,
@@ -127,6 +128,8 @@ export async function runInit(
     stubs?: string;
     force?: boolean;
     cwd?: string;
+    template?: string;
+    editorFiles?: boolean;
   },
   options: OutputOptions,
 ): Promise<number> {
@@ -136,6 +139,8 @@ export async function runInit(
       permissions: splitList(opts.permissions) as Permission[],
       requiredPermissions: splitList(opts.requiredPermissions) as Permission[],
       prettyUi: Boolean(opts.prettyui),
+      template: opts.template as ScaffoldTemplate | undefined,
+      editorFiles: opts.editorFiles ?? true,
       contactEmail: opts.email,
       urls: parseUrlFlags(opts.url),
       agentFiles: opts.agentFiles ?? true,

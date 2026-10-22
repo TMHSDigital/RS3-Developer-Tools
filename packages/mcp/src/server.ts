@@ -25,6 +25,7 @@ import {
   pathExists,
   preflightPlugin,
   readUtf8,
+  SCAFFOLD_TEMPLATES,
   scaffoldPlugin,
   searchDocsIndex,
   stubsIndexPath,
@@ -355,6 +356,11 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
         permissions: z.array(z.enum(PERMISSIONS)).default([]).describe("Optional permissions, gated with Plugin.HasPermission in main.lua"),
         requiredPermissions: z.array(z.enum(PERMISSIONS)).default([]),
         prettyUi: z.boolean().default(false).describe("Add PrettyUI as a required dependency"),
+        template: z
+          .enum(SCAFFOLD_TEMPLATES)
+          .default("window")
+          .describe("Shape of main.lua: window (GroupBox and label), event (no UI), library (returns a table), minimal (PluginShutdown only)"),
+        editorFiles: z.boolean().default(true).describe("Write .vscode/, .gitignore, .rs3ignore and README.md"),
         contactEmail: z.string().email().optional(),
         agentFiles: z.boolean().default(true).describe("Copy AGENTS.md, Cursor rules and Claude Code skills"),
         force: z.boolean().default(false).describe("Allow a non-empty folder; existing files are kept"),
@@ -370,6 +376,8 @@ export async function createServer(options: ServerOptions): Promise<McpServer> {
           permissions: input.permissions as Permission[],
           requiredPermissions: input.requiredPermissions as Permission[],
           prettyUi: input.prettyUi,
+          template: input.template,
+          editorFiles: input.editorFiles,
           contactEmail: input.contactEmail,
           agentFiles: input.agentFiles,
           force: input.force,

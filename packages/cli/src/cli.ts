@@ -39,6 +39,8 @@ program
   .option("-p, --permissions <list>", "optional permissions to request, comma separated (httpAccess,chatAccess,trackingAccess)")
   .option("--required-permissions <list>", "permissions the plugin cannot work without, comma separated")
   .option("--prettyui", "add PrettyUI as a required dependency")
+  .option("--template <name>", "shape of main.lua: window (default), event, library or minimal", "window")
+  .option("--no-editor-files", "do not write .vscode/, .gitignore, .rs3ignore and README.md")
   .option("--email <address>", "contactEmailAddress for plugin.json")
   .option(
     "--url <name=https://host/>",

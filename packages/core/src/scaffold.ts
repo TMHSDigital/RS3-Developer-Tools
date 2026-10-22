@@ -23,6 +23,14 @@ export interface ScaffoldOptions {
   contactEmail?: string;
   /** Base URLs to declare under urls in plugin.json, keyed by the Plugin.urls name. */
   urls?: Record<string, string>;
+  /**
+   * Shape of main.lua: "window" (a GroupBox with a label and a Logic handler,
+   * the default), "event" (no UI, an event handler only), "library" (returns
+   * a table for other plugins to depend on), "minimal" (PluginShutdown only).
+   */
+  template?: ScaffoldTemplate;
+  /** Write .vscode/, .gitignore, .rs3ignore and README.md. Default true. */
+  editorFiles?: boolean;
   /** Copy AGENTS.md, Cursor rules and Claude Code skills into the plugin folder. Default true. */
   agentFiles?: boolean;
   /** Stubs folder for .luarc.json; resolved automatically when omitted (RS3_STUBS_DIR, then the installed package). */
@@ -81,10 +89,14 @@ export function renderManifest(options: ScaffoldOptions, pluginName: string): Pl
   return manifest;
 }
 
+export const SCAFFOLD_TEMPLATES = ["window", "event", "library", "minimal"] as const;
+export type ScaffoldTemplate = (typeof SCAFFOLD_TEMPLATES)[number];
+
 /** Produce the commented main.lua for a new plugin. */
 export function renderMainLua(options: ScaffoldOptions, pluginName: string): string {
   const displayName = options.name ?? pluginName;
   const ident = luaIdentifier(pluginName);
+  const template: ScaffoldTemplate = options.template ?? "window";
   const optional = new Set(options.permissions ?? []);
   const required = new Set((options.requiredPermissions ?? []).filter((p) => !optional.has(p)));
   const lines: string[] = [];
@@ -98,12 +110,16 @@ export function renderMainLua(options: ScaffoldOptions, pluginName: string): str
     "--",
     `-- Console: pon ${pluginName}   (enable)     prl ${pluginName}   (reload after edits)`,
     "",
-    "-- Reference names for event subscriptions, kept together so PluginShutdown can",
-    "-- unsubscribe every one of them.",
-    `local EVENT_REFS = {`,
-    `    logic = "${ident}.logic",`,
-    `}`,
-    "",
+    ...(template === "window" || template === "event"
+      ? [
+          "-- Reference names for event subscriptions, kept together so PluginShutdown can",
+          "-- unsubscribe every one of them.",
+          "local EVENT_REFS = {",
+          `    logic = "${ident}.logic",`,
+          "}",
+          "",
+        ]
+      : []),
   );
 
   if (options.prettyUi) {
@@ -149,45 +165,148 @@ export function renderMainLua(options: ScaffoldOptions, pluginName: string): str
     );
   }
 
-  push(
-    "-- Build the window: a GroupBox on the plugin layer with a single label.",
-    "local pluginLayer = ui.Interfaces:GetComponent(id.Component.TOPLEVEL_V2__PLUGIN_BUILD_LAYER_TOP)",
-    "if pluginLayer == nil then",
-    '    error("plugin layer is not available; is the game interface loaded?")',
-    "end",
-    "---@cast pluginLayer ui.ComponentCollection",
-    "",
-    "local window = ui.GroupBox.new(pluginLayer)",
-    "window.stylesheetID = id.StyleSheet.GROUPBOX_DEFAULT",
-    "window:SetHeaderLayout(0, 0, 0, 0, ui.GroupBoxHeaderAlignMode.LEFT)",
-    "window:SetSize(240, 80)",
-    "window:SetPos(40, 40)",
-    "",
-    "local label = ui.Text.new(window)",
-    "label:SetPos(0, 0)",
-    "label:SetSize(0, 0, 1.0, 1.0)",
-    "label.font = id.Font.MUSEO_SANS_15PT_REGULAR",
-    "label:AlignTo(ui.AlignMode.CENTRE)",
-    `label.content = "Hello from ${displayName}"`,
-    "",
-    "-- Logic runs every client tick. Keep the work here small.",
-    "local ticks = 0",
-    "local function onLogic(event)",
-    "    ticks = ticks + 1",
-    "    if ticks % 600 == 0 then",
-    '        label.content = formatStr("Hello from ' + displayName + ' ({} ticks)", ticks)',
-    "    end",
-    "end",
-    "Event.Logic.Subscribe(EVENT_REFS.logic, onLogic)",
-    "",
-    "-- Called by the client when the plugin is disabled or reloaded. Release every",
-    "-- subscription and component so a reload starts clean.",
-    "function PluginShutdown()",
-    "    Event.Logic.Unsubscribe(EVENT_REFS.logic)",
-    "    window:Destroy()",
-    "end",
-  );
+  if (template === "window") {
+    push(
+      "-- Build the window: a GroupBox on the plugin layer with a single label.",
+      "local pluginLayer = ui.Interfaces:GetComponent(id.Component.TOPLEVEL_V2__PLUGIN_BUILD_LAYER_TOP)",
+      "if pluginLayer == nil then",
+      '    error("plugin layer is not available; is the game interface loaded?")',
+      "end",
+      "---@cast pluginLayer ui.ComponentCollection",
+      "",
+      "local window = ui.GroupBox.new(pluginLayer)",
+      "window.stylesheetID = id.StyleSheet.GROUPBOX_DEFAULT",
+      "window:SetHeaderLayout(0, 0, 0, 0, ui.GroupBoxHeaderAlignMode.LEFT)",
+      "window:SetSize(240, 80)",
+      "window:SetPos(40, 40)",
+      "",
+      "local label = ui.Text.new(window)",
+      "label:SetPos(0, 0)",
+      "label:SetSize(0, 0, 1.0, 1.0)",
+      "label.font = id.Font.MUSEO_SANS_15PT_REGULAR",
+      "label:AlignTo(ui.AlignMode.CENTRE)",
+      `label.content = "Hello from ${displayName}"`,
+      "",
+      "-- Logic runs every client tick. Keep the work here small.",
+      "local ticks = 0",
+      "local function onLogic(event)",
+      "    ticks = ticks + 1",
+      "    if ticks % 600 == 0 then",
+      `        label.content = formatStr("Hello from ${displayName} ({} ticks)", ticks)`,
+      "    end",
+      "end",
+      "Event.Logic.Subscribe(EVENT_REFS.logic, onLogic)",
+      "",
+      "-- Called by the client when the plugin is disabled or reloaded. Release every",
+      "-- subscription and component so a reload starts clean.",
+      "function PluginShutdown()",
+      "    Event.Logic.Unsubscribe(EVENT_REFS.logic)",
+      "    window:Destroy()",
+      "end",
+    );
+  } else if (template === "event") {
+    push(
+      "-- No UI: this plugin only reacts to client events. Event.Logic runs every",
+      "-- tick, so the handler counts ticks and does its work on a timer; swap it for",
+      "-- the event you need (Event.NPCEntityAdded, Event.ChatMessage, ...) and keep",
+      "-- the reference name in EVENT_REFS so PluginShutdown releases it.",
+      "local ticks = 0",
+      "local function onLogic(event)",
+      "    ticks = ticks + 1",
+      "    if ticks % 600 == 0 then",
+      `        print(formatStr("${displayName}: {} ticks", ticks))`,
+      "    end",
+      "end",
+      "Event.Logic.Subscribe(EVENT_REFS.logic, onLogic)",
+      "",
+      "-- Called by the client when the plugin is disabled or reloaded. Release every",
+      "-- subscription so a reload starts clean.",
+      "function PluginShutdown()",
+      "    Event.Logic.Unsubscribe(EVENT_REFS.logic)",
+      "end",
+    );
+  } else if (template === "library") {
+    push(
+      "-- A library plugin: other plugins list this folder name under",
+      "-- requiredDependencies or optionalDependencies in their plugin.json and the",
+      "-- client exposes the table returned below as a global named after the",
+      "-- folder (or the alias they chose). Importers receive a clone, so keep the",
+      "-- table free of per-plugin state and expose constructors instead.",
+      "local library = {}",
+      "",
+      'library.version = "0.1.0"',
+      "",
+      "-- Example export. Replace with the functions this library provides.",
+      "---@param value number",
+      "---@return number",
+      "function library.double(value)",
+      "    return value * 2",
+      "end",
+      "",
+      "-- Called by the client when the plugin is disabled or reloaded. A library",
+      "-- usually has nothing to release; keep the function so the contract holds.",
+      "function PluginShutdown()",
+      "end",
+      "",
+      "return library",
+    );
+  } else {
+    push(
+      "-- Minimal plugin: nothing runs yet. Add state, UI and event subscriptions",
+      "-- above PluginShutdown and release every one of them inside it.",
+      "",
+      "-- Called by the client when the plugin is disabled or reloaded.",
+      "function PluginShutdown()",
+      "end",
+    );
+  }
   return lines.join("\n") + "\n";
+}
+
+/** Editor and repository files written beside the plugin; all are development artefacts that never ship. */
+export function renderEditorFiles(pluginName: string, displayName: string): Record<string, string> {
+  return {
+    ".vscode/extensions.json": JSON.stringify({ recommendations: ["sumneko.lua"] }, null, 2) + "\n",
+    ".vscode/settings.json":
+      JSON.stringify(
+        {
+          "json.schemas": [
+            {
+              fileMatch: ["plugin.json"],
+              url: "https://raw.githubusercontent.com/TMHSDigital/RS3-Developer-Tools/main/packages/schema/plugin.schema.json",
+            },
+          ],
+        },
+        null,
+        2,
+      ) + "\n",
+    ".gitignore": ["# Build output and archives from rs3dev package", "*.zip", "dist/", "", "# Editor caches", ".luals-cache/", ""].join("\n"),
+    ".rs3ignore": [
+      "# Files kept out of the mod.io zip and the dev_plugins copy (gitignore syntax).",
+      "# README.md is written for this repository; remove the line below to ship it to users.",
+      "README.md",
+      "",
+    ].join("\n"),
+    "README.md": [
+      `# ${displayName}`,
+      "",
+      "A RuneScape 3 plugin for the official client. Describe what it does here.",
+      "",
+      "## Develop",
+      "",
+      "```",
+      "rs3dev validate .     # manifest and folder checks",
+      "rs3dev preflight .    # sandbox, permission, lifecycle and readability checks",
+      "rs3dev sync .         # copy into the client's dev_plugins folder",
+      "rs3dev package .      # build the zip for the manual mod.io upload",
+      "```",
+      "",
+      `In the client console (ALT+backtick): \`prf\` to refresh the list, \`pon ${pluginName}\` to enable, \`prl ${pluginName}\` to reload after edits.`,
+      "",
+      "RuneScape Client API documentation: https://developer.runescape.com/rs/",
+      "",
+    ].join("\n"),
+  };
 }
 
 /** Copy AGENTS.md, the Cursor rules and the Claude Code skills into a plugin folder; existing files are kept. */
@@ -214,6 +333,9 @@ export async function scaffoldPlugin(options: ScaffoldOptions): Promise<Scaffold
   if (/\s/.test(pluginName)) {
     throw new Error(`plugin folder name "${pluginName}" must not contain spaces; it is the identifier used by the console`);
   }
+  if (options.template && !(SCAFFOLD_TEMPLATES as readonly string[]).includes(options.template)) {
+    throw new Error(`unknown template "${options.template}"; known templates are ${SCAFFOLD_TEMPLATES.join(", ")}`);
+  }
   for (const p of [...(options.permissions ?? []), ...(options.requiredPermissions ?? [])]) {
     if (!(PERMISSIONS as readonly string[]).includes(p)) {
       throw new Error(`unknown permission "${p}"; known permissions are ${PERMISSIONS.join(", ")}`);
@@ -238,6 +360,12 @@ export async function scaffoldPlugin(options: ScaffoldOptions): Promise<Scaffold
   const manifest = renderManifest(options, pluginName);
   await writeNew("plugin.json", JSON.stringify(manifest, null, 2) + "\n");
   await writeNew("main.lua", renderMainLua(options, pluginName));
+  if (options.editorFiles ?? true) {
+    for (const [rel, content] of Object.entries(renderEditorFiles(pluginName, options.name ?? pluginName))) {
+      await fsp.mkdir(path.dirname(path.join(dir, rel)), { recursive: true });
+      await writeNew(rel, content);
+    }
+  }
   if (!(await pathExists(path.join(dir, ".luarc.json")))) {
     await writeLuarc(dir, {
       stubsDir: options.stubsDir,
