@@ -202,13 +202,60 @@ export function globalReads(scan: LuaScan): { name: string; line: number }[] {
     }
   }
   const reads: { name: string; line: number }[] = [];
+  // Innermost open bracket, so "{ debug = false }" is recognised as a table
+  // constructor key and "f(a, b)" is not.
+  const brackets: string[] = [];
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i]!;
+    if (t.kind === "op") {
+      if (t.value === "{" || t.value === "(" || t.value === "[") brackets.push(t.value);
+      else if (t.value === "}" || t.value === ")" || t.value === "]") brackets.pop();
+      continue;
+    }
     if (t.kind !== "name") continue;
     const prev = tokens[i - 1];
-    if (prev && prev.kind === "op" && (prev.value === "." || prev.value === ":")) continue;
+    const next = tokens[i + 1];
+    if (prev && prev.kind === "op") {
+      // Field access: obj.debug, obj:load().
+      if (prev.value === "." || prev.value === ":") continue;
+      // goto labels: "goto debug" and "::debug::" name a jump target, not a value.
+      if (prev.value === "goto" || (prev.value === "::" && next?.kind === "op" && next.value === "::")) continue;
+      // Table constructor key: "{ debug = false }" or "{ a = 1, io = 2 }". The
+      // name is a string key, not a read of the global.
+      const inConstructor = brackets[brackets.length - 1] === "{";
+      const afterSeparator = prev.value === "{" || prev.value === "," || prev.value === ";";
+      if (inConstructor && afterSeparator && next?.kind === "op" && next.value === "=") continue;
+    }
     if (declared.has(t.value)) continue;
     reads.push({ name: t.value, line: t.line });
+  }
+  return reads;
+}
+
+/**
+ * Globals reached through the environment table rather than by name:
+ * "_G.os", "_G["io"]" and "rawget(_G, "debug")". These are the shapes a
+ * plugin would use to get around a name-based check, so preflight reports
+ * them exactly like the direct read.
+ */
+export function indirectGlobalReads(scan: LuaScan): { name: string; line: number }[] {
+  const tokens = scan.tokens.filter((t) => t.kind !== "comment");
+  const reads: { name: string; line: number }[] = [];
+  const isOp = (t: LuaToken | undefined, value: string) => t?.kind === "op" && t.value === value;
+  const isName = (t: LuaToken | undefined, value: string) => t?.kind === "name" && t.value === value;
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i]!;
+    if (isName(t, "_G")) {
+      const a = tokens[i + 1];
+      const b = tokens[i + 2];
+      if (isOp(a, ".") && b?.kind === "name") reads.push({ name: b.value, line: b.line });
+      else if (isOp(a, "[") && b?.kind === "string" && isOp(tokens[i + 3], "]")) reads.push({ name: b.value, line: b.line });
+      continue;
+    }
+    if (isName(t, "rawget") && isOp(tokens[i + 1], "(") && isName(tokens[i + 2], "_G") && isOp(tokens[i + 3], ",")) {
+      const key = tokens[i + 4];
+      if (key?.kind === "string") reads.push({ name: key.value, line: key.line });
+    }
   }
   return reads;
 }

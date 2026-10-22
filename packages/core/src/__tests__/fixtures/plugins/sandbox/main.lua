@@ -6,3 +6,8 @@ local handle = io.open("file.txt")
 local chunk = load("return 1")
 debug.traceback()
 print(text, clock, handle, chunk)
+-- Reaching the same libraries through the environment table is the same violation.
+local osLib = _G.os
+local ioLib = _G["io"]
+local dbg = rawget(_G, "debug")
+print(osLib, ioLib, dbg)

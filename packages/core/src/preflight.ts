@@ -7,7 +7,7 @@ import type { PluginManifest } from "@tmhs/rs3-plugin-schema";
 import { DOCS, type Finding } from "./findings.js";
 import { listFilesRecursive, readUtf8 } from "./fs.js";
 import { isDevArtifact, isPlaceholderEmail, validatePluginDir } from "./manifest.js";
-import { globalReads, memberChains, scanLua } from "./lua-scan.js";
+import { globalReads, indirectGlobalReads, memberChains, scanLua } from "./lua-scan.js";
 
 /** Standard libraries and functions the plugin sandbox does not provide. */
 export const FORBIDDEN_GLOBALS = ["os", "io", "debug", "load", "loadstring", "dofile"] as const;
@@ -58,10 +58,15 @@ export async function preflightPlugin(pluginDir: string, options: PreflightOptio
     const chains = memberChains(scan);
     const chainText = chains.map((c) => c.chain);
 
-    // Sandbox: forbidden standard libraries.
+    // Sandbox: forbidden standard libraries, read directly or through _G / rawget.
     for (const read of reads) {
       if ((FORBIDDEN_GLOBALS as readonly string[]).includes(read.name)) {
         findings.push({ level: "error", code: "sandbox-global", message: `"${read.name}" is not available to plugins and will be rejected`, file: rel, line: read.line, docsUrl: DOCS.guidelines });
+      }
+    }
+    for (const read of indirectGlobalReads(scan)) {
+      if ((FORBIDDEN_GLOBALS as readonly string[]).includes(read.name)) {
+        findings.push({ level: "error", code: "sandbox-global", message: `"${read.name}" is not available to plugins and will be rejected (reached through _G)`, file: rel, line: read.line, docsUrl: DOCS.guidelines });
       }
     }
 
@@ -124,12 +129,13 @@ export async function preflightPlugin(pluginDir: string, options: PreflightOptio
       findings.push({ level: "info", code: "optional-permission-ungated", message: `${p} is optional but Plugin.HasPermission(PluginPermissions.${p}) is never called; gate the feature so the plugin works when the user declines`, file: "plugin.json", docsUrl: DOCS.hasPermission });
     }
   }
-  if (!manifest?.contactEmailAddress) {
+  // A missing or unparsable manifest is already one error; do not pile on.
+  if (manifest && !manifest.contactEmailAddress) {
     // validatePluginDir already reports the schema error; add the legal context once.
     if (!findings.some((f) => f.code === "manifest-schema" && f.message.includes("contactEmailAddress"))) {
       findings.push({ level: "error", code: "contact-email", message: "contactEmailAddress is required by Jagex for every submitted plugin", file: "plugin.json", docsUrl: DOCS.manifest });
     }
-  } else if (isPlaceholderEmail(manifest.contactEmailAddress)) {
+  } else if (manifest && isPlaceholderEmail(manifest.contactEmailAddress)) {
     findings.push({
       level: "warning",
       code: "placeholder-email",

@@ -8,7 +8,7 @@ import { readUtf8 } from "../fs.js";
 import { validateManifestObject, validatePluginDir, isDevArtifact, isPlaceholderEmail } from "../manifest.js";
 import { libraryPathFor, resolveStubsDir } from "../luarc.js";
 import { preflightPlugin } from "../preflight.js";
-import { scanLua, globalReads, memberChains } from "../lua-scan.js";
+import { scanLua, globalReads, indirectGlobalReads, memberChains } from "../lua-scan.js";
 import { syncPlugin } from "../sync.js";
 import { packagePlugin } from "../package.js";
 import { scaffoldPlugin } from "../scaffold.js";
@@ -75,6 +75,17 @@ describe("lua scanner", () => {
     expect(scan.strings.map((s) => s.value)).toEqual(["io.open in a string"]);
     expect(scan.commentLines).toBe(3);
   });
+  it("treats table constructor keys as strings and _G access as a read", () => {
+    const scan = scanLua(
+      ['local s = { debug = false, io = "x"; load = { os = 1 } }', "local f = g(a, b)", "goto debug", "::debug::", 'local x = _G.os + _G["io"] + rawget(_G, "debug")'].join("\n"),
+    );
+    expect(globalReads(scan).map((r) => r.name)).toEqual(["g", "a", "b", "_G", "_G", "rawget", "_G"]);
+    expect(indirectGlobalReads(scan)).toEqual([
+      { name: "os", line: 5 },
+      { name: "io", line: 5 },
+      { name: "debug", line: 5 },
+    ]);
+  });
   it("collects member chains", () => {
     const chains = memberChains(scanLua("Event.ChatMessage.Subscribe('a', f)\nlocal r = HTTPRequest.new(u)\nobj:Method()")).map((c) => c.chain);
     expect(chains).toEqual(["Event.ChatMessage.Subscribe", "HTTPRequest.new", "obj:Method"]);
@@ -94,9 +105,23 @@ describe("preflight", () => {
       expect.stringContaining('"io"'),
       expect.stringContaining('"load"'),
       expect.stringContaining('"debug"'),
+      expect.stringContaining('"os" is not available to plugins and will be rejected (reached through _G)'),
+      expect.stringContaining('"io" is not available to plugins and will be rejected (reached through _G)'),
+      expect.stringContaining('"debug" is not available to plugins and will be rejected (reached through _G)'),
     ]);
     expect(sandbox[0]!.line).toBe(4);
     expect(sandbox[0]!.docsUrl).toContain("guidelines");
+    // _G.os, _G["io"] and rawget(_G, "debug") sit on consecutive lines.
+    expect(sandbox.slice(4).map((f) => f.line)).toEqual([10, 11, 12]);
+  });
+  it("does not report table constructor keys, parameters, field definitions or labels as sandbox reads", async () => {
+    const result = await preflightPlugin(plugin("table-keys"));
+    expect(result.findings).toEqual([]);
+  });
+  it("reports only manifest-missing and main-missing for an empty folder", async () => {
+    const dir = await tempDir("rs3-empty-");
+    const result = await preflightPlugin(dir);
+    expect(codes(result.findings).sort()).toEqual(["main-missing", "manifest-missing"]);
   });
   it("flags chat and tracking use without the permission", async () => {
     const result = await preflightPlugin(plugin("chat-no-permission"));

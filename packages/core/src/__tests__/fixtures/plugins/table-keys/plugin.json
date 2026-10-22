@@ -1,0 +1,9 @@
+{
+  "name": "Table Keys Fixture",
+  "version": "0.1.0",
+  "contactEmailAddress": "table-keys@fixture.invalid",
+  "requiredDependencies": [],
+  "optionalDependencies": [],
+  "requiredPermissions": [],
+  "optionalPermissions": []
+}
