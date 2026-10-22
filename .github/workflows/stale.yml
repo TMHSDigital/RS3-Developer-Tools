@@ -1,0 +1,36 @@
+name: Stale issues and pull requests
+
+# Manual only. This repository keeps no scheduled stale automation (see
+# .github/workflows/README.md), but the ecosystem drift check requires a
+# stale.yml to be present for cursor-plugin repos. Running it by hand with the
+# default dry run reports what would be marked without changing anything.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report only; do not label or close anything"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  stale:
+    name: Report stale issues and pull requests
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v10
+        with:
+          debug-only: ${{ inputs.dry_run }}
+          days-before-stale: 30
+          days-before-close: 7
+          stale-issue-label: stale
+          stale-pr-label: stale
+          stale-issue-message: "This issue has had no activity for 30 days. It will be closed in 7 days unless there is further activity."
+          stale-pr-message: "This pull request has had no activity for 30 days. It will be closed in 7 days unless there is further activity."
+          exempt-issue-labels: "priority: high,security"
