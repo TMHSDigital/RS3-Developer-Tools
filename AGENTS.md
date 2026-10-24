@@ -12,13 +12,14 @@ This is a Cursor IDE plugin plus an npm workspaces monorepo for RuneScape 3 plug
 
 - **`.cursor-plugin/plugin.json`** -- plugin manifest (version source of truth, skill and rule paths)
 - **`.claude-plugin/plugin.json`** and **`marketplace.json`** -- Claude Code plugin (skills from `cursor-plugin/skills`, the MCP server via npx); installed with `claude plugin marketplace add TMHSDigital/RS3-Developer-Tools`. Its version is bumped with the Cursor manifest.
-- **`cursor-plugin/`** -- 4 SKILL.md files, 9 .mdc rule files and the AGENTS.md installed into plugin workspaces
+- **`cursor-plugin/`** -- 5 SKILL.md files, 9 .mdc rule files and the AGENTS.md installed into plugin workspaces
 - **`packages/stubs-generator/`** -- TypeScript crawler that turns developer.runescape.com into LuaLS `---@meta` stubs
 - **`packages/luals-stubs/`** -- generated stubs (committed), `index.json`, `unresolved.md`, `luarc.template.json`
 - **`packages/schema/`** -- `plugin.schema.json` (draft 2020-12) and `settings.sample.json`
 - **`packages/core/`** -- validate, preflight, scaffold, sync, watch, package, docs client with ETag cache
 - **`packages/cli/`** -- `rs3dev` (commander)
 - **`packages/mcp/`** -- `@tmhs/rs3-plugin-mcp` stdio server with 9 tools
+- **`packages/vscode/`** -- VS Code and Cursor extension (private workspace, ships as a `.vsix`): spawns `rs3dev` and maps its `--json` findings onto Problems-panel diagnostics; `src/adapter.ts` holds the testable part, `src/extension.ts` the VS Code wiring
 - **`examples/hello-counter/`** -- reference plugin; CI runs `lua-language-server --check` on it with the stubs
 - **`tests/`** -- repository tests: skills and rules frontmatter, `mcp-tools.json`, README counts, writing style
 - **`scripts/`** -- `build-all.mjs`, `link-workspaces.mjs`, `luals-check.mjs`

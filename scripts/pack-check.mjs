@@ -43,6 +43,9 @@ export async function checkPacks(root) {
   const summary = [];
   for (const workspace of rootPkg.workspaces) {
     const dir = path.join(root, workspace);
+    // Private workspaces (the VS Code extension ships as a .vsix) are never published to npm.
+    const pkg = JSON.parse(await fsp.readFile(path.join(dir, "package.json"), "utf8"));
+    if (pkg.private) continue;
     // npm is a .cmd shim on Windows, which needs a shell; pass one fixed command
     // string there so Node does not warn about unescaped arguments (DEP0190).
     const out =

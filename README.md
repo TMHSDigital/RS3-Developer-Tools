@@ -69,6 +69,10 @@ claude plugin install rs3-developer-tools@rs3-developer-tools
 
 The plugin starts the server with `npx -y @tmhs/rs3-plugin-mcp`, so it needs the packages on npm (planned, see [ROADMAP.md](ROADMAP.md)); until then use a clone with `packages/mcp/examples/monorepo.mcp.json`. Cursor users get the same rules and skills with `rs3dev init` or `rs3dev adopt`, which copy them into the plugin folder, or by opening this repository, whose `.cursor-plugin/plugin.json` lists them.
 
+### VS Code and Cursor extension
+
+`packages/vscode` wraps the CLI for the editor: validate and preflight findings land in the Problems panel on every save, each with its documentation link and an "Open documentation" quick fix; `RS3:` commands run the tests, sync, package and doctor in an output channel; a status-bar toggle starts and stops `rs3dev watch`; `plugin.json` gets schema completions; and one command registers the MCP server in `.cursor/mcp.json`. Every GitHub Release attaches `rs3-devtools-vscode-<version>.vsix` (install it with "Extensions: Install from VSIX..."); Marketplace and Open VSX listings follow once the publisher accounts exist. The extension needs `rs3dev` (`rs3.cliPath` accepts `npx -y @tmhs/rs3-devtools-cli` or a path to `packages/cli/dist/cli.js`).
+
 The beta client folder is detected on every platform from its `*.jcache` files: `C:\ProgramData\Jagex\RuneScape-BETA` on Windows, `~/Jagex/RuneScape-BETA` on macOS, and on Linux the Bolt launcher (`~/.local/share/bolt-launcher/jagex/RuneScape-BETA`) or the Flatpak Jagex Launcher Wine prefix. Anything else: set `RS3_DEV_PLUGINS_DIR` to the `dev_plugins` folder or pass `--root`. `rs3dev doctor` prints which folder was found.
 
 ## Quick start
@@ -211,6 +215,7 @@ Set `RS3_DEV_PLUGINS_DIR` when the client folder is not at the default location.
 | `@tmhs/rs3-devtools-core` | `packages/core` | Validation, preflight, scaffold, sync, watch, package, docs cache |
 | `@tmhs/rs3-devtools-cli` | `packages/cli` | The `rs3dev` command |
 | `@tmhs/rs3-plugin-mcp` | `packages/mcp` | stdio MCP server |
+| `rs3-devtools-vscode` | `packages/vscode` | VS Code and Cursor extension over the CLI (Problems panel, commands, watch toggle); ships as a `.vsix`, not on npm |
 
 ## Skills
 

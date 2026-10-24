@@ -23,7 +23,8 @@
     "packages/stubs-generator",
     "packages/luals-stubs",
     "packages/cli",
-    "packages/mcp"
+    "packages/mcp",
+    "packages/vscode"
   ],
   "scripts": {
     "postinstall": "node scripts/link-workspaces.mjs",
@@ -44,6 +45,7 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^24.0.0",
     "@vitest/coverage-v8": "^5.0.5",
+    "@vscode/vsce": "^4.0.0",
     "ajv": "^8.17.0",
     "ajv-formats": "^3.0.0",
     "cheerio": "^1.0.0",

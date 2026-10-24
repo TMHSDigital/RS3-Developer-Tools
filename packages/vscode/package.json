@@ -1,0 +1,85 @@
+{
+  "name": "rs3-devtools-vscode",
+  "displayName": "RS3 Developer Tools",
+  "description": "RuneScape 3 plugin development in the editor: validate and preflight findings in the Problems panel with documentation links, plugin tests, sync, watch and mod.io packaging through the rs3dev CLI",
+  "version": "0.1.0",
+  "publisher": "TMHSDigital",
+  "private": true,
+  "license": "MIT",
+  "author": "TMHSDigital",
+  "homepage": "https://tmhsdigital.github.io/RS3-Developer-Tools/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TMHSDigital/RS3-Developer-Tools.git",
+    "directory": "packages/vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/TMHSDigital/RS3-Developer-Tools/issues"
+  },
+  "engines": {
+    "vscode": "^1.90.0",
+    "node": ">=22"
+  },
+  "categories": ["Linters", "Testing", "Other"],
+  "keywords": ["runescape", "rs3", "lua", "plugin", "luals"],
+  "activationEvents": ["workspaceContains:**/plugin.json"],
+  "main": "./dist/extension.js",
+  "files": ["dist", "README.md", "LICENSE"],
+  "contributes": {
+    "commands": [
+      { "command": "rs3.validate", "title": "RS3: Validate plugin.json", "category": "RS3" },
+      { "command": "rs3.preflight", "title": "RS3: Preflight (sandbox, permissions, lifecycle, readability)", "category": "RS3" },
+      { "command": "rs3.test", "title": "RS3: Run plugin tests", "category": "RS3" },
+      { "command": "rs3.sync", "title": "RS3: Sync into dev_plugins", "category": "RS3" },
+      { "command": "rs3.watch", "title": "RS3: Toggle watch (sync on save)", "category": "RS3" },
+      { "command": "rs3.package", "title": "RS3: Package for mod.io", "category": "RS3" },
+      { "command": "rs3.doctor", "title": "RS3: Doctor", "category": "RS3" },
+      { "command": "rs3.registerMcp", "title": "RS3: Register the MCP server for Cursor (.cursor/mcp.json)", "category": "RS3" }
+    ],
+    "configuration": {
+      "title": "RS3 Developer Tools",
+      "properties": {
+        "rs3.cliPath": {
+          "type": "string",
+          "default": "rs3dev",
+          "markdownDescription": "Command that runs the `rs3dev` CLI: `rs3dev` when installed globally, `npx -y @tmhs/rs3-devtools-cli`, or the path to `packages/cli/dist/cli.js` in a toolkit checkout (run with Node automatically)."
+        },
+        "rs3.devPluginsRoot": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The client's `dev_plugins` folder for sync and watch. Empty detects it from the `*.jcache` files or `RS3_DEV_PLUGINS_DIR`."
+        },
+        "rs3.stubsDir": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Stubs folder for `test` and `doctor` instead of `RS3_STUBS_DIR` or the installed package."
+        },
+        "rs3.maxLineLength": {
+          "type": "number",
+          "default": 0,
+          "markdownDescription": "Preflight line length limit; 0 keeps the CLI default."
+        },
+        "rs3.checkOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run validate and preflight when plugin.json or a Lua file of a plugin is saved."
+        }
+      }
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": "plugin.json",
+        "url": "https://raw.githubusercontent.com/TMHSDigital/RS3-Developer-Tools/main/packages/schema/plugin.schema.json"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/vscode": "1.90.0"
+  }
+}

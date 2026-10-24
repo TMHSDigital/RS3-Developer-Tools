@@ -63,6 +63,13 @@ jobs:
       - name: Check what each package would publish (npm pack --dry-run)
         run: node scripts/pack-check.mjs
 
+      - name: Package the VS Code extension (vsce)
+        shell: bash
+        run: |
+          cd packages/vscode
+          npx vsce package --no-dependencies -o "${{ runner.temp }}/rs3-devtools-vscode.vsix"
+          npx vsce ls --no-dependencies
+
       - name: Unit tests (one vitest run over the repository tests and every package) with coverage
         run: npm run test:coverage
 

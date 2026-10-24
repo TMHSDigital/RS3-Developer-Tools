@@ -250,11 +250,13 @@ jobs:
           # The LuaLS addon layout (config.json, info.json, library/) for the addon manager and non-npm editors.
           node scripts/build-luals-addon.mjs --out "$RUNNER_TEMP/luals-addon"
           (cd "$RUNNER_TEMP/luals-addon" && zip -qr "$GITHUB_WORKSPACE/release-assets/rs3-client-api-luals-addon-$NEW_VERSION.zip" .)
+          # The VS Code and Cursor extension, installable with "Extensions: Install from VSIX".
+          (cd packages/vscode && npx vsce package --no-dependencies -o "$GITHUB_WORKSPACE/release-assets/rs3-devtools-vscode-$NEW_VERSION.vsix")
           (cd release-assets && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
           {
             echo "## Artefacts"
             echo
-            echo "npm tarballs for every workspace package, \`rs3-luals-stubs-$NEW_VERSION.zip\` (LuaLS \`---@meta\` stubs, \`index.json\`, \`luarc.template.json\`) and \`rs3-client-api-luals-addon-$NEW_VERSION.zip\` (the same stubs in LuaLS addon layout: \`library/\`, \`config.json\`, \`info.json\`). SHA-256:"
+            echo "npm tarballs for every workspace package, \`rs3-luals-stubs-$NEW_VERSION.zip\` (LuaLS \`---@meta\` stubs, \`index.json\`, \`luarc.template.json\`, the rs3dev test fakes and runtime), \`rs3-client-api-luals-addon-$NEW_VERSION.zip\` (the same stubs in LuaLS addon layout: \`library/\`, \`config.json\`, \`info.json\`) and \`rs3-devtools-vscode-$NEW_VERSION.vsix\` (the VS Code and Cursor extension). SHA-256:"
             echo
             echo '```'
             cat release-assets/SHA256SUMS.txt
@@ -287,3 +289,19 @@ jobs:
           for workspace in packages/schema packages/core packages/stubs-generator packages/luals-stubs packages/cli packages/mcp; do
             npm publish --workspace "$workspace" --access public --provenance
           done
+
+      # Editor listings: a Visual Studio Marketplace personal access token for the
+      # TMHSDigital publisher (VSCE_PAT) and an Open VSX token (OVSX_PAT). Each
+      # step runs only when its secret exists; the .vsix is attached to the
+      # GitHub Release either way.
+      - name: Publish the extension to the Visual Studio Marketplace
+        if: steps.check.outputs.skip == 'false' && env.VSCE_PAT != ''
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --packagePath "release-assets/rs3-devtools-vscode-${{ steps.new.outputs.version }}.vsix"
+
+      - name: Publish the extension to Open VSX
+        if: steps.check.outputs.skip == 'false' && env.OVSX_PAT != ''
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: npx ovsx publish "release-assets/rs3-devtools-vscode-${{ steps.new.outputs.version }}.vsix" -p "$OVSX_PAT"

@@ -3,7 +3,7 @@
 // still has its own `npm test` for focused runs.
 import { defineConfig } from "vitest/config";
 
-const packages = ["schema", "core", "stubs-generator", "cli", "mcp"];
+const packages = ["schema", "core", "stubs-generator", "cli", "mcp", "vscode"];
 
 export default defineConfig({
   test: {
