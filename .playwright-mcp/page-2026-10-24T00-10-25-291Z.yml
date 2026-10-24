@@ -1,0 +1,68 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "RS3 Developer Tools" [ref=e4] [cursor=pointer]:
+        - /url: ../
+      - navigation [ref=e5]:
+        - link "API" [ref=e6] [cursor=pointer]:
+          - /url: ../api/
+        - link "Tools" [ref=e7] [cursor=pointer]:
+          - /url: ../tools/
+        - link "GitHub" [ref=e8] [cursor=pointer]:
+          - /url: https://github.com/TMHSDigital/RS3-Developer-Tools
+        - link "Official docs" [ref=e9] [cursor=pointer]:
+          - /url: https://developer.runescape.com/rs/
+  - main [ref=e10]:
+    - heading "API symbol search" [level=1] [ref=e11]
+    - paragraph [ref=e12]:
+      - text: Every class, method, field, enum, event and hook from the RuneScape Client API stubs. Type a name such as
+      - code [ref=e13]: PersistentDB:GetInt
+      - text: or
+      - code [ref=e14]: Event.Logic
+      - text: ; each result links to its documentation anchor and to the stub file.
+    - generic [ref=e15]:
+      - text: "2522 symbols across 87 documentation pages. docs index last modified Tue, 20 Oct 2026 10:13:45 GMT. generator 0.1.0. Signatures only: descriptions are on the linked documentation pages. The same data is served to editors as"
+      - code [ref=e16]: "@tmhs/rs3-luals-stubs"
+      - text: and to agents through the MCP
+      - code [ref=e17]: api_lookup
+      - text: tool.
+    - generic [ref=e18]:
+      - searchbox "Search symbols" [active] [ref=e19]: PersistentDB:GetInt
+      - combobox [ref=e20]:
+        - option "All kinds" [selected]
+        - option "alias"
+        - option "class"
+        - option "enum"
+        - option "enum-member"
+        - option "event"
+        - option "field"
+        - option "function"
+        - option "global-table"
+        - option "hook"
+        - option "method"
+      - combobox [ref=e21]:
+        - option "All sections" [selected]
+        - option "audio"
+        - option "core"
+        - option "game"
+        - option "math"
+        - option "ui"
+    - paragraph [ref=e22]: 1 of 2522 symbols
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - link "PersistentDB:GetInt" [ref=e26] [cursor=pointer]:
+          - /url: https://developer.runescape.com/rs/core/persistentdb.html#get
+        - generic [ref=e27]: method
+      - code [ref=e29]: "function PersistentDB:GetInt(key: string): integer?"
+      - generic [ref=e30]:
+        - text: core/persistentdb ·
+        - link "documentation" [ref=e31] [cursor=pointer]:
+          - /url: https://developer.runescape.com/rs/core/persistentdb.html#get
+        - text: ·
+        - link "stub file" [ref=e32] [cursor=pointer]:
+          - /url: https://github.com/TMHSDigital/RS3-Developer-Tools/blob/main/packages/luals-stubs/stubs/core/persistentdb.lua
+  - contentinfo [ref=e33]:
+    - text: Signatures and links only. The RuneScape Client API documentation is copyright Jagex Ltd and lives at
+    - link "developer.runescape.com" [ref=e34] [cursor=pointer]:
+      - /url: https://developer.runescape.com/rs/
+    - text: . Site generated from the repository sources.

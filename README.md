@@ -141,6 +141,10 @@ export RS3_STUBS_DIR=~/dev/RS3-Developer-Tools/packages/luals-stubs/stubs
 
 The stubs are plain `---@meta` files and need neither Node nor this toolkit. Every GitHub Release carries two zips: `rs3-luals-stubs-<version>.zip` (the `stubs/` folder, `index.json`, `luarc.template.json`) and `rs3-client-api-luals-addon-<version>.zip` (the same stubs in LuaLS addon layout with `config.json` and `info.json`, built by `scripts/build-luals-addon.mjs`). Unpack either and point `workspace.library` in your `.luarc.json` at the stubs folder with `runtime.version` set to `Lua 5.4`; Neovim, Zed and other LuaLS editors work the same way. A "RuneScape Client API" entry in the LuaLS addon manager is planned from the addon zip (see issue 24).
 
+### Documentation site
+
+[tmhsdigital.github.io/RS3-Developer-Tools](https://tmhsdigital.github.io/RS3-Developer-Tools/) renders the skills and rules, a [searchable index of every API symbol](https://tmhsdigital.github.io/RS3-Developer-Tools/api/) (type `PersistentDB:GetInt`, get the signature, the documentation anchor and the stub file) and [a page for every `rs3dev` command and MCP tool](https://tmhsdigital.github.io/RS3-Developer-Tools/tools/). The pages are generated from `index.json`, `mcp-tools.json` and the CLI's own `--help` output on every deploy, so they cannot drift from the code. Signatures and links only; the descriptions stay on developer.runescape.com.
+
 ### API change digest
 
 The weekly stub regeneration diffs `index.json` and writes what changed in the RuneScape Client API (symbols added, removed or re-signed, each with its docs link) to [api-changes.md](api-changes.md), the commit body and an Announcements post in [Discussions](https://github.com/TMHSDigital/RS3-Developer-Tools/discussions). Watch the repository to follow it.

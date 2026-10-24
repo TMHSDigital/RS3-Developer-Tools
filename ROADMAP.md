@@ -29,4 +29,4 @@
 
 - [ ] Stable stub naming and index format for downstream tools
 - [ ] Full test matrix including a sample for every MCP tool fixture
-- [ ] Documentation site with per-tool pages
+- [x] Documentation site with per-tool pages and a searchable API symbol index
