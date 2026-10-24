@@ -15,3 +15,4 @@ packages/stubs-generator/.work/
 
 # Copied from cursor-plugin/ at build time by scripts/build-all.mjs
 packages/core/templates/agent-files/
+.playwright-mcp/
