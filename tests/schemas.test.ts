@@ -25,6 +25,28 @@ describe("repository manifests", () => {
     expect(m.version).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
+  it(".claude-plugin/plugin.json mirrors the Cursor manifest and the marketplace points at the repository root", async () => {
+    // One source for the skills (cursor-plugin/skills) feeds both manifests; the
+    // release workflow bumps both versions together (#34).
+    const cursor = await readJson<CursorManifest>(".cursor-plugin/plugin.json");
+    const claude = await readJson<{ name: string; version: string; license: string; skills: string; mcpServers: Record<string, { command: string; args: string[] }> }>(
+      ".claude-plugin/plugin.json",
+    );
+    expect(claude.name).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+    expect(claude.version).toBe(cursor.version);
+    expect(claude.license).toBe("MIT");
+    expect(claude.skills).toBe("./cursor-plugin/skills");
+    for (const skill of cursor.skills) expect(skill.startsWith("cursor-plugin/skills/")).toBe(true);
+    const servers = Object.values(claude.mcpServers);
+    expect(servers).toHaveLength(1);
+    expect(servers[0]!.args).toContain("@tmhs/rs3-plugin-mcp");
+    const market = await readJson<{ name: string; owner: { name: string }; plugins: { name: string; source: string }[] }>(".claude-plugin/marketplace.json");
+    expect(market.plugins).toHaveLength(1);
+    expect(market.plugins[0]!.name).toBe(claude.name);
+    expect(market.plugins[0]!.source).toBe(".");
+    expect(market.owner.name).toBe(cursor.author.name);
+  });
+
   it("site.json parses and carries the repository link", async () => {
     const site = await readJson<{ links: { github: string } }>("site.json");
     expect(site.links.github).toContain("TMHSDigital/RS3-Developer-Tools");

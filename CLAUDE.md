@@ -14,7 +14,7 @@ RS3 Developer Tools -- Lua-native developer toolkit for official RuneScape 3 plu
 
 ## Key paths
 
-- Plugin manifest: `.cursor-plugin/plugin.json` (version source of truth)
+- Plugin manifest: `.cursor-plugin/plugin.json` (version source of truth); Claude Code plugin: `.claude-plugin/plugin.json` and `marketplace.json`
 - Skills: `cursor-plugin/skills/*/SKILL.md`
 - Rules: `cursor-plugin/rules/*.mdc`
 - Packages: `packages/{stubs-generator,luals-stubs,schema,core,cli,mcp}`

@@ -58,6 +58,17 @@ npm link --workspace packages/cli         # exposes the rs3dev command
 
 If `npm install` fails with `EISDIR ... symlink`, the clone is on a filesystem without symlink support (exFAT). Run `npm install --workspaces=false --ignore-scripts` followed by `npm run build`; the build script copies the workspace packages into `node_modules` instead of linking them.
 
+### Claude Code plugin (skills and MCP server, no clone)
+
+This repository is also a Claude Code plugin marketplace. Two commands install the four skills and register the MCP server in any project:
+
+```bash
+claude plugin marketplace add TMHSDigital/RS3-Developer-Tools
+claude plugin install rs3-developer-tools@rs3-developer-tools
+```
+
+The plugin starts the server with `npx -y @tmhs/rs3-plugin-mcp`, so it needs the packages on npm (planned, see [ROADMAP.md](ROADMAP.md)); until then use a clone with `packages/mcp/examples/monorepo.mcp.json`. Cursor users get the same rules and skills with `rs3dev init` or `rs3dev adopt`, which copy them into the plugin folder, or by opening this repository, whose `.cursor-plugin/plugin.json` lists them.
+
 The beta client folder is detected on every platform from its `*.jcache` files: `C:\ProgramData\Jagex\RuneScape-BETA` on Windows, `~/Jagex/RuneScape-BETA` on macOS, and on Linux the Bolt launcher (`~/.local/share/bolt-launcher/jagex/RuneScape-BETA`) or the Flatpak Jagex Launcher Wine prefix. Anything else: set `RS3_DEV_PLUGINS_DIR` to the `dev_plugins` folder or pass `--root`. `rs3dev doctor` prints which folder was found.
 
 ## Quick start

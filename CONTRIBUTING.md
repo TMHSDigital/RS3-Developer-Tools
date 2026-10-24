@@ -44,7 +44,7 @@ No emojis and no em dashes in commits, code, or docs.
 
 ## Releases and dependencies
 
-Releases are cut manually by a maintainer with `gh workflow run release.yml`. The workflow refuses a commit without a green `ci.yml` run (override with `require_ci=false` only after checking by hand), builds and tests that commit, determines the bump from the conventional commits since the last tag, updates `.cursor-plugin/plugin.json`, the root and workspace `package.json` files, the README badge and the `CHANGELOG.md` `Unreleased` heading, commits to `main` (CI runs on that commit), tags, and creates the GitHub Release with the npm tarballs and `rs3-luals-stubs-<version>.zip` attached and their SHA-256 in the notes.
+Releases are cut manually by a maintainer with `gh workflow run release.yml`. The workflow refuses a commit without a green `ci.yml` run (override with `require_ci=false` only after checking by hand), builds and tests that commit, determines the bump from the conventional commits since the last tag, updates `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json`, the root and workspace `package.json` files, the README badge and the `CHANGELOG.md` `Unreleased` heading, commits to `main` (CI runs on that commit), tags, and creates the GitHub Release with the npm tarballs and `rs3-luals-stubs-<version>.zip` attached and their SHA-256 in the notes.
 
 Bump rule while the major version is 0: a breaking change (`feat!`, `fix!`, `BREAKING CHANGE`) bumps the minor, and every feature or fix bumps the patch. From 1.0.0 on, breaking changes bump the major and features the minor.
 

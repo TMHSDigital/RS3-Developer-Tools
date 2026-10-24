@@ -161,6 +161,7 @@ jobs:
                   f.write('\n')
 
           bump('.cursor-plugin/plugin.json')
+          bump('.claude-plugin/plugin.json')
           bump('package.json')
           for path in glob.glob('packages/*/package.json'):
               bump(path)

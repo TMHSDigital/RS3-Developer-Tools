@@ -1,0 +1,17 @@
+{
+  "name": "rs3-developer-tools",
+  "description": "RS3 Developer Tools: Claude Code skills and the rs3-plugin MCP server for official RuneScape 3 plugin development",
+  "owner": {
+    "name": "TMHSDigital",
+    "url": "https://github.com/TMHSDigital"
+  },
+  "plugins": [
+    {
+      "name": "rs3-developer-tools",
+      "source": ".",
+      "description": "Skills (new-plugin, add-ui-window, add-event-handler, preflight-and-package) and the rs3-plugin MCP server for RuneScape 3 plugin development",
+      "category": "development",
+      "tags": ["runescape", "rs3", "lua", "luals", "mcp"]
+    }
+  ]
+}

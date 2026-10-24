@@ -11,6 +11,7 @@ This file tells AI coding agents how the RS3 Developer Tools repo works and how 
 This is a Cursor IDE plugin plus an npm workspaces monorepo for RuneScape 3 plugin development. It contains:
 
 - **`.cursor-plugin/plugin.json`** -- plugin manifest (version source of truth, skill and rule paths)
+- **`.claude-plugin/plugin.json`** and **`marketplace.json`** -- Claude Code plugin (skills from `cursor-plugin/skills`, the MCP server via npx); installed with `claude plugin marketplace add TMHSDigital/RS3-Developer-Tools`. Its version is bumped with the Cursor manifest.
 - **`cursor-plugin/`** -- 4 SKILL.md files, 9 .mdc rule files and the AGENTS.md installed into plugin workspaces
 - **`packages/stubs-generator/`** -- TypeScript crawler that turns developer.runescape.com into LuaLS `---@meta` stubs
 - **`packages/luals-stubs/`** -- generated stubs (committed), `index.json`, `unresolved.md`, `luarc.template.json`
@@ -41,7 +42,7 @@ See [`.github/workflows/README.md`](.github/workflows/README.md) for the full ta
 - `ci.yml` (push, PR): build, `npm test`, validate and preflight the example, LuaLS check on windows-latest and ubuntu-latest.
 - `stubs-regenerate.yml` (weekly, manual): regenerates stubs, runs tests and the LuaLS check, commits `chore(stubs): regenerate from docs` directly to `main` as github-actions[bot].
 - `validate.yml` (push, PR): manifest fields, skill and rule frontmatter, README counts, credential scan, em dash and emoji check.
-- `release.yml` (manual, `gh workflow run release.yml`): bumps `.cursor-plugin/plugin.json`, root and workspace `package.json` versions, tags, creates the GitHub Release.
+- `release.yml` (manual, `gh workflow run release.yml`): bumps `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json`, root and workspace `package.json` versions, tags, creates the GitHub Release.
 - `drift-check.yml`, `pages.yml`, `codeql.yml`: ecosystem standard workflows. There is no Dependabot or label-sync automation and no scheduled stale run (`stale.yml` is manual-only and exists for the drift check); dependency updates are applied manually on `main`.
 
 ## Version management
