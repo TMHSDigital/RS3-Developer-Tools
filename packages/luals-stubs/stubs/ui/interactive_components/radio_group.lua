@@ -36,12 +36,12 @@ function ui.RadioGroup:Remove(id) end
 ---@see https://developer.runescape.com/rs/ui/interactive_components/radio_group.html#hasoption
 ---@param id integer
 ---@return boolean
-function ui.RadioGroup:HasEntry(id) end
+function ui.RadioGroup:HasOption(id) end
 
 ---@see https://developer.runescape.com/rs/ui/interactive_components/radio_group.html#setoptions
 ---@param entries table<string, integer>
 ---@return boolean
-function ui.RadioGroup:SetEntries(entries) end
+function ui.RadioGroup:SetOptions(entries) end
 
 ---@see https://developer.runescape.com/rs/ui/interactive_components/radio_group.html#getselectedvalue
 ---@param selectionIndex integer

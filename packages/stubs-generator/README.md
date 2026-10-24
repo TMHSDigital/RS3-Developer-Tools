@@ -30,7 +30,24 @@ Anything else is written to `unresolved.md` rather than guessed: unparsed signat
 
 ## overrides.json
 
-A short, hand-maintained list of facts the HTML structure does not state (vector inheritance, the `EntityDraw` boolean return, `Plugin.urls`, the client-options placeholder owner, two optional global hooks). Every entry cites its documentation anchor and is echoed in `unresolved.md`.
+A short, hand-maintained list of facts the HTML structure does not state. Every entry cites its documentation anchor (`see`) and says why (`reason`); both are echoed in `unresolved.md` under "Overrides applied". The kinds:
+
+| Key | Use | Example |
+| --- | --- | --- |
+| `classParents` | inheritance stated in prose | `Vector2 : Vector` |
+| `eventCallbackReturnsBoolean` | callbacks that must return a value | `EntityDraw` |
+| `extraFields` | members documented by heading only | `Plugin.urls` |
+| `fieldTypes` | property rows whose type cell holds prose | `audio.SoundInstance.isPaused: boolean` |
+| `classes` | opaque types described under a heading with no table | `RuntimeSprite`, `PluginAudioResource` |
+| `derivedClasses` | types defined as another type minus some properties | `ui.TextDataConfig` from `ui.TextData` |
+| `ownerPlaceholders` | signature owners written as placeholders | `game.options.<option name>` |
+| `returnTypes` | signature line and returns table disagree (`types` for several values) | `ShapeList.GetEntity`, `FontType:GetStringHeightAndLineCount` |
+| `renames` | heading and examples use another name than the signature | `ui.RadioGroup:SetOptions` |
+| `memberAliases` | the docs use two names for one member; both are emitted | `AABB:AddPoint` beside `AddPosition` |
+| `globalFunctions` | hooks a plugin defines in global scope | `PluginShutdown` |
+| `aliases` | names that stand for another type | `VarPlayer = VarType` |
+
+A test over the committed stubs fails when `_unresolved.lua` gains an `any` alias, so a new undeclared type in the docs has to be resolved here (or left as `any` with an explicit `aliases` entry and reason) before the regenerated stubs can land.
 
 ## Determinism
 

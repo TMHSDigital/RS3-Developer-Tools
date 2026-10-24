@@ -84,7 +84,7 @@ function ShapeList.CreateEntity(name) end
 
 ---@see https://developer.runescape.com/rs/game/list/shapelist.html#getentity
 ---@param name string
----@return ShapeInstance?
+---@return ShapeEntity?
 function ShapeList.GetEntity(name) end
 
 ---@see https://developer.runescape.com/rs/game/list/shapelist.html#getallentities

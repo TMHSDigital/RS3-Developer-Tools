@@ -58,8 +58,8 @@ audio.EmitterShape = {
 ---@see https://developer.runescape.com/rs/audio/index.html#start
 ---@class audio.SoundInstance
 ---@field isPlaying boolean
----@field isPaused any
----@field id any
+---@field isPaused boolean
+---@field id integer
 audio.SoundInstance = {}
 
 ---@see https://developer.runescape.com/rs/audio/index.html#start
@@ -109,3 +109,7 @@ function audio.Stop(soundInstanceID) end
 ---@param resource PluginAudioResource
 ---@overload fun(builtinResourceID: integer)
 function audio.StopSoundsUsingResource(resource) end
+
+---@see https://developer.runescape.com/rs/audio/index.html#audioplay
+---@class PluginAudioResource
+local PluginAudioResource_ = {}

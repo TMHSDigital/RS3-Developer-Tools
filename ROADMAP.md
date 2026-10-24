@@ -21,7 +21,7 @@
 
 - [x] Preflight: detect per-tick API list scans inside `Event.Logic` and `Event.Draw`
 - [x] Preflight: verify every `Subscribe` has a matching `Unsubscribe` in `PluginShutdown`
-- [ ] Stubs: resolve the remaining `_unresolved.lua` aliases through overrides where the docs state the type in prose
+- [x] Stubs: resolve the remaining `_unresolved.lua` aliases through overrides where the docs state the type in prose
 - [x] `rs3dev doctor`: report client folder, LuaLS binary, and cache state
 - [ ] Skill: migrate-ui-to-prettyui
 

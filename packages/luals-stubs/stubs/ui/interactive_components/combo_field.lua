@@ -43,7 +43,7 @@ ui.ComboField = {}
 ---@param parent ui.ComponentCollection
 ---@param categoryID? integer
 ---@param dynamicID? integer
----@return Combo
+---@return ui.ComboField
 function ui.ComboField.new(parent, categoryID, dynamicID) end
 
 ---@see https://developer.runescape.com/rs/ui/interactive_components/combo_field.html#add

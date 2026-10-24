@@ -779,6 +779,14 @@
       "signature": "function AABB:AddAABB(otherAABB: AABB)"
     },
     {
+      "name": "AABB:AddPoint",
+      "kind": "method",
+      "module": "math/aabb",
+      "file": "stubs/math/aabb.lua",
+      "url": "https://developer.runescape.com/rs/math/aabb.html#addpoint",
+      "signature": "function AABB:AddPoint(position: Vector3)"
+    },
+    {
       "name": "AABB:AddPosition",
       "kind": "method",
       "module": "math/aabb",
@@ -4897,6 +4905,14 @@
       "file": "stubs/game/config/invtype.lua",
       "url": "https://developer.runescape.com/rs/game/config/invtype.html#properties",
       "signature": "InvType.typeName: string"
+    },
+    {
+      "name": "InvTypeProxy",
+      "kind": "alias",
+      "module": "_extras",
+      "file": "stubs/_extras.lua",
+      "url": "https://developer.runescape.com/rs/core/events.html#inventoryadded",
+      "signature": "---@alias InvTypeProxy InvType"
     },
     {
       "name": "Inventory",
@@ -9419,6 +9435,14 @@
       "signature": "Plugin.urls: table<string, PluginURL>"
     },
     {
+      "name": "PluginAudioResource",
+      "kind": "class",
+      "module": "audio/index",
+      "file": "stubs/audio/index.lua",
+      "url": "https://developer.runescape.com/rs/audio/index.html#audioplay",
+      "signature": "---@class PluginAudioResource"
+    },
+    {
       "name": "PluginDependencyUpdate",
       "kind": "function",
       "module": "_extras",
@@ -10307,6 +10331,14 @@
       "signature": "RunWeightTransmitEvent.oldRunWeight: integer"
     },
     {
+      "name": "RuntimeSprite",
+      "kind": "class",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#runtimesprite",
+      "signature": "---@class RuntimeSprite"
+    },
+    {
       "name": "ScreenConvert",
       "kind": "class",
       "module": "game/screenconvert",
@@ -10952,7 +10984,7 @@
       "module": "game/list/shapelist",
       "file": "stubs/game/list/shapelist.lua",
       "url": "https://developer.runescape.com/rs/game/list/shapelist.html#getentity",
-      "signature": "function ShapeList.GetEntity(name: string): ShapeInstance?"
+      "signature": "function ShapeList.GetEntity(name: string): ShapeEntity?"
     },
     {
       "name": "ShapeList.GetInstance",
@@ -12539,6 +12571,14 @@
       "signature": "ValueType.VORBIS = 57"
     },
     {
+      "name": "VarPlayer",
+      "kind": "alias",
+      "module": "_extras",
+      "file": "stubs/_extras.lua",
+      "url": "https://developer.runescape.com/rs/game/config/achievementtype.html#achievementtestvartotal",
+      "signature": "---@alias VarPlayer VarType"
+    },
+    {
       "name": "VarTransmitEvent.newValue",
       "kind": "field",
       "module": "core/events",
@@ -13296,7 +13336,7 @@
       "module": "audio/index",
       "file": "stubs/audio/index.lua",
       "url": "https://developer.runescape.com/rs/audio/index.html#properties",
-      "signature": "audio.SoundInstance.id: any"
+      "signature": "audio.SoundInstance.id: integer"
     },
     {
       "name": "audio.SoundInstance.isPaused",
@@ -13304,7 +13344,7 @@
       "module": "audio/index",
       "file": "stubs/audio/index.lua",
       "url": "https://developer.runescape.com/rs/audio/index.html#properties",
-      "signature": "audio.SoundInstance.isPaused: any"
+      "signature": "audio.SoundInstance.isPaused: boolean"
     },
     {
       "name": "audio.SoundInstance.isPlaying",
@@ -15056,7 +15096,7 @@
       "module": "ui/interactive_components/combo_field",
       "file": "stubs/ui/interactive_components/combo_field.lua",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/combo_field.html#constructor",
-      "signature": "function ui.ComboField.new(parent: ui.ComponentCollection, categoryID?: integer, dynamicID?: integer): Combo"
+      "signature": "function ui.ComboField.new(parent: ui.ComponentCollection, categoryID?: integer, dynamicID?: integer): ui.ComboField"
     },
     {
       "name": "ui.ComboField.numEntries",
@@ -17411,6 +17451,14 @@
       "signature": "function ui.Interfaces:GetInterface(interfaceID: integer): ui.Interface?"
     },
     {
+      "name": "ui.LabelData",
+      "kind": "alias",
+      "module": "_extras",
+      "file": "stubs/_extras.lua",
+      "url": "https://developer.runescape.com/rs/ui/layout_components/group_box.html#properties",
+      "signature": "---@alias ui.LabelData ui.TextData"
+    },
+    {
       "name": "ui.Layer",
       "kind": "class",
       "module": "ui/layout_components/layer",
@@ -18056,7 +18104,7 @@
       "module": "ui/decorative_components/modelgroup",
       "file": "stubs/ui/decorative_components/modelgroup.lua",
       "url": "https://developer.runescape.com/rs/ui/decorative_components/modelgroup.html#properties",
-      "signature": "ui.ModelCamera.transitionMaskSprite: any"
+      "signature": "ui.ModelCamera.transitionMaskSprite: integer"
     },
     {
       "name": "ui.ModelCamera.transitionRatio",
@@ -19339,12 +19387,12 @@
       "signature": "function ui.RadioGroup:GetSelectedValue(selectionIndex: integer): integer"
     },
     {
-      "name": "ui.RadioGroup:HasEntry",
+      "name": "ui.RadioGroup:HasOption",
       "kind": "method",
       "module": "ui/interactive_components/radio_group",
       "file": "stubs/ui/interactive_components/radio_group.lua",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/radio_group.html#hasoption",
-      "signature": "function ui.RadioGroup:HasEntry(id: integer): boolean"
+      "signature": "function ui.RadioGroup:HasOption(id: integer): boolean"
     },
     {
       "name": "ui.RadioGroup:Remove",
@@ -19353,14 +19401,6 @@
       "file": "stubs/ui/interactive_components/radio_group.lua",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/radio_group.html#remove",
       "signature": "function ui.RadioGroup:Remove(id: integer): boolean"
-    },
-    {
-      "name": "ui.RadioGroup:SetEntries",
-      "kind": "method",
-      "module": "ui/interactive_components/radio_group",
-      "file": "stubs/ui/interactive_components/radio_group.lua",
-      "url": "https://developer.runescape.com/rs/ui/interactive_components/radio_group.html#setoptions",
-      "signature": "function ui.RadioGroup:SetEntries(entries: table<string, integer>): boolean"
     },
     {
       "name": "ui.RadioGroup:SetOptionEnabled",
@@ -19377,6 +19417,14 @@
       "file": "stubs/ui/interactive_components/radio_group.lua",
       "url": "https://developer.runescape.com/rs/ui/interactive_components/radio_group.html#setoptionselected",
       "signature": "function ui.RadioGroup:SetOptionSelected(id: integer, selected: boolean, triggerEvents?: boolean): boolean"
+    },
+    {
+      "name": "ui.RadioGroup:SetOptions",
+      "kind": "method",
+      "module": "ui/interactive_components/radio_group",
+      "file": "stubs/ui/interactive_components/radio_group.lua",
+      "url": "https://developer.runescape.com/rs/ui/interactive_components/radio_group.html#setoptions",
+      "signature": "function ui.RadioGroup:SetOptions(entries: table<string, integer>): boolean"
     },
     {
       "name": "ui.RadioGroup:SetSelectionLimits",
@@ -20011,6 +20059,118 @@
       "signature": "function ui.SpriteData:SetConfig(config: ui.SpriteDataConfig)"
     },
     {
+      "name": "ui.SpriteDataConfig",
+      "kind": "class",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "---@class ui.SpriteDataConfig"
+    },
+    {
+      "name": "ui.SpriteDataConfig.alpha",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "ui.SpriteDataConfig.alpha: number"
+    },
+    {
+      "name": "ui.SpriteDataConfig.colour",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "ui.SpriteDataConfig.colour: Vector4"
+    },
+    {
+      "name": "ui.SpriteDataConfig.isFlippedHorizontally",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "ui.SpriteDataConfig.isFlippedHorizontally: boolean"
+    },
+    {
+      "name": "ui.SpriteDataConfig.isFlippedVertical",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "ui.SpriteDataConfig.isFlippedVertical: boolean"
+    },
+    {
+      "name": "ui.SpriteDataConfig.isTiling",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "ui.SpriteDataConfig.isTiling: boolean"
+    },
+    {
+      "name": "ui.SpriteDataConfig.new",
+      "kind": "function",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "function ui.SpriteDataConfig.new(): ui.SpriteDataConfig"
+    },
+    {
+      "name": "ui.SpriteDataConfig.outlineWidth",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "ui.SpriteDataConfig.outlineWidth: integer"
+    },
+    {
+      "name": "ui.SpriteDataConfig.rgba",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "ui.SpriteDataConfig.rgba: integer"
+    },
+    {
+      "name": "ui.SpriteDataConfig.rotationDegrees",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "ui.SpriteDataConfig.rotationDegrees: number"
+    },
+    {
+      "name": "ui.SpriteDataConfig.rotationRadians",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "ui.SpriteDataConfig.rotationRadians: number"
+    },
+    {
+      "name": "ui.SpriteDataConfig.shadowColour",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "ui.SpriteDataConfig.shadowColour: Vector4"
+    },
+    {
+      "name": "ui.SpriteDataConfig.shadowRGBA",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "ui.SpriteDataConfig.shadowRGBA: integer"
+    },
+    {
+      "name": "ui.SpriteDataConfig.visualMargins",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig",
+      "signature": "ui.SpriteDataConfig.visualMargins: ui.Margin"
+    },
+    {
       "name": "ui.StyleSheet",
       "kind": "class",
       "module": "ui/stylesheets",
@@ -20425,6 +20585,110 @@
       "file": "stubs/ui/common_types.lua",
       "url": "https://developer.runescape.com/rs/ui/common_types.html#setconfig",
       "signature": "function ui.TextData:SetConfig(config: ui.TextDataConfig)"
+    },
+    {
+      "name": "ui.TextDataConfig",
+      "kind": "class",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig",
+      "signature": "---@class ui.TextDataConfig"
+    },
+    {
+      "name": "ui.TextDataConfig.alignHorizontal",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig",
+      "signature": "ui.TextDataConfig.alignHorizontal: ui.AlignMode"
+    },
+    {
+      "name": "ui.TextDataConfig.alignVertical",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig",
+      "signature": "ui.TextDataConfig.alignVertical: ui.AlignMode"
+    },
+    {
+      "name": "ui.TextDataConfig.alpha",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig",
+      "signature": "ui.TextDataConfig.alpha: number"
+    },
+    {
+      "name": "ui.TextDataConfig.colour",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig",
+      "signature": "ui.TextDataConfig.colour: Vector4"
+    },
+    {
+      "name": "ui.TextDataConfig.font",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig",
+      "signature": "ui.TextDataConfig.font: integer"
+    },
+    {
+      "name": "ui.TextDataConfig.isShadowed",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig",
+      "signature": "ui.TextDataConfig.isShadowed: boolean"
+    },
+    {
+      "name": "ui.TextDataConfig.lineSpacing",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig",
+      "signature": "ui.TextDataConfig.lineSpacing: integer"
+    },
+    {
+      "name": "ui.TextDataConfig.maxLines",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig",
+      "signature": "ui.TextDataConfig.maxLines: integer"
+    },
+    {
+      "name": "ui.TextDataConfig.new",
+      "kind": "function",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig",
+      "signature": "function ui.TextDataConfig.new(): ui.TextDataConfig"
+    },
+    {
+      "name": "ui.TextDataConfig.rgba",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig",
+      "signature": "ui.TextDataConfig.rgba: integer"
+    },
+    {
+      "name": "ui.TextDataConfig.shadowColour",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig",
+      "signature": "ui.TextDataConfig.shadowColour: Vector4"
+    },
+    {
+      "name": "ui.TextDataConfig.shadowRGBA",
+      "kind": "field",
+      "module": "ui/common_types",
+      "file": "stubs/ui/common_types.lua",
+      "url": "https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig",
+      "signature": "ui.TextDataConfig.shadowRGBA: integer"
     },
     {
       "name": "ui.TriggerMode",

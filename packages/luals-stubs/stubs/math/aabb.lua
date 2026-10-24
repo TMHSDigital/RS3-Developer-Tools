@@ -97,3 +97,7 @@ function AABB:AddPosition(position) end
 ---@see https://developer.runescape.com/rs/math/aabb.html#addaabb
 ---@param otherAABB AABB
 function AABB:AddAABB(otherAABB) end
+
+---@see https://developer.runescape.com/rs/math/aabb.html#addpoint
+---@param position Vector3
+function AABB:AddPoint(position) end

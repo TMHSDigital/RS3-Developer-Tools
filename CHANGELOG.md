@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
+- Stubs: every type the docs reference without declaring is now resolved and `_unresolved.lua` is empty. `overrides.json` gains `classes` (opaque `RuntimeSprite`, `PluginAudioResource`), `derivedClasses` (`ui.TextDataConfig` and `ui.SpriteDataConfig` carry the fields of `ui.TextData` and `ui.SpriteData` minus the documented omissions, plus `new()`), `fieldTypes` (`audio.SoundInstance.isPaused`, `.id`, `ui.ModelCamera.transitionMaskSprite`), `renames` (`ui.RadioGroup:SetOptions`, `:HasOption` as the headings and examples say) and `memberAliases` (`AABB:AddPoint` beside `AddPosition`); `returnTypes` accepts several return values. `InvTypeProxy`, `VarPlayer` and `ui.LabelData` are aliases; `ui.ComboField.new` returns `ui.ComboField`. All 14 signature/table return mismatches now carry an explicit override with its reason. A test over the committed stubs fails if an `any` alias comes back without an override
+
 - Preflight `placeholder-email` warning; `package` refuses placeholder addresses (`--allow-placeholder-email` for tests) and ships `plugin.json` without `$schema`
 - `.luarc.json` library path written relative to the plugin folder; `RS3_STUBS_DIR` override
 - `@tmhs/rs3-plugin-mcp` ships a dedicated `dist/bin.js` executable so the npm bin symlink starts the server on Linux and macOS; a spawn smoke test guards it
@@ -15,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- `unresolved.md` no longer lists a heading that groups several signatures (`PersistentDB` `Get`, `Set`) as a name difference, nor a heading-only member that an `extraFields` override already supplies
 - `scripts/luals-check.mjs` dropped the first LuaLS diagnostic when it shared a line with the progress output
 - Preflight `sandbox-global` no longer fires on table constructor keys (`{ debug = false }`), goto labels or parameters; it now also reports `_G.os`, `_G["io"]` and `rawget(_G, "debug")`. An empty folder reports `manifest-missing` and `main-missing` only
 - `DocsClient` aborts a fetch after `timeoutMs` (default 15 s), retries network errors, timeouts and 5xx once, and serves the cached copy when every attempt fails; `docs_get` and the stub crawl can no longer hang. Every workflow job has a `timeout-minutes`

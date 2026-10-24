@@ -19,13 +19,34 @@ import type { ClassDef, FunctionSig, GenerateResult, GlobalTables, IndexEntry, M
 /** Documentation sections that document API modules (everything else is tutorial or policy). */
 export const API_SECTIONS = ["core/", "game/", "math/", "ui/", "audio/"];
 
+/**
+ * Hand-maintained facts from overrides.json. Every entry cites the docs anchor
+ * it comes from (`see`) and says why (`reason`); both are echoed in unresolved.md.
+ */
 export interface Overrides {
+  /** `class : parent` where the docs state inheritance in prose. */
   classParents: { class: string; parent: string; see: string; reason: string }[];
+  /** Events whose callback must return a boolean. */
   eventCallbackReturnsBoolean: { event: string; see: string; reason: string }[];
+  /** Fields documented by heading only, with the type the docs name. */
   extraFields: { class: string; name: string; type: string; see: string; reason: string }[];
+  /** Fields whose type cell holds prose; the type the description names. */
+  fieldTypes: { class: string; name: string; type: string; see: string; reason: string }[];
+  /** Types the docs reference and describe under a heading but never tabulate (opaque handles). */
+  classes: { name: string; fields: { name: string; type: string }[]; see: string; reason: string }[];
+  /** Types the docs define as "X without these properties" (ui.TextDataConfig from ui.TextData). */
+  derivedClasses: { name: string; from: string; omitFields: string[]; withConstructor: boolean; see: string; reason: string }[];
+  /** Signature owners written as a placeholder (game.options.<option name>). */
   ownerPlaceholders: { owner: string; class: string; table: string; see: string; reason: string }[];
-  returnTypes: { function: string; type: string; see: string; reason: string }[];
+  /** Return type(s) when the signature line and the returns table disagree; `types` for several values. */
+  returnTypes: { function: string; type?: string; types?: string[]; see: string; reason: string }[];
+  /** Members whose heading and examples use a different name from the signature line. */
+  renames: { function: string; name: string; see: string; reason: string }[];
+  /** Members the docs call by two names in different places; both are emitted. */
+  memberAliases: { function: string; alias: string; see: string; reason: string }[];
+  /** Hook functions a plugin defines in global scope. */
   globalFunctions: { name: string; params: { name: string; type: string }[]; see: string; reason: string }[];
+  /** Named types that stand for another type. */
   aliases: { name: string; type: string; see: string; reason: string }[];
 }
 
@@ -149,13 +170,8 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     }
   }
 
-  const allSigs: { sig: FunctionSig; module: ModuleDef }[] = [];
-  for (const mod of modules) {
-    for (const cls of mod.classes) for (const m of cls.methods) allSigs.push({ sig: m, module: mod });
-    for (const fn of mod.freeFunctions) allSigs.push({ sig: fn, module: mod });
-  }
-
-  // Overrides: parents, event return flags, extra fields, return types.
+  // Overrides that add classes come before the member list is collected, so the
+  // members they introduce take part in type resolution like documented ones.
   const findClass = (name: string) => {
     for (const mod of modules) {
       const cls = mod.classes.find((c) => c.name === name);
@@ -163,6 +179,95 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     }
     return undefined;
   };
+  const anchorOf = (see: string) => see.split("#")[1] ?? "";
+  /** Remove the page notes an override answers, so unresolved.md lists the override instead. */
+  const dropNotes = (mod: ModuleDef, kind: Note["kind"], matches: (detail: string) => boolean) => {
+    mod.notes = mod.notes.filter((n) => !(n.kind === kind && matches(n.detail)));
+  };
+  for (const o of overrides.classes) {
+    const mod = modules.find((m) => m.id === pageOf(o.see));
+    if (!mod || findClass(o.name)) continue;
+    const anchor = anchorOf(o.see);
+    mod.classes.push({ name: o.name, fields: o.fields.map((f) => ({ name: f.name, type: f.type, anchor })), methods: [], isGlobal: false, anchor });
+    notes.push({ kind: "override-applied", page: mod.id, anchor, detail: `class ${o.name} declared with ${o.fields.length} field(s). ${o.reason}` });
+  }
+  for (const o of overrides.derivedClasses) {
+    const source = findClass(o.from);
+    if (!source || findClass(o.name)) continue;
+    const anchor = anchorOf(o.see);
+    const cls: ClassDef = {
+      name: o.name,
+      fields: source.cls.fields.filter((f) => !o.omitFields.includes(f.name)).map((f) => ({ ...f, anchor })),
+      methods: [],
+      isGlobal: o.withConstructor,
+      anchor,
+    };
+    if (o.withConstructor) {
+      cls.methods.push({
+        owner: o.name,
+        sep: ".",
+        name: "new",
+        params: [],
+        returns: [o.name],
+        overloads: [],
+        anchor,
+        raw: `function ${o.name}.new() -> ${o.name}`,
+      });
+    }
+    source.mod.classes.push(cls);
+    notes.push({
+      kind: "override-applied",
+      page: source.mod.id,
+      anchor,
+      detail: `class ${o.name} carries the fields of ${o.from} except ${o.omitFields.join(", ") || "none"}${o.withConstructor ? " and a new() constructor" : ""}. ${o.reason}`,
+    });
+  }
+
+  const allSigs: { sig: FunctionSig; module: ModuleDef }[] = [];
+  for (const mod of modules) {
+    for (const cls of mod.classes) for (const m of cls.methods) allSigs.push({ sig: m, module: mod });
+    for (const fn of mod.freeFunctions) allSigs.push({ sig: fn, module: mod });
+  }
+
+  // Overrides on member names: renames replace the signature name, aliases add a twin.
+  for (const o of overrides.renames) {
+    const entry = allSigs.find((s) => qualifiedName(s.sig) === o.function);
+    if (!entry) continue;
+    entry.sig.name = o.name;
+    dropNotes(entry.module, "name-from-heading", (d) => d.includes(`documents ${o.function};`));
+    notes.push({
+      kind: "override-applied",
+      page: entry.module.id,
+      anchor: entry.sig.anchor,
+      detail: `${o.function} is emitted as ${qualifiedName(entry.sig)}. ${o.reason}`,
+    });
+  }
+  for (const o of overrides.memberAliases) {
+    const entry = allSigs.find((s) => qualifiedName(s.sig) === o.function);
+    if (!entry) continue;
+    const { sig, module } = entry;
+    const list = sig.owner ? module.classes.find((c) => c.methods.includes(sig))?.methods : module.freeFunctions;
+    if (!list || list.some((m) => m.name === o.alias && m.sep === sig.sep)) continue;
+    const copy: FunctionSig = {
+      ...sig,
+      name: o.alias,
+      params: sig.params.map((p) => ({ ...p })),
+      returns: [...sig.returns],
+      tableReturns: undefined,
+      overloads: sig.overloads.map((ov) => ({ params: ov.params.map((p) => ({ ...p })), returns: [...ov.returns] })),
+    };
+    list.push(copy);
+    allSigs.push({ sig: copy, module });
+    dropNotes(module, "name-from-heading", (d) => d.includes(`documents ${o.function};`));
+    notes.push({
+      kind: "override-applied",
+      page: module.id,
+      anchor: sig.anchor,
+      detail: `${qualifiedName(copy)} is emitted beside ${o.function} with the same signature. ${o.reason}`,
+    });
+  }
+
+  // Overrides: parents, event return flags, extra fields, field types, return types.
   for (const o of overrides.classParents) {
     const found = findClass(o.class);
     if (!found) continue;
@@ -182,16 +287,27 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     const found = findClass(o.class);
     if (!found) continue;
     if (!found.cls.fields.some((f) => f.name === o.name)) {
-      found.cls.fields.push({ name: o.name, type: o.type, anchor: o.see.split("#")[1] ?? "" });
-      notes.push({ kind: "override-applied", page: found.mod.id, anchor: o.see.split("#")[1], detail: `${o.class}.${o.name}: ${o.type}. ${o.reason}` });
+      found.cls.fields.push({ name: o.name, type: o.type, anchor: anchorOf(o.see) });
+      dropNotes(found.mod, "member-without-signature", (d) => d.startsWith(`${o.name} (`));
+      notes.push({ kind: "override-applied", page: found.mod.id, anchor: anchorOf(o.see), detail: `${o.class}.${o.name}: ${o.type}. ${o.reason}` });
     }
+  }
+  for (const o of overrides.fieldTypes) {
+    const found = findClass(o.class);
+    const field = found?.cls.fields.find((f) => f.name === o.name);
+    if (!found || !field) continue;
+    field.type = o.type;
+    // The parser's note names every field of the row ("a/b: type cell reads ...").
+    dropNotes(found.mod, "malformed-type-cell", (d) => (d.split(":")[0] ?? "").split("/").includes(o.name));
+    notes.push({ kind: "override-applied", page: found.mod.id, anchor: field.anchor, detail: `${o.class}.${o.name}: ${o.type}. ${o.reason}` });
   }
   for (const o of overrides.returnTypes) {
     const entry = allSigs.find((s) => qualifiedName(s.sig) === o.function);
-    if (!entry) continue;
-    entry.sig.returns = [o.type];
+    const types = o.types ?? (o.type ? [o.type] : []);
+    if (!entry || types.length === 0) continue;
+    entry.sig.returns = types;
     entry.sig.tableReturns = undefined;
-    notes.push({ kind: "override-applied", page: entry.module.id, anchor: entry.sig.anchor, detail: `${o.function} returns ${o.type}. ${o.reason}` });
+    notes.push({ kind: "override-applied", page: entry.module.id, anchor: entry.sig.anchor, detail: `${o.function} returns ${types.join(", ")}. ${o.reason}` });
   }
   for (const o of overrides.ownerPlaceholders) {
     notes.push({ kind: "override-applied", page: pageOf(o.see), detail: `owner "${o.owner}" is class ${o.class} stored in ${o.table}. ${o.reason}` });

@@ -420,6 +420,10 @@ export function buildPageModel(page: ParsedPage, options: BuildOptions): PageMod
       const headingText = innermost(block.path)?.text.trim() ?? "";
       const headingName = headingText.includes(".") ? headingText.split(".").pop()! : headingText;
       const seenInBlock = new Map<string, FunctionSig>();
+      // A heading over several differently named signatures (PersistentDB "Get"
+      // over GetInt, GetString, ...) is a group label, not a member name.
+      const namesInBlock = new Set(parsed.flatMap((i) => (i.kind === "index" ? [] : [i.sig.name])));
+      const groupHeading = namesInBlock.size > 1;
       for (const item of parsed) {
         if (item.kind === "index") {
           const owner = normaliseOwner(item.owner, block.path, anchor);
@@ -457,7 +461,7 @@ export function buildPageModel(page: ParsedPage, options: BuildOptions): PageMod
             duplicate.overloads.push({ params: sig.params, returns: sig.returns });
             continue;
           }
-        } else if (/^\w+$/.test(headingName) && !isSectionWord(headingName) && headingName !== sig.name && !/constructor/i.test(headingName)) {
+        } else if (!groupHeading && /^\w+$/.test(headingName) && !isSectionWord(headingName) && headingName !== sig.name && !/constructor/i.test(headingName)) {
           note("name-from-heading", `heading "${headingText}" documents ${sig.owner}${sig.sep}${sig.name}; signature name kept`, anchor);
         }
         seenInBlock.set(key, sig);

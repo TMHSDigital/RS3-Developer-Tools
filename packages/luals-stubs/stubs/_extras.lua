@@ -8,6 +8,15 @@
 ---@see https://developer.runescape.com/rs/core/http.html#constructor
 ---@alias PluginURL string
 
+---@see https://developer.runescape.com/rs/core/events.html#inventoryadded
+---@alias InvTypeProxy InvType
+
+---@see https://developer.runescape.com/rs/game/config/achievementtype.html#achievementtestvartotal
+---@alias VarPlayer VarType
+
+---@see https://developer.runescape.com/rs/ui/layout_components/group_box.html#properties
+---@alias ui.LabelData ui.TextData
+
 ---@see https://developer.runescape.com/rs/structure.html#dependency-updates
 ---@param optionalDependencyChangedEvent OptionalDependencyChangedEvent
 function PluginDependencyUpdate(optionalDependencyChangedEvent) end

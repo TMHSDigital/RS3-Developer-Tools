@@ -43,6 +43,61 @@
       "reason": "Documented as a heading without a signature table; nested folders become nested tables."
     }
   ],
+  "fieldTypes": [
+    {
+      "class": "audio.SoundInstance",
+      "name": "isPaused",
+      "type": "boolean",
+      "see": "audio/index.html#properties",
+      "reason": "The row has no type cell; it describes a paused state and sits beside isPlaying, which is Bool."
+    },
+    {
+      "class": "audio.SoundInstance",
+      "name": "id",
+      "type": "integer",
+      "see": "audio/index.html#properties",
+      "reason": "The row has no type cell; it is described as a numeric ID and audio.Stop takes it as soundInstanceID : Int."
+    },
+    {
+      "class": "ui.ModelCamera",
+      "name": "transitionMaskSprite",
+      "type": "integer",
+      "see": "ui/decorative_components/modelgroup.html#properties",
+      "reason": "The type cell reads (Read-only); it is described as a sprite ID and SwitchCamera takes the same value as transitionMaskSpriteID : Int."
+    }
+  ],
+  "classes": [
+    {
+      "name": "PluginAudioResource",
+      "fields": [],
+      "see": "audio/index.html#audioplay",
+      "reason": "Opaque handle for a plugin-provided audio resource; the audio page passes Plugin.resources.<name> to audio.Play and no page lists fields."
+    },
+    {
+      "name": "RuntimeSprite",
+      "fields": [],
+      "see": "ui/common_types.html#runtimesprite",
+      "reason": "Documented under its own heading as an opaque runtime-generated sprite object with no properties or methods."
+    }
+  ],
+  "derivedClasses": [
+    {
+      "name": "ui.TextDataConfig",
+      "from": "ui.TextData",
+      "omitFields": ["content"],
+      "withConstructor": true,
+      "see": "ui/common_types.html#uitextdataconfig",
+      "reason": "The common types page defines it as TextData without the content property and without methods; the example constructs one with ui.TextDataConfig.new()."
+    },
+    {
+      "name": "ui.SpriteDataConfig",
+      "from": "ui.SpriteData",
+      "omitFields": ["sprite", "spriteID", "runtimeSprite"],
+      "withConstructor": true,
+      "see": "ui/common_types.html#uispritedataconfig",
+      "reason": "The common types page defines it as SpriteData without the sprite, spriteID and runtimeSprite properties and without methods; constructed like ui.TextDataConfig."
+    }
+  ],
   "ownerPlaceholders": [
     {
       "owner": "game.options.<option name>",
@@ -72,6 +127,66 @@
       "reason": "Signature line says Boolean, the returns table says Integer; a count is an integer."
     },
     {
+      "function": "FontType:GetStringHeightAndLineCount",
+      "types": ["integer", "integer"],
+      "see": "game/config/fonttype.html#getstringheightandlinecount",
+      "reason": "Signature line returns two integers (height and line count) as the method name says; the returns table lists one."
+    },
+    {
+      "function": "LocType:GetOpCursor",
+      "type": "CursorType?",
+      "see": "game/config/loctype.html#getopcursor",
+      "reason": "Signature line says Cursor, a name no page declares; the returns table says CursorType, the config class."
+    },
+    {
+      "function": "NPCType:GetOpCursor",
+      "type": "CursorType?",
+      "see": "game/config/npctype.html#getopcursor",
+      "reason": "Same as LocType:GetOpCursor."
+    },
+    {
+      "function": "ObjType:GetGroundOpCursor",
+      "type": "CursorType?",
+      "see": "game/config/objtype.html#getgroundopcursor",
+      "reason": "Same as LocType:GetOpCursor."
+    },
+    {
+      "function": "ObjType:GetInterfaceOpCursor",
+      "type": "CursorType?",
+      "see": "game/config/objtype.html#getinterfaceopcursor",
+      "reason": "Same as LocType:GetOpCursor."
+    },
+    {
+      "function": "PersistentDB:GetStructuredData",
+      "type": "table?",
+      "see": "core/persistentdb.html#get",
+      "reason": "The returns table repeats the value union shared by every Get variant; the signature line's table? is the structured-data type."
+    },
+    {
+      "function": "PersistentDB:SetStructuredData",
+      "type": "boolean",
+      "see": "core/persistentdb.html#set",
+      "reason": "The returns table repeats the value union shared by every Get variant; the signature line's boolean matches the other setters."
+    },
+    {
+      "function": "ShapeList.GetEntity",
+      "type": "ShapeEntity?",
+      "see": "game/list/shapelist.html#getentity",
+      "reason": "Signature line says ShapeInstance, the returns table says ShapeEntity; GetInstance is the separate accessor for instances."
+    },
+    {
+      "function": "Quaternion.fromYawPitchRoll",
+      "type": "Quaternion",
+      "see": "math/quaternion.html#fromyawpitchroll",
+      "reason": "The returns table says Vector; a Quaternion constructor returns a Quaternion as the signature line states."
+    },
+    {
+      "function": "Vector:Dot",
+      "type": "number",
+      "see": "math/vector.html#dot",
+      "reason": "The returns table says Vector; a dot product is a scalar as the signature line states."
+    },
+    {
       "function": "lerp",
       "type": "number|Vector2|Vector3|Vector4|Matrix33",
       "see": "math/index.html#lerp",
@@ -82,6 +197,46 @@
       "type": "Vector3|Quaternion",
       "see": "math/index.html#slerp",
       "reason": "The returns table lists both interpolable types; the signature line shows only the last overload."
+    },
+    {
+      "function": "ui.ComboField.new",
+      "type": "ui.ComboField",
+      "see": "ui/interactive_components/combo_field.html#constructor",
+      "reason": "Signature line and returns table say Combo, a name no page declares; the constructor on this page creates a ui.ComboField."
+    },
+    {
+      "function": "ui.ComponentParamsConfig:Get",
+      "type": "(integer|string)?",
+      "see": "ui/component_configs.html#get",
+      "reason": "The signature line's integer or string union is kept; the returns table lists only the integer case."
+    },
+    {
+      "function": "ui.StyleSheets:Find",
+      "type": "ui.StyleSheet?",
+      "see": "ui/stylesheets.html#find",
+      "reason": "A lookup by name can miss; the signature line's optional marker is kept over the returns table."
+    }
+  ],
+  "renames": [
+    {
+      "function": "ui.RadioGroup:SetEntries",
+      "name": "SetOptions",
+      "see": "ui/interactive_components/radio_group.html#setoptions",
+      "reason": "The heading and both code samples on the page call it SetOptions; the signature line carries the ComboField name."
+    },
+    {
+      "function": "ui.RadioGroup:HasEntry",
+      "name": "HasOption",
+      "see": "ui/interactive_components/radio_group.html#hasoption",
+      "reason": "The heading says HasOption, matching SetOptions and the other Option-named methods on the page; the signature line carries the ComboField name."
+    }
+  ],
+  "memberAliases": [
+    {
+      "function": "AABB:AddPosition",
+      "alias": "AddPoint",
+      "see": "math/aabb.html#addpoint",
+      "reason": "The heading and the overview example use AddPoint, the signature line and its own example use AddPosition; both are emitted until the docs settle on one."
     }
   ],
   "globalFunctions": [
@@ -104,6 +259,24 @@
       "type": "string",
       "see": "core/http.html#constructor",
       "reason": "Values of Plugin.urls are the manifest URL strings; HTTPRequest.new takes one as baseURL."
+    },
+    {
+      "name": "InvTypeProxy",
+      "type": "InvType",
+      "see": "core/events.html#inventoryadded",
+      "reason": "The payload cell calls the value the inventory config; InvType is the inventory config class and the var page uses Proxy for config usertypes."
+    },
+    {
+      "name": "VarPlayer",
+      "type": "VarType",
+      "see": "game/config/achievementtype.html#achievementtestvartotal",
+      "reason": "VarPlayer is a VarType domain (var.VarPlayer.<name>); the quest page types the same kind of value as VarType."
+    },
+    {
+      "name": "ui.LabelData",
+      "type": "ui.TextData",
+      "see": "ui/layout_components/group_box.html#properties",
+      "reason": "No page declares LabelData; the row holds the header text properties and every other text property on the ui pages is a ui.TextData. Inferred, not stated."
     }
   ]
 }

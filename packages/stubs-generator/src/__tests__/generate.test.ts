@@ -4,7 +4,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DocsClient } from "@tmhs/rs3-devtools-core";
 import { describe, expect, it } from "vitest";
-import { generate, loadOverrides } from "../generate.js";
+import { generate, loadOverrides, type Overrides } from "../generate.js";
 import { checkCrawlGuard, readBaseline } from "../guard.js";
 import { convertType, parseParam, stripAngleBrackets } from "../lua-types.js";
 import { collapseWhitespace } from "../model.js";
@@ -18,17 +18,25 @@ function client() {
 
 async function run() {
   // Overrides target the real docs; an empty set keeps the fixture run self-contained.
-  const overrides = {
+  return generate({ client: client(), overrides: noOverrides() });
+}
+
+function noOverrides(): Overrides {
+  return {
     ...loadOverrides(),
     classParents: [],
     eventCallbackReturnsBoolean: [],
     extraFields: [],
+    fieldTypes: [],
+    classes: [],
+    derivedClasses: [],
     ownerPlaceholders: [],
     returnTypes: [],
+    renames: [],
+    memberAliases: [],
     globalFunctions: [],
     aliases: [],
   };
-  return generate({ client: client(), overrides });
 }
 
 describe("committed stubs invariants", () => {
@@ -71,6 +79,21 @@ describe("committed stubs invariants", () => {
     expect(classes.get("ui.ComponentCollection")!.filter((w) => w.endsWith("(full)"))).toHaveLength(1);
     expect(enums.has("QuestTypeKind")).toBe(true);
     expect(classes.has("QuestType")).toBe(true);
+  });
+
+  it("every type the docs reference is declared or carries a documented override (no any aliases)", async () => {
+    // #30: an undeclared type is a hole in type checking. New ones must be
+    // resolved in overrides.json (classes, derivedClasses, aliases, returnTypes)
+    // rather than silently aliased to any.
+    const unresolved = await fsp.readFile(path.join(stubsRoot, "stubs", "_unresolved.lua"), "utf8");
+    expect(unresolved.split("\n").filter((l) => l.startsWith("---@alias "))).toEqual([]);
+    const extras = (await fsp.readFile(path.join(stubsRoot, "stubs", "_extras.lua"), "utf8")).split("\n");
+    extras.forEach((line, i) => {
+      if (line.startsWith("---@alias ")) expect(extras[i - 1], line).toMatch(/^---@see https:/);
+    });
+    const report = await fsp.readFile(path.join(stubsRoot, "unresolved.md"), "utf8");
+    expect(report).not.toContain("aliased to any");
+    expect(report).not.toContain("## Return types that differ between signature and table");
   });
 
   it("no global function is defined twice and the index has one row per name and kind", async () => {
@@ -216,6 +239,38 @@ describe("generate (synthetic fixtures)", () => {
     const b = await run();
     expect(a.files).toEqual(b.files);
     expect(JSON.stringify(a.notes)).toBe(JSON.stringify(b.notes));
+  });
+
+  it("applies class, derived class, field type, multi-return, rename and member alias overrides", async () => {
+    const overrides: Overrides = {
+      ...noOverrides(),
+      classes: [{ name: "Thing", fields: [{ name: "id", type: "integer" }], see: "core/sample.html#properties", reason: "test" }],
+      derivedClasses: [
+        { name: "SampleConfig", from: "Sample", omitFields: ["mystery"], withConstructor: true, see: "core/sample.html#properties", reason: "test" },
+      ],
+      fieldTypes: [{ class: "ui.Widget", name: "label", type: "integer", see: "ui/widget.html#properties", reason: "test" }],
+      returnTypes: [{ function: "Sample:Each", types: ["integer", "boolean"], see: "core/sample.html#each", reason: "test" }],
+      renames: [{ function: "ui.Widget:Poke", name: "Prod", see: "ui/widget.html#poke", reason: "test" }],
+      memberAliases: [{ function: "Sample:Get", alias: "Fetch", see: "core/sample.html#get", reason: "test" }],
+    };
+    const result = await generate({ client: client(), overrides });
+    const sample = result.files["stubs/core/sample.lua"]!;
+    // The declared class resolves the reference that was aliased to any before.
+    expect(result.files["stubs/_unresolved.lua"]).not.toContain("Thing");
+    expect(sample).toContain("---@class Thing\n---@field id integer\nlocal Thing_ = {}");
+    // The derived class copies the source fields (with their resolved types) minus the omitted ones and gets a constructor.
+    expect(sample).toContain(
+      "---@class SampleConfig\n---@field isValid boolean\n---@field items ui.Widget[]\n---@field pair [integer, integer]\nSampleConfig = {}",
+    );
+    expect(sample).toContain("---@return SampleConfig\nfunction SampleConfig.new() end");
+    expect(sample).toContain("---@return integer\n---@return boolean\nfunction Sample:Each(callback) end");
+    expect(sample).toContain("---@param key string\n---@return integer?\nfunction Sample:Fetch(key) end");
+    const widget = result.files["stubs/ui/widget.lua"]!;
+    expect(widget).toContain("---@field label integer");
+    expect(widget).toContain("function ui.Widget:Prod(times) end");
+    expect(widget).not.toContain("Poke(");
+    expect(result.notes.filter((n) => n.kind === "override-applied")).toHaveLength(6);
+    expect(result.index.map((e) => e.name)).toEqual(expect.arrayContaining(["Thing", "SampleConfig.new", "Sample:Fetch", "ui.Widget:Prod"]));
   });
 });
 

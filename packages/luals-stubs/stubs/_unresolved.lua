@@ -7,12 +7,3 @@
 
 -- Each name below is referenced in a signature or property table but has no page of its own.
 -- They are aliased to any so plugins type-check; see unresolved.md for where each is used.
-
----@alias Combo any
----@alias InvTypeProxy any
----@alias PluginAudioResource any
----@alias RuntimeSprite any
----@alias VarPlayer any
----@alias ui.LabelData any
----@alias ui.SpriteDataConfig any
----@alias ui.TextDataConfig any

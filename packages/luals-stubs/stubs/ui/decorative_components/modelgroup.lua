@@ -57,7 +57,7 @@ function ui.ModelGroup:GetCamera() end
 ---@field useLookAt boolean
 ---@field transitionRatio number
 ---@field transitionType ui.ModelCameraTransition
----@field transitionMaskSprite any
+---@field transitionMaskSprite integer
 ---@field isTransitionInProgress boolean
 ---@field isTransitionComplete boolean
 ---@field sortModelsUsingComponentOrder boolean

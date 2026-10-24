@@ -161,3 +161,46 @@ function ui.Margin.new() end
 ---@field buttonSprite ui.SpriteData
 ---@field handleSprite ui.SpriteData
 ui.ScrollBar = {}
+
+---@see https://developer.runescape.com/rs/ui/common_types.html#runtimesprite
+---@class RuntimeSprite
+local RuntimeSprite_ = {}
+
+---@see https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig
+---@class ui.TextDataConfig
+---@field font integer
+---@field lineSpacing integer
+---@field alignHorizontal ui.AlignMode
+---@field alignVertical ui.AlignMode
+---@field maxLines integer
+---@field alpha number
+---@field colour Vector4
+---@field rgba integer
+---@field shadowColour Vector4
+---@field shadowRGBA integer
+---@field isShadowed boolean
+ui.TextDataConfig = {}
+
+---@see https://developer.runescape.com/rs/ui/common_types.html#uitextdataconfig
+---@return ui.TextDataConfig
+function ui.TextDataConfig.new() end
+
+---@see https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig
+---@class ui.SpriteDataConfig
+---@field visualMargins ui.Margin
+---@field outlineWidth integer
+---@field rotationRadians number
+---@field rotationDegrees number
+---@field alpha number
+---@field colour Vector4
+---@field rgba integer
+---@field shadowColour Vector4
+---@field shadowRGBA integer
+---@field isFlippedHorizontally boolean
+---@field isFlippedVertical boolean
+---@field isTiling boolean
+ui.SpriteDataConfig = {}
+
+---@see https://developer.runescape.com/rs/ui/common_types.html#uispritedataconfig
+---@return ui.SpriteDataConfig
+function ui.SpriteDataConfig.new() end
