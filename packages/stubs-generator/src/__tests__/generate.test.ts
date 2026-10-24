@@ -96,6 +96,26 @@ describe("committed stubs invariants", () => {
     expect(report).not.toContain("## Return types that differ between signature and table");
   });
 
+  it("the committed fakes cover the surface rs3dev test relies on", async () => {
+    const fakes = await fsp.readFile(path.join(stubsRoot, "fakes", "rs3_api_fakes.lua"), "utf8");
+    for (const needle of [
+      'F.defineClass("PersistentDB", { global = true,',
+      'F.defineClass("ui.Component", {',
+      'F.defineClass("ui.Button", { parent = "ui.Component", global = true,',
+      'F.defineEnumLike("ui.Hook", { "ONBUTTONPRESSED",',
+      'F.defineEvent("Logic", { ["logicTick"] = "integer" }, false)',
+      'F.defineEvent("EntityDraw", ',
+      'F.defineFunction("formatStr", { "string" })',
+      'F.defineLookups({ ["Achievement"] = "AchievementType",',
+    ]) {
+      expect(fakes, needle).toContain(needle);
+    }
+    expect(fakes).toContain('F.defineEvent("EntityDraw", {');
+    expect(fakes).toMatch(/F\.defineEvent\("EntityDraw", \{[^\n]*\}, true\)/);
+    // The hand-written runtime sits beside the generated file.
+    expect((await fsp.readFile(path.join(stubsRoot, "test-runtime", "rs3_test.lua"), "utf8")).startsWith("-- rs3_test:")).toBe(true);
+  });
+
   it("no global function is defined twice and the index has one row per name and kind", async () => {
     const files = await luaFiles();
     const defined = new Map<string, number>();
@@ -169,9 +189,27 @@ describe("generate (synthetic fixtures)", () => {
     expect(files).toContain("stubs/core/sample.lua");
     expect(files).toContain("stubs/ui/widget.lua");
     expect(files.some((f) => f.includes("tutorial"))).toBe(false);
-    for (const file of files.filter((f) => f.endsWith(".lua"))) {
+    // Every stub is a meta file; the runtime fakes beside them are real Lua.
+    for (const file of files.filter((f) => f.endsWith(".lua") && f.startsWith("stubs/"))) {
       expect(result.files[file]!.startsWith("---@meta\n")).toBe(true);
     }
+    expect(files).toContain("fakes/rs3_api_fakes.lua");
+  });
+
+  it("emits the runtime fakes from the same model: classes, enums, lookups and inheritance", async () => {
+    const result = await run();
+    const fakes = result.files["fakes/rs3_api_fakes.lua"]!;
+    expect(fakes.startsWith("---@diagnostic disable\n-- RuneScape Client API fakes")).toBe(true);
+    expect(fakes).toContain('F.defineEnum("SampleKind", { { "FIRST", 0 }, { "SECOND", 1 } })');
+    // A value set without documented values keeps its member names as the values.
+    expect(fakes).toContain('F.defineEnum("SampleMode", { { "FAST" }, { "SLOW" } })');
+    expect(fakes).toMatch(/F\.defineClass\("Sample", \{ global = true, fields = \{ \["isValid"\] = "boolean", \["items"\] = "ui\.Widget\[\]"/);
+    expect(fakes).toContain('{ "Get", ":", { "integer?" } }');
+    expect(fakes).toContain('{ "Make", ".", { "Sample" } }');
+    expect(fakes).toContain('F.defineClass("ui.Widget", { parent = "ui.Component", global = true,');
+    expect(fakes).toContain("F.defineLookups({  }, {  }, {  })");
+    expect(fakes).toMatch(/\nreturn F\n$/);
+    expect(fakes).not.toMatch(/PROSE_MARKER/);
   });
 
   it("renders enums, methods, overloads, converted types and docs links", async () => {

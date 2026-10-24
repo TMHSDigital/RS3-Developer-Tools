@@ -29,9 +29,13 @@ describe("repository manifests", () => {
     // One source for the skills (cursor-plugin/skills) feeds both manifests; the
     // release workflow bumps both versions together (#34).
     const cursor = await readJson<CursorManifest>(".cursor-plugin/plugin.json");
-    const claude = await readJson<{ name: string; version: string; license: string; skills: string; mcpServers: Record<string, { command: string; args: string[] }> }>(
-      ".claude-plugin/plugin.json",
-    );
+    const claude = await readJson<{
+      name: string;
+      version: string;
+      license: string;
+      skills: string;
+      mcpServers: Record<string, { command: string; args: string[] }>;
+    }>(".claude-plugin/plugin.json");
     expect(claude.name).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
     expect(claude.version).toBe(cursor.version);
     expect(claude.license).toBe("MIT");

@@ -9,7 +9,7 @@
 
 **[Install](#install)** - [Quick start](#quick-start) - [Troubleshooting](#troubleshooting) - [MCP server](#mcp-server) - [Packages](#packages) - [Skills](#skills) - [Rules](#rules) - [Copyright and AI policy](#copyright-and-ai-policy) - [Roadmap](ROADMAP.md)
 
-> 4 skills - 9 rules - 9 MCP tools - 87 API stub modules
+> 5 skills - 9 rules - 9 MCP tools - 87 API stub modules
 
 Official RS3 plugins are Lua 5.4.8 scripts run by the RuneScape beta client against the [RuneScape Client API](https://developer.runescape.com/rs/). This toolkit gives you type-checked completions for that API in any LuaLS-based editor, validates `plugin.json`, catches sandbox and permission problems before Jagex moderation does, copies your plugin into the client's `dev_plugins` folder on save, and builds the zip you upload to mod.io. The same functions are exposed to AI agents through an MCP server and documented for them through Cursor rules and Claude Code skills.
 
@@ -60,7 +60,7 @@ If `npm install` fails with `EISDIR ... symlink`, the clone is on a filesystem w
 
 ### Claude Code plugin (skills and MCP server, no clone)
 
-This repository is also a Claude Code plugin marketplace. Two commands install the four skills and register the MCP server in any project:
+This repository is also a Claude Code plugin marketplace. Two commands install the five skills and register the MCP server in any project:
 
 ```bash
 claude plugin marketplace add TMHSDigital/RS3-Developer-Tools
@@ -85,9 +85,11 @@ cd my-plugin
 #    In plugin.json, set contactEmailAddress to the address users should write to
 #    (or pass --email <address> to init). Step 5 refuses the scaffolded placeholder.
 
-# 3. Check the manifest and the code.
+# 3. Check the manifest and the code, then run the tests. init wrote tests/main_test.lua;
+#    the tests run against fakes generated from the API stubs, no client needed.
 rs3dev validate
 rs3dev preflight
+rs3dev test
 
 # 4. Copy into the client's dev_plugins folder (detected by the *.jcache files beside it,
 #    or set RS3_DEV_PLUGINS_DIR / pass --root), then reload in the client console (ALT+`):
@@ -217,6 +219,7 @@ Set `RS3_DEV_PLUGINS_DIR` when the client folder is not at the default location.
 | **new-plugin** | Scaffold a plugin, wire LuaLS, sync it into the client for the first time |
 | **add-ui-window** | Build a GroupBox window with labels and buttons on the plugin layer and destroy it on shutdown |
 | **add-event-handler** | Subscribe to a client event with a typed callback and a namespaced reference, released in PluginShutdown |
+| **add-tests** | Write `tests/*.lua` that run outside the client with `rs3dev test`: load, clicks, events, persistence, PluginShutdown |
 | **preflight-and-package** | Validate, preflight, fix, zip, and walk the manual mod.io submission |
 
 Skills live in `cursor-plugin/skills/`; `rs3dev init` copies them to `.claude/skills/` in the new plugin folder.

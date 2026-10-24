@@ -130,7 +130,8 @@ export function isPlaceholderEmail(email: string | undefined): boolean {
 export function isDevArtifact(relPath: string): boolean {
   const parts = relPath.split("/");
   if (parts.some((p) => p.startsWith(".") && p !== "." && p !== "..")) return true;
-  if (parts.includes("node_modules") || parts.includes("dist") || parts.includes("tests")) return true;
+  // tests/ and spec/ hold rs3dev test files, which run outside the client and never ship.
+  if (parts.includes("node_modules") || parts.includes("dist") || parts.includes("tests") || parts.includes("spec")) return true;
   const base = parts[parts.length - 1] ?? "";
   if (/\.zip$/i.test(base)) return true;
   // The toolkit's own project configuration never ships with the plugin.

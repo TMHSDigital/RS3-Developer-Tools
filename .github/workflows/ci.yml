@@ -73,6 +73,8 @@ jobs:
             name=$(basename "$example")
             node packages/cli/dist/cli.js validate "$example"
             node packages/cli/dist/cli.js preflight "$example"
+            # Plugin tests run outside the client against the fakes generated from the stubs.
+            node packages/cli/dist/cli.js test "$example"
             node packages/cli/dist/cli.js package "$example" --allow-placeholder-email --out "${{ runner.temp }}/$name.zip"
             # The shipped manifest must sit at the archive root and carry no editor-only $schema key.
             node -e '
@@ -135,6 +137,7 @@ jobs:
           for template in window event library minimal; do
             node packages/cli/dist/cli.js init "${{ runner.temp }}/scaffold-$template" --template "$template" --permissions chatAccess --no-agent-files
             node packages/cli/dist/cli.js validate "${{ runner.temp }}/scaffold-$template"
+            node packages/cli/dist/cli.js test "${{ runner.temp }}/scaffold-$template"
             node scripts/luals-check.mjs "${{ runner.temp }}/scaffold-$template"
           done
           node packages/cli/dist/cli.js init "${{ runner.temp }}/scaffold-prettyui" --prettyui --no-agent-files

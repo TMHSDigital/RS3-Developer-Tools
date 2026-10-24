@@ -21,7 +21,8 @@
     "cursor-plugin/skills/new-plugin/SKILL.md",
     "cursor-plugin/skills/add-ui-window/SKILL.md",
     "cursor-plugin/skills/add-event-handler/SKILL.md",
-    "cursor-plugin/skills/preflight-and-package/SKILL.md"
+    "cursor-plugin/skills/preflight-and-package/SKILL.md",
+    "cursor-plugin/skills/add-tests/SKILL.md"
   ],
   "rules": [
     "cursor-plugin/rules/rs3-lua-idioms.mdc",

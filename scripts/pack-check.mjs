@@ -21,7 +21,17 @@ export const EXPECTED = {
     "templates/agent-files/.claude/skills/",
   ],
   "@tmhs/rs3-stubs-generator": ["package.json", "README.md", "dist/cli.js", "overrides.json"],
-  "@tmhs/rs3-luals-stubs": ["package.json", "README.md", "index.json", "unresolved.md", "luarc.template.json", "stubs/_globals.lua", "stubs/_extras.lua"],
+  "@tmhs/rs3-luals-stubs": [
+    "package.json",
+    "README.md",
+    "index.json",
+    "unresolved.md",
+    "luarc.template.json",
+    "stubs/_globals.lua",
+    "stubs/_extras.lua",
+    "fakes/rs3_api_fakes.lua",
+    "test-runtime/rs3_test.lua",
+  ],
   "@tmhs/rs3-devtools-cli": ["package.json", "README.md", "dist/cli.js"],
   "@tmhs/rs3-plugin-mcp": ["package.json", "README.md", "dist/bin.js", "dist/index.js", "examples/claude-code.mcp.json"],
 };

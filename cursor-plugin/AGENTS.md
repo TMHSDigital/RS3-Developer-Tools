@@ -20,6 +20,7 @@ An RS3 plugin: Lua 5.4.8 that the RuneScape beta client runs against the RuneSca
 ```powershell
 rs3dev validate .      # schema and folder checks
 rs3dev preflight .     # sandbox, permission and readability checks; exit 1 on errors
+rs3dev test .          # run tests/*.lua outside the client against API fakes (see the add-tests skill)
 rs3dev sync .          # copy into the client's dev_plugins folder, then run prl <name> in the console
 rs3dev watch .         # sync on save
 rs3dev package .       # zip for manual upload to mod.io

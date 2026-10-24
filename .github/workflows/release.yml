@@ -246,7 +246,7 @@ jobs:
           for dir in packages/*/; do
             (cd "$dir" && npm pack --pack-destination "$GITHUB_WORKSPACE/release-assets" >/dev/null)
           done
-          (cd packages/luals-stubs && zip -qr "$GITHUB_WORKSPACE/release-assets/rs3-luals-stubs-$NEW_VERSION.zip" stubs index.json unresolved.md luarc.template.json package.json README.md)
+          (cd packages/luals-stubs && zip -qr "$GITHUB_WORKSPACE/release-assets/rs3-luals-stubs-$NEW_VERSION.zip" stubs fakes test-runtime index.json unresolved.md luarc.template.json package.json README.md)
           # The LuaLS addon layout (config.json, info.json, library/) for the addon manager and non-npm editors.
           node scripts/build-luals-addon.mjs --out "$RUNNER_TEMP/luals-addon"
           (cd "$RUNNER_TEMP/luals-addon" && zip -qr "$GITHUB_WORKSPACE/release-assets/rs3-client-api-luals-addon-$NEW_VERSION.zip" .)

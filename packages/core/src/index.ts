@@ -19,5 +19,6 @@ export * from "./preflight.js";
 export * from "./scaffold.js";
 export * from "./stubs-status.js";
 export * from "./sync.js";
+export * from "./test-runner.js";
 export * from "./verify.js";
 export * from "./watch.js";

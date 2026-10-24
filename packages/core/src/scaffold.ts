@@ -327,6 +327,48 @@ async function copyTree(from: string, to: string, written: string[], base: strin
   }
 }
 
+/**
+ * tests/main_test.lua for a fresh plugin: the lifecycle test every plugin
+ * should keep, shaped to what the chosen template creates.
+ */
+export function renderStarterTest(template: ScaffoldTemplate, prettyUi = false): string {
+  const hasWindow = template === "window";
+  const hasLogic = template === "window" || template === "event";
+  // A dependency plugin is not part of the Client API, so the fakes do not know it.
+  const dependency = prettyUi ? [`    T.dependency(${JSON.stringify(PRETTY_UI_PLUGIN_NAME)}) -- permissive stand-in for the library plugin`] : [];
+  return [
+    "-- Starter tests. Run them with:   rs3dev test .",
+    "--",
+    "-- rs3_test loads main.lua against fakes generated from the API stubs, so no",
+    "-- client is needed. Every test starts from a clean state. Drive the plugin the",
+    "-- way the client does: T.press for buttons, T.emit for events, T.reload for",
+    "-- persistence. See the add-tests skill for the whole API.",
+    "",
+    'local T = require("rs3_test")',
+    "",
+    'T.test("loads and shuts down cleanly", function()',
+    ...dependency,
+    "    T.load()",
+    ...(hasWindow ? ['    T.assert.not_nil(T.find("ui.GroupBox"), "the window exists")'] : []),
+    "    T.shutdown()",
+    '    T.assert.equals({}, T.subscriptions(), "every event was unsubscribed")',
+    ...(hasWindow ? ['    T.assert.is_nil(T.find("ui.GroupBox"), "the window was destroyed")'] : []),
+    "end)",
+    ...(hasLogic
+      ? [
+          "",
+          'T.test("survives a logic tick", function()',
+          ...dependency,
+          "    T.load()",
+          '    T.emit("Logic", { logicTick = 1 })',
+          '    T.emit("Logic", { logicTick = 2 })',
+          "end)",
+        ]
+      : []),
+    "",
+  ].join("\n");
+}
+
 export async function scaffoldPlugin(options: ScaffoldOptions): Promise<ScaffoldResult> {
   const dir = path.resolve(options.dir);
   const pluginName = path.basename(dir);
@@ -360,6 +402,9 @@ export async function scaffoldPlugin(options: ScaffoldOptions): Promise<Scaffold
   const manifest = renderManifest(options, pluginName);
   await writeNew("plugin.json", JSON.stringify(manifest, null, 2) + "\n");
   await writeNew("main.lua", renderMainLua(options, pluginName));
+  // A starter test so `rs3dev test` has something to run from the first minute.
+  await fsp.mkdir(path.join(dir, "tests"), { recursive: true });
+  await writeNew("tests/main_test.lua", renderStarterTest(options.template ?? "window", Boolean(options.prettyUi)));
   if (options.editorFiles ?? true) {
     for (const [rel, content] of Object.entries(renderEditorFiles(pluginName, options.name ?? pluginName))) {
       await fsp.mkdir(path.dirname(path.join(dir, rel)), { recursive: true });

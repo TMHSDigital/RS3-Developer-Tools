@@ -94,7 +94,7 @@ See [`.github/workflows/README.md`](.github/workflows/README.md) for the full ta
 
 1. Edit `packages/stubs-generator/src/*.ts`; keep output deterministic (sorted sets, document order, no timestamps).
 2. Document facts the parser cannot derive in `overrides.json` with a `see` anchor and a `reason`.
-3. Run `npm run build && npm run stubs:generate && npm test && npm run luals:check` and commit the regenerated stubs together with the code.
+3. Run `npm run stubs:generate && npm run build && npm test && npm run luals:check` and commit the regenerated stubs together with the code. The generator also writes `fakes/rs3_api_fakes.lua` (the runtime fakes behind `rs3dev test`); build after generating so the copy under `node_modules/@tmhs` is current, and check `node packages/cli/dist/cli.js test examples/hello-counter` still passes.
 
 ## MCP server
 

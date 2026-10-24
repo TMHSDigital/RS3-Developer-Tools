@@ -11,6 +11,7 @@ const GENERATOR_VERSION: string = (createRequire(import.meta.url)("../package.js
 
 import { type DocsClient, extractNavLinks } from "@tmhs/rs3-devtools-core";
 import { emitExtras, emitGlobals, emitModule, emitNamespaces, emitUnresolved, indexEntries, moduleFilePath, signatureText } from "./emit.js";
+import { emitFakes } from "./emit-fakes.js";
 import { collectReferences, dedupe, renderFunParams } from "./lua-types.js";
 import { buildPageModel, type PageScan } from "./model.js";
 import { parsePage } from "./parse.js";
@@ -515,6 +516,8 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     emitGlobals(globals, client.baseUrl),
     emitExtras(emitOptions),
     emitUnresolved(emitOptions),
+    // The runtime fakes for rs3dev test come from the same model, so they can never lag the stubs.
+    emitFakes(modules, globals, { baseUrl: client.baseUrl, aliases: emitOptions.aliases }),
   ]) {
     files[file.path] = file.content;
   }

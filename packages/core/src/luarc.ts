@@ -106,7 +106,18 @@ export interface LuarcOptions extends StubsResolveOptions {
   globals?: string[];
 }
 
-export function luarcTemplate(libraryPath: string, globals: string[] = []): Record<string, unknown> {
+/** The test runtime folder shipped beside the stubs folder, when the package carries one. */
+export async function testRuntimeDirFor(stubsDir: string): Promise<string | undefined> {
+  const runtime = path.join(path.dirname(stubsDir), "test-runtime");
+  return (await pathExists(path.join(runtime, "rs3_test.lua"))) ? runtime : undefined;
+}
+
+/**
+ * @param libraryPath the stubs folder entry
+ * @param globals extra globals for diagnostics.globals
+ * @param extraLibraries further library entries, such as the rs3_test runtime so test files get completions
+ */
+export function luarcTemplate(libraryPath: string, globals: string[] = [], extraLibraries: string[] = []): Record<string, unknown> {
   return {
     $schema: "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
     "runtime.version": "Lua 5.4",
@@ -115,7 +126,7 @@ export function luarcTemplate(libraryPath: string, globals: string[] = []): Reco
     // so LuaLS is told the same single rule (see validatePluginDir).
     "runtime.path": ["?.lua"],
     "runtime.pathStrict": true,
-    "workspace.library": [libraryPath],
+    "workspace.library": [libraryPath, ...extraLibraries],
     "workspace.checkThirdParty": false,
     "diagnostics.globals": [...globals],
     "diagnostics.severity": {
@@ -133,6 +144,8 @@ export async function writeLuarc(pluginDir: string, options: LuarcOptions = {}):
   const stubs = await resolveStubsDir(options);
   const file = path.join(pluginDir, ".luarc.json");
   const library = libraryPathFor(path.resolve(pluginDir), stubs);
-  await writeUtf8NoBom(file, JSON.stringify(luarcTemplate(library, options.globals), null, 2) + "\n");
+  const runtime = await testRuntimeDirFor(stubs);
+  const extra = runtime ? [libraryPathFor(path.resolve(pluginDir), runtime)] : [];
+  await writeUtf8NoBom(file, JSON.stringify(luarcTemplate(library, options.globals, extra), null, 2) + "\n");
   return file;
 }

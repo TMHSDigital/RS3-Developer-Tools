@@ -1,7 +1,7 @@
 {
   "name": "rs3-developer-tools",
   "version": "0.1.0",
-  "description": "Lua-native developer toolkit for official RuneScape 3 plugins: skills for scaffolding, UI windows, event handlers and submission, plus the rs3-plugin MCP server (docs search, API lookup, manifest validation, preflight, scaffold, sync, package)",
+  "description": "Lua-native developer toolkit for official RuneScape 3 plugins: skills for scaffolding, UI windows, event handlers, tests and submission, plus the rs3-plugin MCP server (docs search, API lookup, manifest validation, preflight, scaffold, sync, package)",
   "author": {
     "name": "TMHSDigital",
     "email": "154358121+TMHSDigital@users.noreply.github.com",

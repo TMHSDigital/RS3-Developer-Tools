@@ -10,7 +10,7 @@
 import { promises as fsp } from "node:fs";
 import * as path from "node:path";
 import { isDirectory, listFilesRecursive, pathExists, readUtf8, writeUtf8NoBom } from "./fs.js";
-import { libraryPathFor, luarcTemplate, resolveStubsDir, type StubsResolveOptions } from "./luarc.js";
+import { libraryPathFor, luarcTemplate, resolveStubsDir, type StubsResolveOptions, testRuntimeDirFor } from "./luarc.js";
 import { copyAgentFiles } from "./scaffold.js";
 
 export const VENDORED_STUBS_DIR = path.join(".rs3", "stubs");
@@ -66,13 +66,27 @@ export async function writePluginLuarc(pluginDir: string, options: LuarcWriteOpt
       await fsp.mkdir(path.dirname(to), { recursive: true });
       await fsp.copyFile(path.join(stubs, ...rel.split("/")), to);
     }
+    // The rs3_test runtime travels with the stubs so test files keep their completions.
+    const extra: string[] = [];
+    const runtime = await testRuntimeDirFor(stubs);
+    if (runtime) {
+      const runtimeTarget = path.join(path.dirname(target), "test-runtime");
+      await fsp.rm(runtimeTarget, { recursive: true, force: true });
+      await fsp.mkdir(runtimeTarget, { recursive: true });
+      for (const rel of await listFilesRecursive(runtime)) {
+        await fsp.copyFile(path.join(runtime, ...rel.split("/")), path.join(runtimeTarget, ...rel.split("/")));
+      }
+      extra.push(`./${path.relative(dir, runtimeTarget).split(path.sep).join("/")}`);
+    }
     const library = "./" + VENDORED_STUBS_DIR.split(path.sep).join("/");
-    await writeUtf8NoBom(file, JSON.stringify(luarcTemplate(library, globals), null, 2) + "\n");
+    await writeUtf8NoBom(file, JSON.stringify(luarcTemplate(library, globals, extra), null, 2) + "\n");
     return { file, library, resolved: target, source: "vendored", vendoredFiles: files.length };
   }
 
   const library = libraryPathFor(dir, stubs);
-  await writeUtf8NoBom(file, JSON.stringify(luarcTemplate(library, globals), null, 2) + "\n");
+  const runtime = await testRuntimeDirFor(stubs);
+  const extra = runtime ? [libraryPathFor(dir, runtime)] : [];
+  await writeUtf8NoBom(file, JSON.stringify(luarcTemplate(library, globals, extra), null, 2) + "\n");
   return { file, library, resolved: stubs, source: sourceOf(options, stubs) };
 }
 
@@ -113,7 +127,9 @@ export async function staleLibraryEntries(pluginDir: string): Promise<{ entry: s
   const stale: { entry: string; resolved: string }[] = [];
   for (const entry of entries) {
     const resolved = path.resolve(path.dirname(file), entry);
-    if (!(await pathExists(path.join(resolved, "_globals.lua")))) stale.push({ entry, resolved });
+    // The stubs entry must hold _globals.lua; the test runtime entry must hold rs3_test.lua.
+    const ok = (await pathExists(path.join(resolved, "_globals.lua"))) || (await pathExists(path.join(resolved, "rs3_test.lua")));
+    if (!ok) stale.push({ entry, resolved });
   }
   return stale;
 }

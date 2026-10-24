@@ -727,7 +727,10 @@ describe("scaffold", () => {
       "README.md",
       "main.lua",
       "plugin.json",
+      "tests/main_test.lua",
     ]);
+    // The starter test gives the dependency a stand-in, since PrettyUI is not part of the Client API.
+    expect(await readUtf8(path.join(dir, "tests", "main_test.lua"))).toContain('T.dependency("PrettyUI")');
     // The editor files never ship: dotfiles by rule, README.md through the scaffolded .rs3ignore.
     expect(await readUtf8(path.join(dir, ".rs3ignore"))).toContain("README.md");
     expect(JSON.parse(await readUtf8(path.join(dir, ".vscode", "extensions.json"))).recommendations).toEqual(["sumneko.lua"]);

@@ -16,6 +16,7 @@ import {
   runPreflight,
   runStubs,
   runSync,
+  runTest,
   runValidate,
   runWatch,
 } from "./commands.js";
@@ -128,6 +129,15 @@ program
   .option("--stubs <dir>", "stubs folder to check instead of RS3_STUBS_DIR or the installed package")
   .action(async (target: string | undefined, opts) => {
     process.exitCode = await runDoctor(target, opts, output());
+  });
+
+program
+  .command("test [path]")
+  .description("run the plugin's Lua tests (tests/*.lua or spec/*.lua) outside the client against API fakes generated from the stubs; exits 1 on failure")
+  .option("--lua <exe>", "native Lua 5.4 interpreter to use instead of the bundled WebAssembly build (or set RS3_LUA)")
+  .option("--stubs <dir>", "stubs folder whose sibling fakes/ and test-runtime/ to use instead of RS3_STUBS_DIR or the installed package")
+  .action(async (target: string | undefined, opts) => {
+    process.exitCode = await runTest(target ?? ".", opts, output());
   });
 
 program

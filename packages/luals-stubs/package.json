@@ -6,6 +6,8 @@
   "author": "TMHSDigital",
   "files": [
     "stubs",
+    "fakes",
+    "test-runtime",
     "index.json",
     "unresolved.md",
     "luarc.template.json",

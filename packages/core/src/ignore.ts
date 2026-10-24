@@ -17,7 +17,7 @@ export const IGNORE_FILE_NAME = ".rs3ignore";
 const JUNK_NAMES = new Set(["thumbs.db", "desktop.ini", ".ds_store"]);
 const JUNK_SUFFIXES = [".bak", ".orig", ".swp", ".swo", ".psd", ".xcf", ".log", ".tmp"];
 /** Folders that hold tests, builds or editor state rather than plugin files. */
-const JUNK_FOLDERS = new Set(["__tests__", "spec", "build", "coverage"]);
+const JUNK_FOLDERS = new Set(["__tests__", "tests", "spec", "build", "coverage"]);
 
 /** Operating system and editor leftovers, independent of any .rs3ignore. */
 export function isJunk(relPath: string): boolean {

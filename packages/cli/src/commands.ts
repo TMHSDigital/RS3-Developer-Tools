@@ -13,11 +13,13 @@ import {
   formatDoctorReport,
   formatFindings,
   formatFindingsGithub,
+  formatTestReport,
   listFilesRecursive,
   loadProjectConfig,
   type Permission,
   packagePlugin,
   preflightPlugin,
+  runPluginTests,
   type ScaffoldTemplate,
   scaffoldPlugin,
   summarise,
@@ -160,6 +162,21 @@ export async function runInit(
       out(options, `  3. rs3dev watch ${result.pluginName}  to re-sync on save; reload with: prl ${result.pluginName}`);
     }
     return 0;
+  } catch (error) {
+    err(options, (error as Error).message);
+    return 1;
+  }
+}
+
+export async function runTest(target: string, opts: { lua?: string; stubs?: string }, options: OutputOptions): Promise<number> {
+  try {
+    const result = await runPluginTests(path.resolve(target), { lua: opts.lua, stubsDir: opts.stubs, resolveFrom: import.meta.url });
+    if (options.json) {
+      out(options, JSON.stringify({ command: "test", ...result }, null, 2));
+    } else {
+      for (const line of formatTestReport(result)) out(options, line);
+    }
+    return result.failed === 0 && result.tests.length > 0 ? 0 : 1;
   } catch (error) {
     err(options, (error as Error).message);
     return 1;

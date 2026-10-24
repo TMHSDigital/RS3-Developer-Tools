@@ -23,6 +23,7 @@
 - [x] Preflight: verify every `Subscribe` has a matching `Unsubscribe` in `PluginShutdown`
 - [x] Stubs: resolve the remaining `_unresolved.lua` aliases through overrides where the docs state the type in prose
 - [x] `rs3dev doctor`: report client folder, LuaLS binary, and cache state
+- [x] `rs3dev test`: run plugin Lua outside the client against API fakes generated from the stubs
 - [ ] Skill: migrate-ui-to-prettyui
 
 ### v1.0.0 - Stable

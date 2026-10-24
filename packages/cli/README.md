@@ -8,6 +8,7 @@ rs3dev adopt [path] [--stubs <dir>] [--vendor] [--no-agent-files]
 rs3dev luarc [path] [--stubs <dir>] [--vendor]
 rs3dev validate [path] [--strict] [--format text|json|github|sarif] [--ignore codes]
 rs3dev preflight [path] [--max-line-length 200] [--strict] [--format text|json|github|sarif] [--ignore codes] [--no-config]
+rs3dev test [path] [--lua <exe>] [--stubs <dir>]
 rs3dev sync [path] [--root <dev_plugins>] [--create-root] [--no-prune]
 rs3dev watch [path] [--root <dev_plugins>] [--create-root] [--no-prune] [--debounce 300]
 rs3dev package [path] [--out file.zip] [--overwrite] [--list] [--max-size 10] [--allow-placeholder-email]
@@ -26,12 +27,15 @@ rs3dev --json <command>
 
 `init --template` picks the shape of `main.lua`: `window` (a GroupBox with a label and a Logic handler, the default), `event` (no UI, one event handler on a tick counter), `library` (returns a table for plugins that list this folder as a dependency) or `minimal` (`PluginShutdown` only). Every template passes `validate`, `preflight` and the LuaLS check. Beside the plugin files `init` writes `.vscode/extensions.json` (recommends the Lua extension), `.vscode/settings.json` (schema for `plugin.json`), `.gitignore`, `.rs3ignore` (keeps the scaffolded `README.md` out of the zip; delete the line to ship it) and `README.md`; `--no-editor-files` skips them. None of these ship.
 
+`test` runs `tests/*.lua` and `spec/*.lua` outside the client. The plugin's Lua is loaded against `fakes/rs3_api_fakes.lua`, a stand-in for every API table, class, enum, event and lookup table that the stubs generator emits from the same model as the stubs (functions record their calls and return defaults of their documented types), plus `test-runtime/rs3_test.lua`, which adds an in-memory PersistentDB, a component tree with hooks, a logged-in player, `log` and `formatStr`, `Plugin.HasPermission` from `plugin.json`, and the load, reload and shutdown cycle. A test file does `local T = require("rs3_test")` and calls `T.test(name, fn)` with `T.load()`, `T.press(component)`, `T.emit("NPCEntityAdded", { npcEntity = { displayName = "Goblin" } })`, `T.reload()`, `T.shutdown()`, `T.find("ui.Button")`, `T.subscriptions()`, `T.db`, `T.logs` and `T.assert.*`; see `examples/hello-counter/tests/counter_test.lua` and the `add-tests` skill. Lua 5.4 runs in WebAssembly (wasmoon), so nothing has to be installed; `--lua <exe>` or `RS3_LUA` runs a native interpreter instead. `tests/` and `spec/` never reach the zip or `dev_plugins`, and `preflight` skips them.
+
 `--json` is a global flag and goes before the command name. `init` writes `urls` only from `--url name=https://host/` flags (repeatable); with `httpAccess` and no `--url` the manifest gets an empty `urls` and `main.lua` says where to declare hosts.
 
 | Command | Exit code |
 | --- | --- |
 | `validate`, `preflight` | 1 when any error-level finding exists; with `--strict`, warnings fail too |
 | `sync`, `watch`, `package`, `init`, `cache` | 1 on failure |
+| `test` | 1 when any test fails, no test file exists, or the fakes cannot be found |
 | `doctor` | 1 when any row is missing |
 | `stubs status` | 2 when the docs changed since the stubs were generated, 1 when the check could not run |
 
