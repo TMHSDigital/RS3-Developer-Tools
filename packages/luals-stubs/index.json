@@ -2,7 +2,7 @@
   "baseUrl": "https://developer.runescape.com/rs/",
   "source": {
     "indexEtag": "W/\"fc1cb496213873bf5b13ce9822ef6e50\"",
-    "indexLastModified": "Tue, 20 Oct 2026 10:13:45 GMT",
+    "indexLastModified": "Fri, 23 Oct 2026 08:43:29 GMT",
     "pageCount": 105,
     "generatorVersion": "0.1.0"
   },
@@ -26,7 +26,7 @@
       "title": "Events",
       "url": "https://developer.runescape.com/rs/core/events.html",
       "file": "stubs/core/events.lua",
-      "etag": "W/\"50779019b483ad7fc1e2eb3c5ff7efc0\""
+      "etag": "W/\"c79af7c2d781f1da44701151de2acfba\""
     },
     {
       "id": "core/http",
@@ -355,7 +355,7 @@
       "title": "Shapes",
       "url": "https://developer.runescape.com/rs/game/shapes.html",
       "file": "stubs/game/shapes.lua",
-      "etag": "W/\"04604de4993497d83be257eac37a3f94\""
+      "etag": "W/\"2c63a9a358752e514423b9b5fe2db482\""
     },
     {
       "id": "game/world",
@@ -411,14 +411,14 @@
       "title": "Common Types",
       "url": "https://developer.runescape.com/rs/ui/common_types.html",
       "file": "stubs/ui/common_types.lua",
-      "etag": "W/\"82e0981305e06214a9660e81b7c18d56\""
+      "etag": "W/\"f079728b6c8a76777ae2643ea9a2015c\""
     },
     {
       "id": "ui/component",
       "title": "Component",
       "url": "https://developer.runescape.com/rs/ui/component.html",
       "file": "stubs/ui/component.lua",
-      "etag": "W/\"ced27c93f0032f20d960bf208385fb7d\""
+      "etag": "W/\"a7c6ff8582533f3cf360d3b721583e09\""
     },
     {
       "id": "ui/component_collection",
