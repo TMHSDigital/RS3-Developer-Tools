@@ -2,7 +2,7 @@
   "baseUrl": "https://developer.runescape.com/rs/",
   "source": {
     "indexEtag": "W/\"fc1cb496213873bf5b13ce9822ef6e50\"",
-    "indexLastModified": "Fri, 23 Oct 2026 08:43:29 GMT",
+    "indexLastModified": "Thu, 29 Oct 2026 10:03:07 GMT",
     "pageCount": 105,
     "generatorVersion": "0.1.0"
   },
@@ -26,7 +26,7 @@
       "title": "Events",
       "url": "https://developer.runescape.com/rs/core/events.html",
       "file": "stubs/core/events.lua",
-      "etag": "W/\"c79af7c2d781f1da44701151de2acfba\""
+      "etag": "W/\"aa7b8650bf589497478ca4e093d2fa9f\""
     },
     {
       "id": "core/http",
@@ -397,7 +397,7 @@
       "title": "Rect",
       "url": "https://developer.runescape.com/rs/math/rect.html",
       "file": "stubs/math/rect.lua",
-      "etag": "W/\"ea78e429e344305140152fee51f2a697\""
+      "etag": "W/\"3ac08fcc83fc09a86eeb78f878c5a0d4\""
     },
     {
       "id": "math/vector",
@@ -418,7 +418,7 @@
       "title": "Component",
       "url": "https://developer.runescape.com/rs/ui/component.html",
       "file": "stubs/ui/component.lua",
-      "etag": "W/\"a7c6ff8582533f3cf360d3b721583e09\""
+      "etag": "W/\"9aa0c7299d9573eac6bc77ff9a353b4f\""
     },
     {
       "id": "ui/component_collection",
